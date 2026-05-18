@@ -1,0 +1,49 @@
+/* Unilever Primary Palette Custom Classes */
+
+/* Background Colors */
+.bg-sky { background-color: #0066CC; }
+.bg-mid { background-color: #47A3FF; }
+.bg-light { background-color: #85C2FF; }
+.bg-pale { background-color: #C2E0FF; }
+.bg-dark { background-color: #004D99; }
+.bg-night { background-color: #133062; }
+.bg-earth { background-color: #F6F7F0; }
+.bg-cloud { background-color: #FFFFFF; }
+.bg-pebble { background-color: #DEDED7; }
+.bg-water { background-color: #23E7FF; }
+
+/* Text Colors */
+.text-sky { color: #0066CC; }
+.text-mid { color: #47A3FF; }
+.text-light { color: #85C2FF; }
+.text-pale { color: #C2E0FF; }
+.text-dark { color: #004D99; }
+.text-night { color: #133062; }
+.text-earth { color: #F6F7F0; }
+.text-cloud { color: #FFFFFF; }
+.text-pebble { color: #DEDED7; }
+.text-water { color: #23E7FF; }
+
+/* Border Colors */
+.border-sky { border-color: #0066CC; }
+.border-mid { border-color: #47A3FF; }
+.border-light { border-color: #85C2FF; }
+.border-pale { border-color: #C2E0FF; }
+.border-dark { border-color: #004D99; }
+.border-night { border-color: #133062; }
+.border-earth { border-color: #F6F7F0; }
+.border-cloud { border-color: #FFFFFF; }
+.border-pebble { border-color: #DEDED7; }
+.border-water { border-color: #23E7FF; }
+
+/* Hover States */
+.hover\:bg-sky:hover { background-color: #0066CC; }
+.hover\:bg-dark:hover { background-color: #004D99; }
+.hover\:bg-earth:hover { background-color: #F6F7F0; }
+.hover\:bg-pebble:hover { background-color: #DEDED7; }
+
+.hover\:text-sky:hover { color: #0066CC; }
+.hover\:text-dark:hover { color: #004D99; }
+
+.hover\:border-sky:hover { border-color: #0066CC; }
+.hover\:border-mid:hover { border-color: #47A3FF; }

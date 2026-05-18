@@ -1,0 +1,287 @@
+Restyle the entire application's color scheme using the Unilever brand palette below,
+AND add a light/night mode toggle button to the top navigation bar.
+Do NOT change any component layout, data, interactions, routing, or copy — only colors and the new toggle.
+ 
+=== UNILEVER BRAND COLOR TOKENS (do not hallucinate new hex values) ===
+ 
+PRIMARY PALETTE:
+  Night:       #133062   (brand darkest blue — deep navy)
+  Dark:        #004D99
+  Sky:         #0066CC   (brand primary blue)
+  Sky Mid:     #47A3FF
+  Sky Light:   #85C2FF
+  Sky Pale:    #C2E0FF
+  Earth:       #F6F7F0   (warm off-white)
+  Cloud:       #FFFFFF
+  Pebble:      #DEDED7
+  Water:       #23E7FF   (bright cyan — accent)
+  Night Text:  #133062
+  Muted Text:  #6B7589
+ 
+HIGHLIGHT PALETTE (status badges only):
+  Lilac:   #8652DF  /  pale: #E7DCFF  /  dark-mode pale: #2D1060
+  Rose:    #E13591  /  pale: #FAD6EB  /  dark-mode pale: #5C0A36
+  Aqua:    #008090  /  pale: #D0F4F7  /  dark-mode pale: #003C45
+  Clover:  #2B911C  /  pale: #D4F0CE  /  dark-mode pale: #0E3509
+  Sorbet:  #DA5700  /  pale: #FFDCCC  /  dark-mode pale: #5C2200
+ 
+=== PART 1 — LIGHT MODE COLORS ===
+ 
+TOP NAVIGATION:
+  Background: #133062
+  Bottom accent bar: 3px, linear-gradient left→right: #23E7FF → #47A3FF → #0066CC
+  Logo bg: white, logo color: #0066CC
+  App title: white, font-weight 700
+  Active nav pill: background #0066CC, text white, border-radius 20px
+  Inactive nav links: rgba(255,255,255,0.65)
+  Icons: rgba(255,255,255,0.75)
+ 
+PAGE BACKGROUND: #F6F7F0
+ 
+LEFT SIDEBAR:
+  Background: white
+  Border-right: 1px solid #DEDED7
+  Section heading: #133062, font-weight 700, 11px, uppercase, letter-spacing 0.08em
+  Active item: background #C2E0FF, color #004D99, font-weight 600, border-radius 6px
+  Inactive items: color #133062
+  Hover: background #F6F7F0
+ 
+TOOLBAR (search + buttons):
+  Search: background white, border 1px solid #DEDED7, text #133062, placeholder #6B7589
+  Primary buttons: background #0066CC, text white, border-radius 8px, font-weight 700
+  Primary hover: background #004D99
+  Outline buttons: background white, border 1px solid #DEDED7, text #133062
+  Outline hover: background #F6F7F0
+ 
+DATA TABLE:
+  Header row: background #133062, text white, font-weight 700, 12px
+  Odd rows: background white
+  Even rows: background #F6F7F0
+  Row hover: background #C2E0FF
+  Row selected: background #85C2FF
+  Dividers: 0.5px solid #DEDED7
+  Cell text: #133062
+  Clickable links/names: color #0066CC, font-weight 600
+  Active sort icon: color #23E7FF
+  Frozen column left border: 2px solid #0066CC
+ 
+STATUS BADGES (pill, border-radius 12px, font-weight 700, 12px):
+  Approved / Active:    background #D4F0CE, text #164A0D
+  In Review / Progress: background #FFDCCC, text #7A2E00
+  Rejected / Blocked:   background #FAD6EB, text #8C1055
+  Draft / Not Started:  background #E7DCFF, text #4A1F9A
+ 
+CARDS / PANELS:
+  Background: white
+  Border: 1px solid #DEDED7
+  Header bg: #F6F7F0, border-bottom: 1px solid #DEDED7
+  Title: #133062, font-weight 700
+  Subheadings: #004D99, font-weight 600
+  Body text: #133062
+  Helper text: #6B7589
+ 
+MODAL:
+  Backdrop: rgba(19, 48, 98, 0.45)
+  Background: white
+  Header border: 1px solid #DEDED7
+  Title: #133062, font-weight 700
+  Close button: #6B7589, hover bg #F6F7F0
+ 
+TAB BARS:
+  Tab bar bg: #F6F7F0
+  Active tab: background white, border-bottom 2px solid #0066CC, color #0066CC, font-weight 700
+  Inactive: color #6B7589
+  Hover: bg white, color #133062
+ 
+INPUTS:
+  Background: white, border: 1px solid #DEDED7
+  Focus border: 1px solid #0066CC
+  Focus ring: 0 0 0 3px rgba(35, 231, 255, 0.25)
+  Label: #133062, font-weight 600, 13px
+  Text: #133062, placeholder: #6B7589
+ 
+TOGGLES / CHECKBOXES:
+  Checked bg: #0066CC, icon: white
+  Unchecked border: #DEDED7
+  Toggle on: #0066CC, off: #DEDED7
+ 
+LINKS: default #0066CC, hover #004D99
+FOCUS OUTLINE: 2px solid #0066CC, offset 2px
+SCROLLBAR: track #F6F7F0, thumb #C2E0FF, hover thumb #85C2FF
+ 
+=== PART 2 — NIGHT MODE COLORS ===
+Applied when the <html> element has class "dark" (Tailwind dark variant).
+All tokens below map to the .dark {} block in theme.css.
+ 
+PAGE BACKGROUND: #0A1628  (Night at near-black depth)
+CARDS / SIDEBAR / RAISED SURFACES: #0D1F42
+SECTION ANCHORS (table header, grouped panel headers): #133062
+BORDERS / DIVIDERS: 1px solid #1A3566
+CARD BORDER: 1px solid #1A3566
+ 
+TOP NAVIGATION (night mode — keep same Night bg, it already reads as dark):
+  Background: #0A1628  (deepen slightly vs light mode)
+  Bottom accent bar: same gradient as light mode
+  Logo bg: #0066CC, logo color: white
+  Title: white
+  Active pill: background #1557B0, text #85C2FF
+  Inactive links: rgba(133, 194, 255, 0.65)  (Sky Light at 65%)
+  Icons: rgba(133, 194, 255, 0.75)
+ 
+SIDEBAR (night mode):
+  Background: #0D1F42
+  Border-right: 1px solid #1A3566
+  Section heading: #85C2FF
+  Active item: background #1557B0, color #C2E0FF, font-weight 600
+  Inactive items: color #47A3FF
+  Hover: background #133062
+ 
+TOOLBAR (night mode):
+  Search bg: #0D1F42, border: 1px solid #1A3566, text #C2E0FF, placeholder #47A3FF
+  Primary buttons: background #0066CC, text white (unchanged)
+  Primary hover: background #1557B0
+  Outline buttons: bg #0D1F42, border #1A3566, text #85C2FF
+  Outline hover: bg #133062
+ 
+TABLE (night mode):
+  Header: background #0D1F42, text #85C2FF, font-weight 700
+  Odd rows: background #0D1F42
+  Even rows: background #0A1628
+  Row hover: background #133062
+  Row selected: background #1557B0
+  Dividers: 0.5px solid #1A3566
+  Cell text: #C2E0FF
+  Links/names: color #47A3FF, font-weight 600
+  Sort icon: color #23E7FF
+  Frozen column border: 2px solid #47A3FF
+ 
+STATUS BADGES (night mode — invert to dark bg + bright text):
+  Approved:     background #0E3509, text #9AE98C
+  In Review:    background #5C2200, text #FFD4BB
+  Rejected:     background #5C0A36, text #FFB3D6
+  Draft:        background #2D1060, text #C9ADFF
+ 
+CARDS / PANELS (night mode):
+  Background: #0D1F42
+  Border: 1px solid #1A3566
+  Header bg: #133062, border-bottom: 1px solid #1A3566
+  Title: #85C2FF, font-weight 700
+  Subheadings: #47A3FF, font-weight 600
+  Body text: #C2E0FF
+  Helper text: #47A3FF
+ 
+MODAL (night mode):
+  Backdrop: rgba(10, 22, 40, 0.75)
+  Background: #0D1F42
+  Header border: 1px solid #1A3566
+  Title: #85C2FF
+ 
+TAB BARS (night mode):
+  Tab bar bg: #0D1F42
+  Active tab: bg #133062, border-bottom 2px solid #47A3FF, color #47A3FF
+  Inactive: color #47A3FF at 50% opacity
+  Hover: bg #133062, color #85C2FF
+ 
+INPUTS (night mode):
+  Background: #0D1F42, border: 1px solid #1A3566
+  Focus border: 1px solid #47A3FF
+  Focus ring: 0 0 0 3px rgba(35, 231, 255, 0.2)
+  Label: #85C2FF
+  Text: #C2E0FF, placeholder: #47A3FF
+ 
+SCROLLBAR (night mode): track #0A1628, thumb #1A3566, hover thumb #133062
+ 
+=== PART 3 — THEME TOGGLE BUTTON ===
+ 
+PLACEMENT: In the top navigation bar, right side — just before the notification bell icon.
+ 
+COMPONENT NAME: ThemeToggle (new component, create in src/app/components/ui/ThemeToggle.tsx)
+ 
+BEHAVIOR:
+  - On click, toggle the "dark" class on the document.documentElement (<html>)
+  - Persist the user's preference to localStorage with key "unilever-theme"
+  - On app load, read localStorage and apply "dark" class if stored value is "dark"
+  - Default to light mode if no preference is stored
+ 
+VISUAL DESIGN OF THE BUTTON:
+  Shape: pill toggle switch, width 44px, height 24px, border-radius 12px
+  Light mode state:
+    - Pill background: #C2E0FF (Sky Pale)
+    - Dot: 18px circle, background #0066CC (Sky), positioned left side (translateX 3px)
+    - Icon inside dot: sun icon (☀️ or SVG sun), white, 10px
+    - Pill border: 1px solid #85C2FF
+  Night mode state:
+    - Pill background: #133062 (Night)
+    - Dot: 18px circle, background #23E7FF (Water), positioned right side (translateX 23px)
+    - Icon inside dot: moon icon (🌙 or SVG crescent), #0A1628, 10px
+    - Pill border: 1px solid #1A3566
+  Transition: all 0.25s ease on both pill background and dot position
+  Tooltip on hover: "Switch to Night mode" / "Switch to Light mode"
+  Accessibility: aria-label="Toggle night mode", role="switch", aria-checked=true/false
+ 
+COMPONENT CODE PATTERN (implement exactly like this):
+ 
+  // ThemeToggle.tsx
+  import { useEffect, useState } from 'react';
+ 
+  export function ThemeToggle() {
+    const [isDark, setIsDark] = useState(false);
+ 
+    useEffect(() => {
+      const stored = localStorage.getItem('unilever-theme');
+      if (stored === 'dark') {
+        document.documentElement.classList.add('dark');
+        setIsDark(true);
+      }
+    }, []);
+ 
+    const toggle = () => {
+      const next = !isDark;
+      setIsDark(next);
+      if (next) {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('unilever-theme', 'dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('unilever-theme', 'light');
+      }
+    };
+ 
+    return (
+<button
+        onClick={toggle}
+        role="switch"
+        aria-checked={isDark}
+        aria-label={isDark ? 'Switch to Light mode' : 'Switch to Night mode'}
+        title={isDark ? 'Switch to Light mode' : 'Switch to Night mode'}
+        style={{
+          width: 44, height: 24, borderRadius: 12, border: 'none',
+          background: isDark ? '#133062' : '#C2E0FF',
+          position: 'relative', cursor: 'pointer',
+          transition: 'background 0.25s ease',
+          outline: 'none', flexShrink: 0,
+        }}
+>
+<span style={{
+          position: 'absolute', top: 3,
+          left: isDark ? 23 : 3,
+          width: 18, height: 18, borderRadius: '50%',
+          background: isDark ? '#23E7FF' : '#0066CC',
+          transition: 'left 0.25s ease, background 0.25s ease',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 10,
+        }}>
+          {isDark ? '🌙' : '☀️'}
+</span>
+</button>
+    );
+  }
+ 
+IMPORT & USE: Import ThemeToggle into the top navigation component (LeftNavigation.tsx or wherever the nav bar is defined) and render it in the nav's right-side icon group, before the bell icon.
+ 
+=== DO NOT ===
+  - Use any hex values not listed in this prompt
+  - Apply highlight colors (Lilac, Rose, Clover, Sorbet, Aqua) outside of status badges
+  - Add drop shadows, blur, or glow effects anywhere
+  - Modify component layouts, font sizes, spacing, routing, or data logic
+  - Use oklch() colors in light mode — only use the hex values above
