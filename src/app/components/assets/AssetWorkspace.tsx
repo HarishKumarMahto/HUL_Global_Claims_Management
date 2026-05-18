@@ -1059,7 +1059,7 @@ export default function AssetWorkspace({
               className="flex items-center gap-1.5 px-3 py-1.5 border border-sky/30 bg-sky/5 rounded-lg text-sm text-sky hover:bg-pale shadow-sm transition-colors"
             >
               <Sparkles className="w-4 h-4" />
-              Extract Claim (SPARCi)
+              Extract Claims 
             </button>
 
             {/* Lifecycle transition */}

@@ -213,7 +213,7 @@ export default function SPARCiPanel({
               <Sparkles className="w-4 h-4 text-white" />
             </div>
             <div>
-              <div className="text-sm text-night font-semibold">Extract Claims (SPARCi)</div>
+              <div className="text-sm text-night font-semibold">Extract Claims</div>
               <div className="text-xs text-gray-500">AI-powered claim extraction from asset content</div>
             </div>
           </div>
@@ -238,7 +238,7 @@ export default function SPARCiPanel({
             <div>
               <div className="text-sm text-night font-semibold mb-1">Ready to extract claims</div>
               <div className="text-xs text-gray-500 leading-relaxed max-w-xs">
-                SPARCi will scan the asset content using OCR to surface candidate claim statements. Each candidate shows a confidence score. Recommendations are never auto-committed.
+                Extract Claims will scan the asset content using OCR to surface candidate claim statements. Each candidate shows a confidence score. Recommendations are never auto-committed.
               </div>
             </div>
             {asset.isPlaceholder && (
@@ -253,7 +253,7 @@ export default function SPARCiPanel({
               className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-sky to-purple-500 text-white rounded-xl text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
             >
               <Sparkles className="w-4 h-4" />
-              Run SPARCi Analysis
+              Run Extract Claims
             </button>
             <p className="text-xs text-gray-400">AI results are logged in the Audit Trail with model version.</p>
           </div>
@@ -403,7 +403,7 @@ export default function SPARCiPanel({
           <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6 py-8 text-center">
             <AlertCircle className="w-10 h-10 text-red-400" />
             <div className="text-sm text-night font-medium">AI unavailable</div>
-            <div className="text-xs text-gray-400">SPARCi could not complete the request. Please try again later.</div>
+            <div className="text-xs text-gray-400">Extract Claims could not complete the request. Please try again later.</div>
             <button onClick={() => setStatus('idle')} className="text-xs text-sky hover:underline">Dismiss</button>
           </div>
         )}
