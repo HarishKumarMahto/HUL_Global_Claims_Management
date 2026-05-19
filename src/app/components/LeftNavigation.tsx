@@ -60,6 +60,12 @@ interface LeftNavigationProps {
   onSelectProductSavedView?: (view: any) => void;
   relatedClaimsSubFilter?: string;
   onRelatedClaimsSubFilterChange?: (filter: string) => void;
+  // Documents module nav
+  activeDocumentsLibraryView?: string;
+  onDocumentsLibraryViewChange?: (view: string) => void;
+  isInDocumentWorkspace?: boolean;
+  activeDocumentSection?: string;
+  onDocumentSectionChange?: (section: string) => void;
 }
 
 const PROJECT_VIEWS = [
@@ -75,6 +81,23 @@ const ASSET_VIEWS = [
   { id: 'All Assets', label: 'All Assets', icon: <LayoutGrid className="w-4 h-4" /> },
   { id: 'Favorites', label: 'Favorites', icon: <Star className="w-4 h-4" /> },
   { id: 'Recently Viewed', label: 'Recent', icon: <Clock className="w-4 h-4" /> },
+];
+
+const DOCUMENT_VIEWS = [
+  { id: 'My Documents',            label: 'My Documents',            icon: <FolderOpen className="w-4 h-4" /> },
+  { id: 'All Documents',           label: 'All Documents',           icon: <LayoutGrid className="w-4 h-4" /> },
+  { id: 'Substantiation Evidence', label: 'Substantiation Evidence', icon: <FileText className="w-4 h-4" /> },
+  { id: 'Formulation Documents',   label: 'Formulation Documents',   icon: <Layers className="w-4 h-4" /> },
+  { id: 'Project Documents',       label: 'Project Documents',       icon: <FolderOpen className="w-4 h-4" /> },
+];
+
+const DOCUMENT_WORKSPACE_SECTIONS = [
+  { id: 'Document Details',  label: 'Document Details',  icon: <Info className="w-4 h-4" /> },
+  { id: 'Related Claims',    label: 'Related Claims',    icon: <FileText className="w-4 h-4" /> },
+  { id: 'Related Assets',    label: 'Related Assets',    icon: <Paperclip className="w-4 h-4" /> },
+  { id: 'Related Products',  label: 'Related Products',  icon: <Package className="w-4 h-4" /> },
+  { id: 'Version History',   label: 'Version History',   icon: <History className="w-4 h-4" /> },
+  { id: 'Comments',          label: 'Comments',           icon: <FileText className="w-4 h-4" /> },
 ];
 
 const ASSET_WORKSPACE_SECTIONS = [
@@ -147,6 +170,11 @@ export default function LeftNavigation({
   onSelectProductSavedView,
   relatedClaimsSubFilter = 'all',
   onRelatedClaimsSubFilterChange,
+  activeDocumentsLibraryView = 'My Documents',
+  onDocumentsLibraryViewChange,
+  isInDocumentWorkspace = false,
+  activeDocumentSection = 'Document Details',
+  onDocumentSectionChange,
 }: LeftNavigationProps) {
   const [isProjectsExpanded, setIsProjectsExpanded] = useState(true);
   const [isProductsExpanded, setIsProductsExpanded] = useState(true);
@@ -193,6 +221,75 @@ export default function LeftNavigation({
   // ─── USER MANAGEMENT ──────────────────────────────────────────────────────
   if (activeModule === 'UserManagement') {
     return null; // Module has its own built-in left panel
+  }
+
+  // ─── DOCUMENTS MODULE ──────────────────────────────────────────────
+  if (activeModule === 'Documents' && !isInDocumentWorkspace) {
+    return (
+      <aside className={sidebarClass}>
+        <CollapseButton />
+        <div className={`flex flex-col h-full w-64 ${isCollapsed ? 'invisible opacity-0' : 'visible opacity-100'} transition-all duration-200`}>
+          <div className="px-4 py-3 border-b border-pebble">
+            <div className="flex items-center gap-2 text-xs text-gray-400 uppercase tracking-wider" style={{ fontWeight: 500 }}>
+              <FileText className="w-3.5 h-3.5" />
+              Library Views
+            </div>
+          </div>
+          <nav className="p-3 flex-1 overflow-y-auto">
+            <div className="space-y-0.5">
+              {DOCUMENT_VIEWS.map(view => {
+                const isActive = activeDocumentsLibraryView === view.id;
+                return (
+                  <button
+                    key={view.id}
+                    onClick={() => onDocumentsLibraryViewChange?.(view.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150 text-sm ${isActive ? 'bg-pale text-sky' : 'text-gray-600 hover:bg-earth hover:text-night'}`}
+                  >
+                    <span className={isActive ? 'text-sky' : 'text-gray-400'}>{view.icon}</span>
+                    <span className="flex-1 text-left" style={{ fontWeight: isActive ? 500 : 400 }}>{view.label}</span>
+                    {isActive && <div className="w-1.5 h-1.5 rounded-full bg-sky flex-shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
+        </div>
+      </aside>
+    );
+  }
+
+  if (activeModule === 'Documents' && isInDocumentWorkspace) {
+    return (
+      <aside className={sidebarClass}>
+        <CollapseButton />
+        <div className={`flex flex-col h-full w-64 ${isCollapsed ? 'invisible opacity-0' : 'visible opacity-100'} transition-all duration-200`}>
+          <div className="px-4 py-3 border-b border-pebble">
+            <div className="flex items-center gap-2 text-xs text-gray-400 uppercase tracking-wider" style={{ fontWeight: 500 }}>
+              <Layers className="w-3.5 h-3.5" />
+              Document Workspace
+            </div>
+          </div>
+          <nav className="p-3 flex-1 overflow-y-auto">
+            <div className="space-y-0.5">
+              {DOCUMENT_WORKSPACE_SECTIONS.map(section => {
+                const isActive = activeDocumentSection === section.id;
+                return (
+                  <button
+                    key={section.id}
+                    onClick={() => onDocumentSectionChange?.(section.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150 text-sm ${isActive ? 'bg-pale text-sky' : 'text-gray-600 hover:bg-earth hover:text-night'}`}
+                  >
+                    <span className={isActive ? 'text-sky' : 'text-gray-400'}>{section.icon}</span>
+                    <span className="flex-1 text-left truncate" style={{ fontWeight: isActive ? 500 : 400 }}>{section.label}</span>
+                    {isActive && <div className="w-1.5 h-1.5 rounded-full bg-sky flex-shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
+        </div>
+      </aside>
+    );
   }
 
   // ─── ASSETS MODULE ────────────────────────────────────────────────────────

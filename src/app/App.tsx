@@ -52,6 +52,10 @@ import { useToast } from './hooks/useToast';
 import CreateAssetModal from './components/assets/CreateAssetModal';
 // import { ThemeToggle } from './components/ui/ThemeToggle';
 import UserManagementModule from './components/userManagement/UserManagementModule';
+import DocumentsModule from './components/documents/DocumentsModule';
+import DocumentWorkspace from './components/documents/DocumentWorkspace';
+import { initialDocuments } from './components/documents/documentsData';
+import type { DocumentRecord } from './components/documents/documentsData';
 
 type WorkspaceSection =
   | 'Project Details'
@@ -361,6 +365,12 @@ export default function App() {
   const [activeAssetsLibraryView, setActiveAssetsLibraryView] = useState('My Assets');
   const [activeAssetSection, setActiveAssetSection] = useState('Asset Details');
 
+  // ─── Documents Module State ───────────────────────────────────────────────
+  const [documents, setDocuments] = useState<DocumentRecord[]>(initialDocuments);
+  const [selectedDocument, setSelectedDocument] = useState<DocumentRecord | null>(null);
+  const [activeDocumentsView, setActiveDocumentsView] = useState('My Documents');
+  const [activeDocumentSection, setActiveDocumentSection] = useState('Document Details');
+
   useEffect(() => {
     let hasLoaded = false;
     const saved = sessionStorage.getItem(SESSION_KEY);
@@ -469,7 +479,35 @@ export default function App() {
     return () => window.removeEventListener('navigateToClaimDetails', handler);
   }, [claims]);
 
+  // ─── Phase 6: Lifecycle Engine — SE Expiry Cascade ───────────────────────
+  // Re-evaluate SE lifecycle on every documents change; push toast when expired
+  useEffect(() => {
+    const now = new Date();
+    let changed = false;
+    const updated = documents.map(doc => {
+      if (doc.documentType !== 'Substantiation Evidence') return doc;
+      if (doc.lifecycleState === 'Cancelled' || doc.lifecycleState === 'Expired') return doc;
+      const isExpired = doc.validToDate && new Date(doc.validToDate) < now;
+      if (isExpired && doc.lifecycleState !== 'Expired') {
+        changed = true;
+        return { ...doc, lifecycleState: 'Expired' as const, modifiedDate: now.toISOString() };
+      }
+      // In Use ↔ Draft based on linkages
+      const hasLinks = (doc.linkedClaimIds?.length ?? 0) > 0 || (doc.linkedAssetIds?.length ?? 0) > 0;
+      const targetState = hasLinks ? 'In Use' : 'Draft';
+      if (doc.lifecycleState !== targetState) {
+        changed = true;
+        return { ...doc, lifecycleState: targetState as any, modifiedDate: now.toISOString() };
+      }
+      return doc;
+    });
+    if (changed) setDocuments(updated);
+  // Run on mount and on documents length change only (avoids infinite loop)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [documents.length]);
+
   const handleModuleChange = (module: string) => {
+
     setActiveModule(module);
     // Always reset workspace state for ALL modules so that clicking any top nav item
     // (including the currently active one) always returns to that module's main page.
@@ -477,6 +515,7 @@ export default function App() {
     setSelectedProduct(null); setActiveProductView('landing');
     setSelectedClaim(null); setClaimsModuleView('table');
     setSelectedAsset(null); setAssetsModuleView('library');
+    setSelectedDocument(null);
   };
 
   const handleViewChange = (view: string) => {
@@ -1076,6 +1115,11 @@ export default function App() {
           onSelectProjectSavedView={handleSelectSavedView}
           productSavedViews={productSavedViews}
           onSelectProductSavedView={handleSelectProductSavedView}
+          activeDocumentsLibraryView={activeDocumentsView}
+          onDocumentsLibraryViewChange={setActiveDocumentsView}
+          isInDocumentWorkspace={activeModule === 'Documents' && !!selectedDocument}
+          activeDocumentSection={activeDocumentSection}
+          onDocumentSectionChange={setActiveDocumentSection}
         />
 
         {/* Main Content */}
@@ -1448,6 +1492,31 @@ export default function App() {
                   setAssetsModuleView('workspace');
                 }}
                 externalSearchQuery={assetSearchQuery}
+              />
+            )
+          ) : activeModule === 'Documents' ? (
+            selectedDocument ? (
+              <DocumentWorkspace
+                document={selectedDocument}
+                activeSection={activeDocumentSection}
+                onSectionChange={setActiveDocumentSection}
+                onClose={() => { setSelectedDocument(null); setActiveDocumentSection('Document Details'); }}
+                onDocumentChange={(updated) => {
+                  setDocuments(prev => prev.map(d => d.id === updated.id ? updated : d));
+                  setSelectedDocument(updated);
+                }}
+                onNewDocumentCreated={(newDoc) => setDocuments(prev => [newDoc, ...prev])}
+                allClaims={claims}
+                allAssets={assets}
+                allDocuments={documents}
+              />
+            ) : (
+              <DocumentsModule
+                documents={documents}
+                onDocumentsChange={setDocuments}
+                activeLibraryView={activeDocumentsView}
+                onLibraryViewChange={setActiveDocumentsView}
+                onDocumentClick={(doc) => { setSelectedDocument(doc); setActiveDocumentSection('Document Details'); }}
               />
             )
           ) : activeModule === 'UserManagement' ? (

@@ -50,6 +50,8 @@ import ClaimCreationModal from "./ClaimCreationModal";
 import IRAModal from "./IRAModal";
 import RiskAssessmentModal from "./RiskAssessmentModal";
 import RiskLevelAssessmentsSection from "./RiskLevelAssessmentsSection";
+import UploadDocumentModal from "../documents/UploadDocumentModal";
+import type { DocumentRecord } from "../documents/documentsData";
 
 interface CommentEntry {
   id: string;
@@ -725,6 +727,7 @@ interface SupportStrategySectionProps {
   onClaimSave: (updated: Claim) => void;
   fileUploadRef: React.RefObject<HTMLInputElement>;
   surface: 'inline' | 'detail' | 'workspace';
+  onDocumentCreated?: (doc: DocumentRecord) => void;
 }
 
 function SupportStrategySection({
@@ -732,11 +735,16 @@ function SupportStrategySection({
   onClaimSave,
   fileUploadRef,
   surface,
+  onDocumentCreated,
 }: SupportStrategySectionProps) {
   // F02 — role + lifecycle access control
   const isLifecycleLocked = claim.lifecycleStage === 'Assessed';
   const hasEditRole = canEditSupportStrategy(CURRENT_USER_ROLE);
   const canEdit = hasEditRole && !isLifecycleLocked;
+
+  // SE attach modal state
+  const [seModalOpen, setSeModalOpen] = useState(false);
+  const [linkedSEDocs, setLinkedSEDocs] = useState<DocumentRecord[]>([]);
 
   // F01 — editor state
   const [isEditing, setIsEditing] = useState(false);
@@ -974,12 +982,21 @@ function SupportStrategySection({
               Substantiation Documents ({claim.substantiationDocs.length})
             </label>
             {canEdit && (
-              <button
-                onClick={() => fileUploadRef.current?.click()}
-                className="flex items-center gap-1 text-xs text-sky hover:underline"
-              >
-                <Upload className="w-3 h-3" /> Upload Document
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => fileUploadRef.current?.click()}
+                  className="flex items-center gap-1 text-xs text-sky hover:underline"
+                >
+                  <Upload className="w-3 h-3" /> Upload Document
+                </button>
+                <span className="text-gray-300 text-xs">|</span>
+                <button
+                  onClick={() => setSeModalOpen(true)}
+                  className="flex items-center gap-1 text-xs text-violet-600 hover:underline font-medium"
+                >
+                  <FileText className="w-3 h-3" /> Attach SE from Library
+                </button>
+              </div>
             )}
             <input
               type="file"
@@ -1024,6 +1041,21 @@ function SupportStrategySection({
         {/* ── F06 Audit Log — Support Strategy changes ── */}
         <AuditLogPanel auditLog={claim.auditLog} />
       </div>
+
+      {/* SE Upload Modal — opens in context of this claim */}
+      {seModalOpen && (
+        <UploadDocumentModal
+          isOpen={seModalOpen}
+          onClose={() => setSeModalOpen(false)}
+          contextDocType="Substantiation Evidence"
+          contextClaimId={claim.id}
+          onCreate={(doc) => {
+            setLinkedSEDocs(prev => [doc, ...prev]);
+            onDocumentCreated?.(doc);
+            setSeModalOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }
