@@ -28,11 +28,11 @@ export default function UsersTab({ users, onUsersChange, roleFilter }: UsersTabP
   }, []);
 
   const filtered = users.filter(u => {
-    if (roleFilter && u.roleCode !== ROLES.find(r => r.id === roleFilter)?.code) return false;
+    if (roleFilter && !u.roleCodes.includes(roleFilter as any)) return false;
     if (statusFilter !== 'All' && u.status !== statusFilter) return false;
     if (search) {
       const q = search.toLowerCase();
-      return `${u.firstName} ${u.lastName}`.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.department.toLowerCase().includes(q);
+      return `${u.firstName} ${u.lastName}`.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.functionArea.toLowerCase().includes(q);
     }
     return true;
   });
@@ -75,7 +75,7 @@ export default function UsersTab({ users, onUsersChange, roleFilter }: UsersTabP
         <table className="w-full text-sm border-collapse">
           <thead className="sticky top-0 z-10">
             <tr className="bg-[#133062] text-white text-xs font-semibold">
-              {['User', 'Email', 'Department', 'Role', 'Status', 'Last Active', ''].map((h, i) => (
+              {['User', 'Email', 'Function', 'Roles', 'Status', 'Last Active', ''].map((h, i) => (
                 <th key={i} className={`px-4 py-3 font-semibold text-left ${i === 5 ? 'hidden lg:table-cell' : ''} ${i === 6 ? 'w-10' : ''}`}>{h}</th>
               ))}
             </tr>
@@ -101,15 +101,21 @@ export default function UsersTab({ users, onUsersChange, roleFilter }: UsersTabP
                   <td className="px-4 py-3 text-xs text-gray-600">{user.email}</td>
                   <td className="px-4 py-3">
                     <span className="px-2 py-1 bg-[#F6F7F0] text-[#133062] rounded-full text-xs font-medium border border-[#DEDED7]">
-                      {user.department}
+                      {user.functionArea}
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    {role && (
-                      <span className="px-2 py-1 rounded-full text-xs font-bold text-white" style={{ backgroundColor: role.color }}>
-                        {role.id} · {role.shortName}
-                      </span>
-                    )}
+                    <div className="flex flex-wrap gap-1">
+                      {user.roleCodes.map(rc => {
+                        const role = ROLES.find(r => r.code === rc);
+                        return role ? (
+                          <span key={rc} className="px-2 py-0.5 rounded-full text-[10px] font-bold text-white" style={{ backgroundColor: role.color }}>
+                            {role.id}
+                          </span>
+                        ) : null;
+                      })}
+                      {user.roleCodes.length === 0 && <span className="text-[10px] text-gray-400 italic">No roles</span>}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"

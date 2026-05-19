@@ -1,6 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { X, AlertCircle, ChevronDown, Check, Eye, EyeOff, Mail } from 'lucide-react';
-import { ROLES, DEPARTMENTS, MOCK_USERS, type UserRecord, type RoleCode } from './userManagementData';
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
+import { Mail, User, Briefcase, MapPin, Globe, Clock, Check, AlertCircle } from 'lucide-react';
+import { type UserRecord, type FunctionArea, FUNCTIONS, BUSINESS_GROUPS, TIME_ZONES } from './userManagementData';
+import { MultiSelectDropdown } from '../MultiSelectDropdown';
+
+// Generic mockup data for BU, Categories, and Geographies
+const BU_OPTIONS = ['Global BU', 'BU 1', 'BU 2', 'BU 3'];
+const CATEGORY_OPTIONS = ['Skin Care', 'Hair Care', 'Deodorants', 'Fabric Cleaning', 'Home & Hygiene', 'Dressings', 'Ice Cream'];
+const GEOGRAPHY_OPTIONS = ['Global', 'North America', 'Europe', 'LATAM', 'SEAA', 'South Asia', 'Africa'];
 
 interface CreateUserDialogProps {
   isOpen: boolean;
@@ -9,396 +16,242 @@ interface CreateUserDialogProps {
   existingUsers: UserRecord[];
 }
 
-interface FormState {
-  firstName: string;
-  lastName: string;
-  email: string;
-  employeeId: string;
-  department: string;
-  roleCode: string;
-  status: 'Active' | 'Inactive';
-  phone: string;
-  manager: string;
-  inviteMethod: 'email' | 'password';
-  tempPassword: string;
-}
-
-interface FieldErrors {
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  employeeId?: string;
-  department?: string;
-  roleCode?: string;
-  tempPassword?: string;
-}
-
-const EMPTY_FORM: FormState = {
-  firstName: '', lastName: '', email: '', employeeId: '',
-  department: '', roleCode: '', status: 'Active',
-  phone: '', manager: '', inviteMethod: 'email', tempPassword: '',
-};
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function FieldLabel({ label, required }: { label: string; required?: boolean }) {
-  return (
-    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-      {label} {required && <span className="text-red-500 normal-case">*</span>}
-    </label>
-  );
-}
-
-function FormField({
-  label, required, error, children,
-}: { label: string; required?: boolean; error?: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <FieldLabel label={label} required={required} />
-      {children}
-      {error && (
-        <p className="flex items-center gap-1 mt-1 text-xs text-red-500">
-          <AlertCircle className="w-3 h-3 flex-shrink-0" />{error}
-        </p>
-      )}
-    </div>
-  );
-}
-
-const inputCls = (hasError?: boolean) =>
-  `w-full px-3 py-2.5 border rounded-lg text-sm text-[#133062] focus:outline-none focus:ring-2 focus:ring-[#0066CC] bg-white transition-colors ${hasError ? 'border-red-400 focus:ring-red-400' : 'border-[#DEDED7] hover:border-[#0066CC]/40'
-  }`;
-
-const selectCls = (hasError?: boolean) =>
-  `w-full px-3 py-2.5 border rounded-lg text-sm text-[#133062] focus:outline-none focus:ring-2 focus:ring-[#0066CC] bg-white appearance-none transition-colors ${hasError ? 'border-red-400 focus:ring-red-400' : 'border-[#DEDED7] hover:border-[#0066CC]/40'
-  }`;
-
 export default function CreateUserDialog({ isOpen, onClose, onCreate, existingUsers }: CreateUserDialogProps) {
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
-  const [errors, setErrors] = useState<FieldErrors>({});
-  const [showPassword, setShowPassword] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  
+  const [functionArea, setFunctionArea] = useState<FunctionArea | ''>('');
+  const [businessGroups, setBusinessGroups] = useState<string[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [bu, setBu] = useState('');
+  const [geographies, setGeographies] = useState<string[]>([]);
+  const [status, setStatus] = useState<'Active' | 'Inactive'>('Active');
+  const [timeZone, setTimeZone] = useState('');
+  
+  const [notifySummary, setNotifySummary] = useState(true);
+  const [notifyInApp, setNotifyInApp] = useState(true);
 
-  useEffect(() => {
-    if (!isOpen) {
-      setForm(EMPTY_FORM);
-      setErrors({});
-      setSubmitted(false);
-      setShowPassword(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+    if (!firstName.trim()) newErrors.firstName = 'Required';
+    if (!lastName.trim()) newErrors.lastName = 'Required';
+    if (!email.trim()) {
+      newErrors.email = 'Required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = 'Invalid email format';
+    } else if (existingUsers.some(u => u.email.toLowerCase() === email.toLowerCase().trim())) {
+      newErrors.email = 'Email already exists';
     }
-  }, [isOpen]);
+    
+    if (!functionArea) newErrors.functionArea = 'Required';
+    if (businessGroups.length === 0) newErrors.businessGroups = 'Required';
+    if (categories.length === 0) newErrors.categories = 'Required';
+    if (!bu) newErrors.bu = 'Required';
+    if (geographies.length === 0) newErrors.geographies = 'Required';
 
-  if (!isOpen) return null;
+    // Mock validation: "User cannot be created with invalid geography/BG combinations"
+    if (businessGroups.includes('Ice Cream') && !geographies.includes('Global')) {
+       newErrors.geographies = 'Ice Cream requires Global geography';
+    }
 
-  const set = (field: keyof FormState, value: string) => {
-    setForm(prev => ({ ...prev, [field]: value }));
-    if (submitted) validate({ ...form, [field]: value });
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const validate = (data: FormState = form): boolean => {
-    const e: FieldErrors = {};
-    if (!data.firstName.trim()) e.firstName = 'First name is required';
-    if (!data.lastName.trim()) e.lastName = 'Last name is required';
-    if (!data.email.trim()) e.email = 'Email is required';
-    else if (!EMAIL_REGEX.test(data.email)) e.email = 'Enter a valid email address';
-    else if (existingUsers.some(u => u.email.toLowerCase() === data.email.toLowerCase())) {
-      e.email = 'A user with this email already exists';
-    }
-    if (!data.employeeId.trim()) e.employeeId = 'Employee ID is required';
-    if (!data.department) e.department = 'Department is required';
-    if (!data.roleCode) e.roleCode = 'Role assignment is required';
-    if (data.inviteMethod === 'password' && !data.tempPassword.trim()) {
-      e.tempPassword = 'Temporary password is required';
-    }
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  };
-
-  const handleSubmit = () => {
-    setSubmitted(true);
+  const handleSave = () => {
     if (!validate()) return;
 
     const newUser: UserRecord = {
-      id: `U${String(MOCK_USERS.length + Date.now()).slice(-4)}`,
-      firstName: form.firstName.trim(),
-      lastName: form.lastName.trim(),
-      email: form.email.trim().toLowerCase(),
-      employeeId: form.employeeId.trim(),
-      department: form.department,
-      roleCode: form.roleCode as RoleCode,
-      status: form.status,
+      id: `U${Math.floor(Math.random() * 10000)}`,
+      employeeId: `EMP-${Math.floor(Math.random() * 100000)}`,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: email.trim(),
+      functionArea: functionArea as FunctionArea,
+      department: functionArea, // Using function as department for legacy display
+      businessGroups,
+      categories,
+      bu,
+      geographies,
+      roleCodes: [], // Users created without roles assigned initially
+      status,
+      timeZone,
+      notifications: {
+        summaryEmail: notifySummary,
+        inApp: notifyInApp
+      },
       lastActive: new Date().toISOString(),
-      phone: form.phone.trim() || undefined,
-      manager: form.manager.trim() || undefined,
+      createdBy: 'System Admin',
+      createdDate: new Date().toISOString()
     };
+
     onCreate(newUser);
+    // Note: Success confirmation is handled by the parent/toast normally. 
+    alert(`Success: User ${firstName} ${lastName} created successfully.`);
     onClose();
   };
 
-  const selectedRole = ROLES.find(r => r.code === form.roleCode);
-  const allManagers = existingUsers.map(u => `${u.firstName} ${u.lastName}`);
-  const isFormValid = !submitted || Object.keys(errors).length === 0;
-
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-fade-in">
-      <div className="fixed inset-0 bg-[#133062]/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[92vh] animate-scale-in">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl p-0 overflow-hidden bg-[#F6F7F0] flex flex-col max-h-[90vh]">
+        <DialogHeader className="px-6 py-4 border-b border-[#DEDED7] bg-white flex-shrink-0">
+          <DialogTitle className="text-xl font-bold text-[#133062]">Create New User</DialogTitle>
+          <p className="text-xs text-gray-500 mt-1">Create a user profile to enable platform access and role assignment.</p>
+        </DialogHeader>
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#DEDED7] flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#C2E0FF] flex items-center justify-center">
-              <svg className="w-5 h-5 text-[#0066CC]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-[#133062] font-bold text-lg leading-tight">Create New User</h2>
-              <p className="text-xs text-gray-500 mt-0.5">Fill in the required fields to provision a new user account</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-2 hover:bg-[#F6F7F0] rounded-lg transition-colors">
-            <X className="w-5 h-5 text-gray-400" />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-
-          {/* Basic Info */}
-          <section>
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider pb-2 border-b border-[#DEDED7] mb-4">
-              Basic Information
-            </div>
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
+          
+          {/* Section 1: Personal Info */}
+          <section className="space-y-4">
+            <h3 className="text-sm font-bold text-[#133062] border-b border-[#DEDED7] pb-2 flex items-center gap-2">
+              <User className="w-4 h-4 text-[#0066CC]" /> Personal Information
+            </h3>
             <div className="grid grid-cols-2 gap-4">
-              <FormField label="First Name" required error={errors.firstName}>
-                <input
-                  type="text"
-                  value={form.firstName}
-                  onChange={e => set('firstName', e.target.value)}
-                  placeholder="e.g. Sarah"
-                  className={inputCls(!!errors.firstName)}
-                />
-              </FormField>
-              <FormField label="Last Name" required error={errors.lastName}>
-                <input
-                  type="text"
-                  value={form.lastName}
-                  onChange={e => set('lastName', e.target.value)}
-                  placeholder="e.g. Johnson"
-                  className={inputCls(!!errors.lastName)}
-                />
-              </FormField>
-              <FormField label="Email Address" required error={errors.email}>
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={e => set('email', e.target.value)}
-                  placeholder="user@unilever.com"
-                  className={inputCls(!!errors.email)}
-                />
-              </FormField>
-              <FormField label="Employee ID" required error={errors.employeeId}>
-                <input
-                  type="text"
-                  value={form.employeeId}
-                  onChange={e => set('employeeId', e.target.value)}
-                  placeholder="e.g. EMP-12345"
-                  className={inputCls(!!errors.employeeId)}
-                />
-              </FormField>
+              <div>
+                <label className="block text-xs font-semibold text-[#133062] mb-1">First Name *</label>
+                <input value={firstName} onChange={e => setFirstName(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#0066CC] outline-none ${errors.firstName ? 'border-red-500' : 'border-[#DEDED7]'}`}
+                  placeholder="e.g. Jane" />
+                {errors.firstName && <span className="text-[10px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3"/>{errors.firstName}</span>}
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-[#133062] mb-1">Last Name *</label>
+                <input value={lastName} onChange={e => setLastName(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#0066CC] outline-none ${errors.lastName ? 'border-red-500' : 'border-[#DEDED7]'}`}
+                  placeholder="e.g. Doe" />
+                {errors.lastName && <span className="text-[10px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3"/>{errors.lastName}</span>}
+              </div>
+              <div className="col-span-2">
+                <label className="block text-xs font-semibold text-[#133062] mb-1">Email Address *</label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input value={email} onChange={e => setEmail(e.target.value)} type="email"
+                    className={`w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#0066CC] outline-none ${errors.email ? 'border-red-500' : 'border-[#DEDED7]'}`}
+                    placeholder="jane.doe@unilever.com" />
+                </div>
+                {errors.email && <span className="text-[10px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3"/>{errors.email}</span>}
+              </div>
             </div>
           </section>
 
-          {/* Role & Department */}
-          <section>
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider pb-2 border-b border-[#DEDED7] mb-4">
-              Role & Organization
-            </div>
+          {/* Section 2: Organization Info */}
+          <section className="space-y-4">
+            <h3 className="text-sm font-bold text-[#133062] border-b border-[#DEDED7] pb-2 flex items-center gap-2">
+              <Briefcase className="w-4 h-4 text-[#0066CC]" /> Organization & Assignment
+            </h3>
             <div className="grid grid-cols-2 gap-4">
-              <FormField label="Department" required error={errors.department}>
-                <div className="relative">
-                  <select
-                    value={form.department}
-                    onChange={e => set('department', e.target.value)}
-                    className={selectCls(!!errors.department)}
-                  >
-                    <option value="">Select department...</option>
-                    {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-              </FormField>
-
-              <FormField label="Role Assignment" required error={errors.roleCode}>
-                <div className="relative">
-                  <select
-                    value={form.roleCode}
-                    onChange={e => set('roleCode', e.target.value)}
-                    className={selectCls(!!errors.roleCode)}
-                  >
-                    <option value="">Select role...</option>
-                    {ROLES.map(r => (
-                      <option key={r.code} value={r.code}>
-                        [{r.id}] {r.name}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-              </FormField>
-
-              {selectedRole && (
-                <div className="col-span-2 flex items-start gap-3 p-3 bg-[#F6F7F0] rounded-xl border border-[#DEDED7]">
-                  <span
-                    className="px-2 py-0.5 rounded-full text-xs font-bold text-white flex-shrink-0 mt-0.5"
-                    style={{ backgroundColor: selectedRole.color }}
-                  >
-                    {selectedRole.id}
-                  </span>
-                  <div>
-                    <div className="text-xs font-semibold text-[#133062]">{selectedRole.name}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">{selectedRole.description}</div>
-                    <div className="text-[10px] text-gray-400 mt-1">Scope: {selectedRole.scope}</div>
-                  </div>
-                </div>
-              )}
-
-              <FormField label="Status">
-                <div className="flex items-center gap-3 pt-1">
-                  {(['Active', 'Inactive'] as const).map(s => (
-                    <label key={s} className="flex items-center gap-2 cursor-pointer">
-                      <div
-                        onClick={() => set('status', s)}
-                        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all ${form.status === s ? 'border-[#0066CC]' : 'border-gray-300'}`}
-                      >
-                        {form.status === s && <div className="w-2 h-2 rounded-full bg-[#0066CC]" />}
-                      </div>
-                      <span className="text-sm text-[#133062]">{s}</span>
-                    </label>
-                  ))}
-                </div>
-              </FormField>
-
-              <FormField label="Manager (Optional)">
-                <div className="relative">
-                  <select
-                    value={form.manager}
-                    onChange={e => set('manager', e.target.value)}
-                    className={selectCls()}
-                  >
-                    <option value="">No manager assigned</option>
-                    {allManagers.map(m => <option key={m} value={m}>{m}</option>)}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-              </FormField>
-            </div>
-          </section>
-
-          {/* Optional */}
-          <section>
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider pb-2 border-b border-[#DEDED7] mb-4">
-              Contact (Optional)
-            </div>
-            <FormField label="Phone Number">
-              <input
-                type="tel"
-                value={form.phone}
-                onChange={e => set('phone', e.target.value)}
-                placeholder="+44 20 7946 0000"
-                className={inputCls()}
-              />
-            </FormField>
-          </section>
-
-          {/* Invite Method */}
-          <section>
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider pb-2 border-b border-[#DEDED7] mb-4">
-              Account Setup
-            </div>
-            <div className="space-y-3">
-              <div className="flex gap-3">
-                {[
-                  { value: 'email', label: 'Send Email Invite', icon: <Mail className="w-4 h-4" />, desc: 'User receives a link to set their own password' },
-                  { value: 'password', label: 'Set Temporary Password', icon: <Eye className="w-4 h-4" />, desc: 'Admin sets a password; user must change on first login' },
-                ].map(opt => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => set('inviteMethod', opt.value)}
-                    className={`flex-1 flex items-start gap-3 p-3 rounded-xl border-2 text-left transition-all ${form.inviteMethod === opt.value
-                      ? 'border-[#0066CC] bg-[#C2E0FF]/20'
-                      : 'border-[#DEDED7] hover:border-[#0066CC]/30'
-                      }`}
-                  >
-                    <span className={`mt-0.5 flex-shrink-0 ${form.inviteMethod === opt.value ? 'text-[#0066CC]' : 'text-gray-400'}`}>
-                      {opt.icon}
-                    </span>
-                    <div>
-                      <div className={`text-xs font-semibold ${form.inviteMethod === opt.value ? 'text-[#0066CC]' : 'text-[#133062]'}`}>
-                        {opt.label}
-                      </div>
-                      <div className="text-[11px] text-gray-500 mt-0.5">{opt.desc}</div>
-                    </div>
-                    {form.inviteMethod === opt.value && (
-                      <Check className="w-4 h-4 text-[#0066CC] ml-auto flex-shrink-0 mt-0.5" />
-                    )}
-                  </button>
-                ))}
+              <div>
+                <label className="block text-xs font-semibold text-[#133062] mb-1">Function *</label>
+                <select value={functionArea} onChange={e => setFunctionArea(e.target.value as FunctionArea)}
+                  className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#0066CC] outline-none bg-white ${errors.functionArea ? 'border-red-500' : 'border-[#DEDED7]'}`}>
+                  <option value="" disabled>Select Function</option>
+                  {FUNCTIONS.map(f => <option key={f} value={f}>{f}</option>)}
+                </select>
+                {errors.functionArea && <span className="text-[10px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3"/>{errors.functionArea}</span>}
+              </div>
+              
+              <div>
+                <label className="block text-xs font-semibold text-[#133062] mb-1">Business Unit (BU) *</label>
+                <select value={bu} onChange={e => setBu(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#0066CC] outline-none bg-white ${errors.bu ? 'border-red-500' : 'border-[#DEDED7]'}`}>
+                  <option value="" disabled>Select BU</option>
+                  {BU_OPTIONS.map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+                {errors.bu && <span className="text-[10px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3"/>{errors.bu}</span>}
               </div>
 
-              {form.inviteMethod === 'password' && (
-                <FormField label="Temporary Password" required error={errors.tempPassword}>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={form.tempPassword}
-                      onChange={e => set('tempPassword', e.target.value)}
-                      placeholder="Minimum 8 characters"
-                      className={inputCls(!!errors.tempPassword)}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(p => !p)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </FormField>
-              )}
+              <div>
+                <label className="block text-xs font-semibold text-[#133062] mb-1">Business Group(s) *</label>
+                <MultiSelectDropdown options={BUSINESS_GROUPS} selected={businessGroups} onChange={setBusinessGroups} placeholder="Select BGs" />
+                {errors.businessGroups && <span className="text-[10px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3"/>{errors.businessGroups}</span>}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#133062] mb-1">Categories *</label>
+                <MultiSelectDropdown options={CATEGORY_OPTIONS} selected={categories} onChange={setCategories} placeholder="Select Categories" />
+                {errors.categories && <span className="text-[10px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3"/>{errors.categories}</span>}
+              </div>
             </div>
           </section>
+
+          {/* Section 3: Location & Preferences */}
+          <section className="space-y-4">
+            <h3 className="text-sm font-bold text-[#133062] border-b border-[#DEDED7] pb-2 flex items-center gap-2">
+              <Globe className="w-4 h-4 text-[#0066CC]" /> Geography & Preferences
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <label className="block text-xs font-semibold text-[#133062] mb-1">Geography(s) *</label>
+                <MultiSelectDropdown options={GEOGRAPHY_OPTIONS} selected={geographies} onChange={setGeographies} placeholder="Select Geographies" />
+                {errors.geographies && <span className="text-[10px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3"/>{errors.geographies}</span>}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#133062] mb-1">Time Zone</label>
+                <div className="relative">
+                  <Clock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <select value={timeZone} onChange={e => setTimeZone(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 border border-[#DEDED7] rounded-lg text-sm focus:ring-2 focus:ring-[#0066CC] outline-none bg-white">
+                    <option value="">Select Time Zone</option>
+                    {TIME_ZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#133062] mb-1">Status *</label>
+                <select value={status} onChange={e => setStatus(e.target.value as 'Active'|'Inactive')}
+                  className="w-full px-3 py-2 border border-[#DEDED7] rounded-lg text-sm focus:ring-2 focus:ring-[#0066CC] outline-none bg-white">
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+                {status === 'Inactive' && <p className="text-[10px] text-gray-500 mt-1">Inactive users cannot log in.</p>}
+              </div>
+            </div>
+
+            {/* Notifications */}
+            <div className="bg-white border border-[#DEDED7] rounded-xl p-4 mt-4">
+              <label className="block text-xs font-bold text-[#133062] mb-3">Notification Preferences</label>
+              <div className="space-y-3">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <div className={`w-4 h-4 rounded mt-0.5 flex items-center justify-center border transition-colors ${notifySummary ? 'bg-[#0066CC] border-[#0066CC]' : 'border-gray-300'}`}>
+                    {notifySummary && <Check className="w-3 h-3 text-white" />}
+                  </div>
+                  <input type="checkbox" className="hidden" checked={notifySummary} onChange={e => setNotifySummary(e.target.checked)} />
+                  <div>
+                    <div className="text-sm font-semibold text-[#133062]">Email Summary Reports</div>
+                    <div className="text-[10px] text-gray-500">Receive periodic email digests</div>
+                  </div>
+                </label>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <div className={`w-4 h-4 rounded mt-0.5 flex items-center justify-center border transition-colors ${notifyInApp ? 'bg-[#0066CC] border-[#0066CC]' : 'border-gray-300'}`}>
+                    {notifyInApp && <Check className="w-3 h-3 text-white" />}
+                  </div>
+                  <input type="checkbox" className="hidden" checked={notifyInApp} onChange={e => setNotifyInApp(e.target.checked)} />
+                  <div>
+                    <div className="text-sm font-semibold text-[#133062]">In-App Notifications</div>
+                    <div className="text-[10px] text-gray-500">Receive alerts within the platform</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </section>
+
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-[#DEDED7] flex-shrink-0 bg-[#F6F7F0]/50">
-          <p className="text-xs text-gray-400">
-            <span className="text-red-500">*</span> Required fields
-          </p>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onClose}
-              className="px-5 py-2.5 border border-[#DEDED7] text-[#133062] rounded-lg text-sm font-semibold hover:bg-[#F6F7F0] transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${isFormValid
-                ? 'bg-[#0066CC] text-white hover:bg-[#004D99] shadow-lg shadow-[#0066CC]/20'
-                : 'bg-[#0066CC] text-white hover:bg-[#004D99] shadow-lg shadow-[#0066CC]/20'
-                }`}
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-              </svg>
-              Create User
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+        <DialogFooter className="px-6 py-4 border-t border-[#DEDED7] bg-white flex-shrink-0 flex items-center justify-end gap-3">
+          <button onClick={onClose} className="px-5 py-2.5 text-sm font-bold text-gray-600 hover:bg-[#F6F7F0] rounded-xl transition-colors">
+            Cancel
+          </button>
+          <button onClick={handleSave} 
+            className="px-5 py-2.5 text-sm font-bold text-white bg-[#0066CC] hover:bg-[#004D99] rounded-xl shadow-lg shadow-[#0066CC]/20 transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none">
+            Create User
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

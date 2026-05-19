@@ -1,7 +1,8 @@
 // ─── User Management Data ─────────────────────────────────────────────────────
-// Source of truth: Roles & Permissions Excel mapping
+// Source of truth: Roles & Permissions Excel mapping + US-M19-001/002/003/004/005
 
 export type RoleCode = 'AU' | 'PL' | 'CL' | 'TPL' | 'NUT' | 'SUB' | 'RA' | 'LGL' | 'BA' | 'VWR' | 'VWRE' | 'SYS';
+export type FunctionArea = 'Marketing' | 'R&D' | 'RA' | 'Legal' | 'Business Admin' | 'Finance' | 'Supply Chain' | 'IT' | 'Strategy' | 'Others';
 
 export interface Role {
   id: string;
@@ -13,6 +14,7 @@ export interface Role {
   userCount: number;
   createdDate: string;
   color: string;
+  status: 'Active' | 'Inactive';
 }
 
 export interface UserRecord {
@@ -21,10 +23,22 @@ export interface UserRecord {
   lastName: string;
   email: string;
   employeeId: string;
-  department: string;
-  roleCode: RoleCode;
+  functionArea: FunctionArea;
+  department: string; // Keeps display compatibility
+  businessGroups: string[];
+  categories: string[];
+  bu: string;
+  geographies: string[];
+  roleCodes: RoleCode[]; // Now supports multiple roles per user
   status: 'Active' | 'Inactive';
+  timeZone: string;
+  notifications: {
+    summaryEmail: boolean;
+    inApp: boolean;
+  };
   lastActive: string;
+  createdBy?: string;
+  createdDate?: string;
   phone?: string;
   manager?: string;
 }
@@ -37,9 +51,6 @@ export interface PermissionRow {
   object: string;
   action: string;
   label: string; // "Module > Object > Action"
-  view: PermissionValue;
-  readOnly: PermissionValue;
-  edit: PermissionValue;
 }
 
 export interface PermissionModule {
@@ -48,198 +59,240 @@ export interface PermissionModule {
   rows: PermissionRow[];
 }
 
-// ─── Roles (R1–R12 from Excel) ────────────────────────────────────────────────
+export type RolePermissions = Record<string, { view: PermissionValue; readOnly: PermissionValue; edit: PermissionValue }>;
+
+// ─── Roles (R1–R12) ────────────────────────────────────────────────
 
 export const ROLES: Role[] = [
-  {
-    id: 'R1', code: 'AU', name: 'All Users', shortName: 'AU',
-    scope: 'Logged-in',
-    description: 'Browse workspace; view records; mark favorites; search; navigate',
-    userCount: 142, createdDate: '2024-01-15', color: '#6B7589',
-  },
-  {
-    id: 'R2', code: 'PL', name: 'Project Lead', shortName: 'PL',
-    scope: 'BG-bound / Project-team',
-    description: 'Create & govern projects; drive lifecycle transitions; manage team; create claims & products; access Marketing Signoff',
-    userCount: 28, createdDate: '2024-01-15', color: '#0066CC',
-  },
-  {
-    id: 'R3', code: 'CL', name: 'Claims Lead', shortName: 'CL',
-    scope: 'BG-bound / Project-team',
-    description: 'Full claim lifecycle; IRA; Final Risk Summary; Challenge management',
-    userCount: 19, createdDate: '2024-01-15', color: '#004D99',
-  },
-  {
-    id: 'R4', code: 'TPL', name: 'R&D – Technical Project Lead', shortName: 'TPL',
-    scope: 'Project-team',
-    description: 'Support Strategy; substantiation; risk assessments; asset creation; claim creation',
-    userCount: 11, createdDate: '2024-02-01', color: '#008090',
-  },
-  {
-    id: 'R5', code: 'NUT', name: 'R&D – Nutritionist', shortName: 'NUT',
-    scope: 'Project-team',
-    description: 'Support Strategy; substantiation; risk assessments (Nutritionist type)',
-    userCount: 7, createdDate: '2024-02-01', color: '#2B911C',
-  },
-  {
-    id: 'R6', code: 'SUB', name: 'R&D – Substantiator', shortName: 'SUB',
-    scope: 'Project-team',
-    description: 'Support Strategy; substantiation evidence; risk assessments (Substantiator type)',
-    userCount: 9, createdDate: '2024-02-01', color: '#8652DF',
-  },
-  {
-    id: 'R7', code: 'RA', name: 'Regulatory Affairs', shortName: 'RA',
-    scope: 'Project-team',
-    description: 'RA risk assessments; RA Summary; complete RA review tile',
-    userCount: 6, createdDate: '2024-02-15', color: '#DA5700',
-  },
-  {
-    id: 'R8', code: 'LGL', name: 'Legal', shortName: 'LGL',
-    scope: 'Project-team',
-    description: 'Legal Summary; Final Risk Level; challenge; confidentiality; claim lifecycle',
-    userCount: 4, createdDate: '2024-02-15', color: '#E13591',
-  },
-  {
-    id: 'R9', code: 'BA', name: 'Business Admin', shortName: 'BA',
-    scope: 'Cross-BG',
-    description: 'Override project/claim locks; reset lifecycle; create Format products; administer saved views; manage users & roles',
-    userCount: 3, createdDate: '2024-01-10', color: '#133062',
-  },
-  {
-    id: 'R10', code: 'VWR', name: 'Viewer', shortName: 'VWR',
-    scope: 'Logged-in',
-    description: 'Read-only access across all modules; no export',
-    userCount: 31, createdDate: '2024-03-01', color: '#6B7589',
-  },
-  {
-    id: 'R11', code: 'VWRE', name: 'Viewer with Export', shortName: 'VWRE',
-    scope: 'Logged-in',
-    description: 'Read-only with export capability',
-    userCount: 14, createdDate: '2024-03-01', color: '#47A3FF',
-  },
-  {
-    id: 'R12', code: 'SYS', name: 'System / API User', shortName: 'SYS',
-    scope: 'n/a',
-    description: 'Automated: generate IDs, enforce permissions, send notifications, write audit log, PLM integration',
-    userCount: 2, createdDate: '2024-01-10', color: '#CC2200',
-  },
+  { id: 'R1', code: 'AU', name: 'All Users', shortName: 'AU', scope: 'Logged-in', description: 'Browse workspace; view records; mark favorites; search; navigate', userCount: 142, createdDate: '2024-01-15', color: '#6B7589', status: 'Active' },
+  { id: 'R2', code: 'PL', name: 'Project Lead', shortName: 'PL', scope: 'BG-bound / Project-team', description: 'Create & govern projects; drive lifecycle transitions; manage team; create claims & products; access Marketing Signoff', userCount: 28, createdDate: '2024-01-15', color: '#0066CC', status: 'Active' },
+  { id: 'R3', code: 'CL', name: 'Claims Lead', shortName: 'CL', scope: 'BG-bound / Project-team', description: 'Full claim lifecycle; IRA; Final Risk Summary; Challenge management', userCount: 19, createdDate: '2024-01-15', color: '#004D99', status: 'Active' },
+  { id: 'R4', code: 'TPL', name: 'R&D – Technical Project Lead', shortName: 'TPL', scope: 'Project-team', description: 'Support Strategy; substantiation; risk assessments; asset creation; claim creation', userCount: 11, createdDate: '2024-02-01', color: '#008090', status: 'Active' },
+  { id: 'R5', code: 'NUT', name: 'R&D – Nutritionist', shortName: 'NUT', scope: 'Project-team', description: 'Support Strategy; substantiation; risk assessments (Nutritionist type)', userCount: 7, createdDate: '2024-02-01', color: '#2B911C', status: 'Active' },
+  { id: 'R6', code: 'SUB', name: 'R&D – Substantiator', shortName: 'SUB', scope: 'Project-team', description: 'Support Strategy; substantiation evidence; risk assessments (Substantiator type)', userCount: 9, createdDate: '2024-02-01', color: '#8652DF', status: 'Active' },
+  { id: 'R7', code: 'RA', name: 'Regulatory Affairs', shortName: 'RA', scope: 'Project-team', description: 'RA risk assessments; RA Summary; complete RA review tile', userCount: 6, createdDate: '2024-02-15', color: '#DA5700', status: 'Active' },
+  { id: 'R8', code: 'LGL', name: 'Legal', shortName: 'LGL', scope: 'Project-team', description: 'Legal Summary; Final Risk Level; challenge; confidentiality; claim lifecycle', userCount: 4, createdDate: '2024-02-15', color: '#E13591', status: 'Active' },
+  { id: 'R9', code: 'BA', name: 'Business Admin', shortName: 'BA', scope: 'Cross-BG', description: 'Override project/claim locks; reset lifecycle; create Format products; administer saved views; manage users & roles', userCount: 3, createdDate: '2024-01-10', color: '#133062', status: 'Active' },
+  { id: 'R10', code: 'VWR', name: 'Viewer', shortName: 'VWR', scope: 'Logged-in', description: 'Read-only access across all modules; no export', userCount: 31, createdDate: '2024-03-01', color: '#6B7589', status: 'Active' },
+  { id: 'R11', code: 'VWRE', name: 'Viewer with Export', shortName: 'VWRE', scope: 'Logged-in', description: 'Read-only with export capability', userCount: 14, createdDate: '2024-03-01', color: '#47A3FF', status: 'Inactive' },
+  { id: 'R12', code: 'SYS', name: 'System / API User', shortName: 'SYS', scope: 'n/a', description: 'Automated: generate IDs, enforce permissions, send notifications, write audit log', userCount: 2, createdDate: '2024-01-10', color: '#CC2200', status: 'Active' },
 ];
 
 export const ROLE_MAP: Record<string, Role> = Object.fromEntries(ROLES.map(r => [r.code, r]));
 
 // ─── Mock Users ────────────────────────────────────────────────────────────────
 
-export const DEPARTMENTS = [
-  'Marketing', 'R&D', 'Regulatory Affairs', 'Legal', 'Business Admin',
-  'Finance', 'Supply Chain', 'IT', 'HR', 'Strategy',
-];
+export const FUNCTIONS: FunctionArea[] = ['Marketing', 'R&D', 'RA', 'Legal', 'Business Admin', 'Finance', 'Supply Chain', 'IT', 'Strategy', 'Others'];
+export const BUSINESS_GROUPS = ['Beauty & Wellbeing', 'Personal Care', 'Home Care', 'Nutrition', 'Ice Cream'];
+export const TIME_ZONES = ['GMT', 'EST', 'PST', 'CET', 'IST', 'SGT'];
 
 export const MOCK_USERS: UserRecord[] = [
-  { id: 'U001', firstName: 'Sarah', lastName: 'Johnson', email: 's.johnson@unilever.com', employeeId: 'EMP-10421', department: 'Marketing', roleCode: 'PL', status: 'Active', lastActive: '2026-05-19T08:30:00Z', manager: 'Emma Williams' },
-  { id: 'U002', firstName: 'Michael', lastName: 'Chen', email: 'm.chen@unilever.com', employeeId: 'EMP-10344', department: 'Marketing', roleCode: 'CL', status: 'Active', lastActive: '2026-05-19T07:15:00Z', manager: 'Emma Williams' },
-  { id: 'U003', firstName: 'Emma', lastName: 'Williams', email: 'e.williams@unilever.com', employeeId: 'EMP-10120', department: 'Business Admin', roleCode: 'BA', status: 'Active', lastActive: '2026-05-18T16:00:00Z', phone: '+44 20 7946 0958' },
-  { id: 'U004', firstName: 'James', lastName: 'Brown', email: 'j.brown@unilever.com', employeeId: 'EMP-10567', department: 'R&D', roleCode: 'TPL', status: 'Active', lastActive: '2026-05-19T06:45:00Z', manager: 'Sarah Johnson' },
-  { id: 'U005', firstName: 'Jennifer', lastName: 'Davis', email: 'j.davis@unilever.com', employeeId: 'EMP-10892', department: 'R&D', roleCode: 'NUT', status: 'Active', lastActive: '2026-05-17T14:20:00Z', manager: 'James Brown' },
-  { id: 'U006', firstName: 'David', lastName: 'Martinez', email: 'd.martinez@unilever.com', employeeId: 'EMP-11023', department: 'R&D', roleCode: 'SUB', status: 'Active', lastActive: '2026-05-19T09:00:00Z', manager: 'James Brown' },
-  { id: 'U007', firstName: 'Lisa', lastName: 'Anderson', email: 'l.anderson@unilever.com', employeeId: 'EMP-11156', department: 'Regulatory Affairs', roleCode: 'RA', status: 'Active', lastActive: '2026-05-16T11:30:00Z', manager: 'Emma Williams' },
-  { id: 'U008', firstName: 'Robert', lastName: 'Taylor', email: 'r.taylor@unilever.com', employeeId: 'EMP-11289', department: 'Legal', roleCode: 'LGL', status: 'Active', lastActive: '2026-05-15T10:00:00Z', manager: 'Emma Williams' },
-  { id: 'U009', firstName: 'Patricia', lastName: 'Thomas', email: 'p.thomas@unilever.com', employeeId: 'EMP-11422', department: 'Finance', roleCode: 'VWR', status: 'Active', lastActive: '2026-05-14T09:15:00Z' },
-  { id: 'U010', firstName: 'Christopher', lastName: 'Jackson', email: 'c.jackson@unilever.com', employeeId: 'EMP-11555', department: 'Supply Chain', roleCode: 'VWRE', status: 'Active', lastActive: '2026-05-13T15:45:00Z' },
-  { id: 'U011', firstName: 'Linda', lastName: 'White', email: 'l.white@unilever.com', employeeId: 'EMP-11688', department: 'Marketing', roleCode: 'AU', status: 'Inactive', lastActive: '2026-04-30T12:00:00Z', manager: 'Sarah Johnson' },
-  { id: 'U012', firstName: 'Mark', lastName: 'Harris', email: 'm.harris@unilever.com', employeeId: 'EMP-11821', department: 'IT', roleCode: 'SYS', status: 'Active', lastActive: '2026-05-19T00:00:00Z' },
-  { id: 'U013', firstName: 'Barbara', lastName: 'Clark', email: 'b.clark@unilever.com', employeeId: 'EMP-11954', department: 'Strategy', roleCode: 'PL', status: 'Active', lastActive: '2026-05-18T17:30:00Z', manager: 'Emma Williams' },
-  { id: 'U014', firstName: 'William', lastName: 'Lewis', email: 'w.lewis@unilever.com', employeeId: 'EMP-12087', department: 'R&D', roleCode: 'CL', status: 'Inactive', lastActive: '2026-05-10T08:00:00Z', manager: 'Sarah Johnson' },
-  { id: 'U015', firstName: 'Dorothy', lastName: 'Lee', email: 'd.lee@unilever.com', employeeId: 'EMP-12220', department: 'Regulatory Affairs', roleCode: 'RA', status: 'Active', lastActive: '2026-05-19T10:00:00Z', manager: 'Emma Williams' },
+  { id: 'U001', firstName: 'Sarah', lastName: 'Johnson', email: 's.johnson@unilever.com', employeeId: 'EMP-10421', functionArea: 'Marketing', department: 'Marketing', businessGroups: ['Beauty & Wellbeing'], categories: ['Skin Care'], bu: 'BU-1', geographies: ['Global'], roleCodes: ['PL'], status: 'Active', timeZone: 'EST', notifications: { summaryEmail: true, inApp: true }, lastActive: '2026-05-19T08:30:00Z', createdBy: 'System', createdDate: '2024-01-15', manager: 'Emma Williams' },
+  { id: 'U002', firstName: 'Michael', lastName: 'Chen', email: 'm.chen@unilever.com', employeeId: 'EMP-10344', functionArea: 'Marketing', department: 'Marketing', businessGroups: ['Personal Care'], categories: ['Deodorants'], bu: 'BU-2', geographies: ['Global'], roleCodes: ['CL'], status: 'Active', timeZone: 'EST', notifications: { summaryEmail: true, inApp: true }, lastActive: '2026-05-19T07:15:00Z', createdBy: 'System', createdDate: '2024-01-15', manager: 'Emma Williams' },
+  { id: 'U003', firstName: 'Emma', lastName: 'Williams', email: 'e.williams@unilever.com', employeeId: 'EMP-10120', functionArea: 'Business Admin', department: 'Business Admin', businessGroups: [], categories: [], bu: 'Global', geographies: ['Global'], roleCodes: ['BA'], status: 'Active', timeZone: 'GMT', notifications: { summaryEmail: true, inApp: true }, lastActive: '2026-05-18T16:00:00Z', createdBy: 'System', createdDate: '2024-01-10', phone: '+44 20 7946 0958' },
+  { id: 'U004', firstName: 'James', lastName: 'Brown', email: 'j.brown@unilever.com', employeeId: 'EMP-10567', functionArea: 'R&D', department: 'R&D', businessGroups: ['Home Care'], categories: ['Fabric Cleaning'], bu: 'BU-3', geographies: ['Europe'], roleCodes: ['TPL', 'SUB'], status: 'Active', timeZone: 'CET', notifications: { summaryEmail: false, inApp: true }, lastActive: '2026-05-19T06:45:00Z', createdBy: 'Emma Williams', createdDate: '2024-02-01', manager: 'Sarah Johnson' },
+  { id: 'U005', firstName: 'Jennifer', lastName: 'Davis', email: 'j.davis@unilever.com', employeeId: 'EMP-10892', functionArea: 'R&D', department: 'R&D', businessGroups: ['Nutrition'], categories: ['Dressings'], bu: 'BU-4', geographies: ['North America'], roleCodes: ['NUT'], status: 'Active', timeZone: 'EST', notifications: { summaryEmail: true, inApp: true }, lastActive: '2026-05-17T14:20:00Z', createdBy: 'Emma Williams', createdDate: '2024-02-01', manager: 'James Brown' },
 ];
 
-// ─── Permission Matrix (from Excel) ───────────────────────────────────────────
-// view = standalone VIEW column; readOnly = YES in READ-ONLY col; edit = YES in EDIT col
+// ─── Permission Definitions ───────────────────────────────────────────
 
 export const PERMISSION_MODULES: PermissionModule[] = [
   {
     id: 'landing', label: 'Landing Page',
     rows: [
-      { id: 'lp-1', module: 'Landing Page', object: 'Home', action: 'Access & View', label: 'Home › Access & View', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'lp-2', module: 'Landing Page', object: 'My Projects Widget', action: 'View Cards', label: 'My Projects Widget › View Cards', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'lp-3', module: 'Landing Page', object: 'My Assets Widget', action: 'View Cards', label: 'My Assets Widget › View Cards', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'lp-4', module: 'Landing Page', object: 'My Taste Widget', action: 'View Cards', label: 'My Taste Widget › View Cards', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'lp-5', module: 'Landing Page', object: 'Navigation', action: 'Click Card to Open Workspace', label: 'Navigation › Click Card to Open Workspace', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'lp-6', module: 'Landing Page', object: 'View All', action: 'Navigate to Module', label: 'View All › Navigate to Module', view: 'No', readOnly: 'Yes', edit: 'No' },
+      { id: 'lp-1', module: 'Landing Page', object: 'Home', action: 'Access & View', label: 'Home › Access & View' },
+      { id: 'lp-2', module: 'Landing Page', object: 'My Projects Widget', action: 'View & Navigate', label: 'My Projects Widget › View & Navigate' },
+      { id: 'lp-3', module: 'Landing Page', object: 'My Assets Widget', action: 'View & Navigate', label: 'My Assets Widget › View & Navigate' },
+      { id: 'lp-4', module: 'Landing Page', object: 'My Tasks Widget', action: 'View & Navigate', label: 'My Tasks Widget › View & Navigate' },
+      { id: 'lp-5', module: 'Landing Page', object: 'Navigation', action: 'Click Card to Open Workspace', label: 'Navigation › Click Card to Open Workspace' },
+      { id: 'lp-6', module: 'Landing Page', object: 'View All', action: 'Navigate to Module', label: 'View All › Navigate to Module' },
+      { id: 'lp-7', module: 'Landing Page', object: 'Create New Project', action: 'CTA button', label: 'Create New Project (CTA button)' },
+      { id: 'lp-8', module: 'Landing Page', object: 'Create New Asset', action: 'CTA button', label: 'Create New Asset (CTA button)' },
     ],
   },
   {
     id: 'projects', label: 'Projects',
     rows: [
-      { id: 'pr-1', module: 'Projects', object: 'Workspace', action: 'Access & Browse', label: 'Workspace › Access & Browse', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'pr-2', module: 'Projects', object: 'Workspace', action: 'All Projects View', label: 'Workspace › All Projects View', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'pr-3', module: 'Projects', object: 'Workspace', action: 'My Projects View', label: 'Workspace › My Projects View', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'pr-4', module: 'Projects', object: 'Workspace', action: 'Recent Projects View', label: 'Workspace › Recent Projects View', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'pr-5', module: 'Projects', object: 'Workspace', action: 'Favorites View', label: 'Workspace › Favorites View', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'pr-6', module: 'Projects', object: 'Workspace', action: 'Shared Views (recipient)', label: 'Workspace › Shared Views (recipient)', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'pr-7', module: 'Projects', object: 'Workspace', action: 'Column Configure', label: 'Workspace › Column Configure', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'pr-8', module: 'Projects', object: 'Workspace', action: 'Global Search', label: 'Workspace › Global Search', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'pr-9', module: 'Projects', object: 'Workspace', action: 'Column Filters', label: 'Workspace › Column Filters', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'pr-10', module: 'Projects', object: 'Workspace', action: 'Quick Filters (apply)', label: 'Workspace › Quick Filters (apply)', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'pr-11', module: 'Projects', object: 'Workspace', action: 'Mark / Unmark Favorite', label: 'Workspace › Mark / Unmark Favorite', view: 'No', readOnly: 'No', edit: 'Yes' },
-      { id: 'pr-12', module: 'Projects', object: 'Workspace', action: 'Save Personal View', label: 'Workspace › Save Personal View', view: 'No', readOnly: 'No', edit: 'Yes' },
-      { id: 'pr-13', module: 'Projects', object: 'Workspace', action: 'Share View (own held)', label: 'Workspace › Share View (own held)', view: 'No', readOnly: 'No', edit: 'Yes' },
-      { id: 'pr-14', module: 'Projects', object: 'Workspace', action: 'Rename Own Saved View', label: 'Workspace › Rename Own Saved View', view: 'No', readOnly: 'No', edit: 'Yes' },
-      { id: 'pr-15', module: 'Projects', object: 'Workspace', action: 'Delete Own Saved View', label: 'Workspace › Delete Own Saved View', view: 'No', readOnly: 'No', edit: 'Yes' },
-      { id: 'pr-16', module: 'Projects', object: 'Detail', action: 'Open Project Workspace', label: 'Detail › Open Project Workspace', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'pr-17', module: 'Projects', object: 'Detail', action: 'View Project Header & Fields', label: 'Detail › View Project Header & Fields', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'pr-18', module: 'Projects', object: 'Detail', action: 'View Lifecycle Stage & Tracker', label: 'Detail › View Lifecycle Stage & Tracker', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'pr-19', module: 'Projects', object: 'Detail', action: 'View Comments & Tasks', label: 'Detail › View Comments & Tasks', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'pr-20', module: 'Projects', object: 'Detail', action: 'Add Comment / @Mention', label: 'Detail › Add Comment / @Mention', view: 'No', readOnly: 'No', edit: 'Yes' },
-      { id: 'pr-21', module: 'Projects', object: 'Review Tile', action: 'View Tile Status', label: 'Review Tile › View Tile Status', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'pr-22', module: 'Projects', object: 'Audit Log', action: 'View (no three-dot)', label: 'Audit Log › View', view: 'Yes', readOnly: 'No', edit: 'No' },
-      { id: 'pr-23', module: 'Projects', object: 'Export', action: 'Export Project Data', label: 'Export › Export Project Data', view: 'Yes', readOnly: 'No', edit: 'No' },
+      { id: 'pr-1', module: 'Projects', object: 'Workspace', action: 'Access, Search, Filter, Configure', label: 'Workspace › Access, Search, Filter, Configure' },
+      { id: 'pr-2', module: 'Projects', object: 'Workspace', action: 'All Projects View', label: 'Workspace › All Projects View' },
+      { id: 'pr-3', module: 'Projects', object: 'Workspace', action: 'My Projects View', label: 'Workspace › My Projects View' },
+      { id: 'pr-4', module: 'Projects', object: 'Workspace', action: 'Favorites View', label: 'Workspace › Favorites View' },
+      { id: 'pr-5', module: 'Projects', object: 'Workspace', action: 'Save / Share / Delete Own Views', label: 'Workspace › Save / Share / Delete Own Views' },
+      { id: 'pr-6', module: 'Projects', object: 'Workspace', action: 'Mark / Unmark Favourite', label: 'Workspace › Mark / Unmark Favourite' },
+      { id: 'pr-7', module: 'Projects', object: 'Export', action: 'Export Project List', label: 'Export › Export Project List' },
+      { id: 'pr-8', module: 'Projects', object: 'Create', action: 'Create New Project (own BG)', label: 'Create › Create New Project (own BG)' },
+      { id: 'pr-9', module: 'Projects', object: 'Detail', action: 'View Header & All Fields', label: 'Detail › View Header & All Fields' },
+      { id: 'pr-10', module: 'Projects', object: 'Detail', action: 'Edit', label: 'Detail › Edit' },
+      { id: 'pr-11', module: 'Projects', object: 'Team', action: 'Add / Remove', label: 'Team › Add / Remove' },
+      { id: 'pr-12', module: 'Projects', object: 'Linked Claims', action: 'Add / Remove Claim', label: 'Linked Claims › Add / Remove Claim' },
+      { id: 'pr-13', module: 'Projects', object: 'Lifecycle', action: 'Transition Draft → Substantiate', label: 'Lifecycle › Transition Draft → Substantiate' },
+      { id: 'pr-14', module: 'Projects', object: 'Lifecycle', action: 'Transition Substantiate → Review & Risk', label: 'Lifecycle › Transition Substantiate → Review & Risk' },
+      { id: 'pr-15', module: 'Projects', object: 'Lifecycle', action: 'Transition Review & Risk → Complete', label: 'Lifecycle › Transition Review & Risk → Complete' },
+      { id: 'pr-16', module: 'Projects', object: 'Review Tiles', action: 'View Tile Status', label: 'Review Tiles › View Tile Status' },
     ],
   },
   {
     id: 'claims', label: 'Claims',
     rows: [
-      { id: 'cl-1', module: 'Claims', object: 'Workspace', action: 'Access & Browse', label: 'Workspace › Access & Browse', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'cl-2', module: 'Claims', object: 'Workspace', action: 'Global Search & Filters', label: 'Workspace › Global Search & Filters', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'cl-3', module: 'Claims', object: 'Workspace', action: 'Quick Filters (apply)', label: 'Workspace › Quick Filters (apply)', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'cl-4', module: 'Claims', object: 'Workspace', action: 'Custom Views (saved by others)', label: 'Workspace › Custom Views (saved by others)', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'cl-5', module: 'Claims', object: 'Workspace', action: 'Mark / Unmark Favorite', label: 'Workspace › Mark / Unmark Favorite', view: 'No', readOnly: 'No', edit: 'Yes' },
-      { id: 'cl-6', module: 'Claims', object: 'Inline Workbench', action: 'Expand / Collapse Row', label: 'Inline Workbench › Expand / Collapse Row', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'cl-7', module: 'Claims', object: 'Inline Workbench', action: 'View Tabs (Comments/Substantiation/Risk)', label: 'Inline Workbench › View Tabs', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'cl-8', module: 'Claims', object: 'Full Workspace', action: 'Open Individual Claim', label: 'Full Workspace › Open Individual Claim', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'cl-9', module: 'Claims', object: 'Full Workspace', action: 'View Claim Header & Summary', label: 'Full Workspace › View Claim Header & Summary', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'cl-10', module: 'Claims', object: 'Full Workspace', action: 'View Claim Details Fields', label: 'Full Workspace › View Claim Details Fields', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'cl-11', module: 'Claims', object: 'Final Risk Summary', action: 'View (all fields)', label: 'Final Risk Summary › View (all fields)', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'cl-12', module: 'Claims', object: 'Risk Assessments', action: 'View Records', label: 'Risk Assessments › View Records', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'cl-13', module: 'Claims', object: 'Related Assets', action: 'View', label: 'Related Assets › View', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'cl-14', module: 'Claims', object: 'Audit Log', action: 'View Records', label: 'Audit Log › View Records', view: 'No', readOnly: 'Yes', edit: 'No' },
-    ],
+      { id: 'cl-1', module: 'Claims', object: 'Workspace', action: 'Access, Search, Filter, Configure', label: 'Workspace › Access, Search, Filter, Configure' },
+      { id: 'cl-2', module: 'Claims', object: 'Detail', action: 'View Claim Header & Details', label: 'Detail › View Claim Header & Details' },
+      { id: 'cl-3', module: 'Claims', object: 'Detail', action: 'Inline Edit (permitted fields)', label: 'Detail › Inline Edit (permitted fields)' },
+      { id: 'cl-4', module: 'Claims', object: 'Create', action: 'Claim Creation', label: 'Create › Claim Creation (from project / library / product)' },
+      { id: 'cl-5', module: 'Claims', object: 'Bulk', action: 'Lifecycle Change', label: 'Bulk › Lifecycle Change' },
+      { id: 'cl-6', module: 'Claims', object: 'iRA', action: 'Run iRA', label: 'iRA › Run iRA (Home Care claims in Proposed)' },
+      { id: 'cl-7', module: 'Claims', object: 'Risk', action: 'Manual Risk Level', label: 'Risk › Manual Risk Level' },
+      { id: 'cl-8', module: 'Claims', object: 'Final Risk Summary', action: 'Marketing Risk Signoff (checkbox)', label: 'Final Risk Summary › Marketing Risk Signoff' },
+      { id: 'cl-9', module: 'Claims', object: 'Challenge', action: 'Trigger Challenge', label: 'Challenge › Trigger Challenge (Assessed claims)' },
+      { id: 'cl-10', module: 'Claims', object: 'Audit Log', action: 'View', label: 'Audit Log › View' },
+    ]
   },
   {
     id: 'products', label: 'Products',
     rows: [
-      { id: 'pd-1', module: 'Products', object: 'Workspace', action: 'Access & Browse', label: 'Workspace › Access & Browse', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'pd-2', module: 'Products', object: 'Workspace', action: 'Search (Basic & Advanced)', label: 'Workspace › Search (Basic & Advanced)', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'pd-3', module: 'Products', object: 'Workspace', action: 'Column Filters & Quick Filters', label: 'Workspace › Column Filters & Quick Filters', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'pd-4', module: 'Products', object: 'Workspace', action: 'Mark / Unmark Favorites', label: 'Workspace › Mark / Unmark Favorites', view: 'No', readOnly: 'No', edit: 'Yes' },
-      { id: 'pd-5', module: 'Products', object: 'Detail Page', action: 'View Product Details', label: 'Detail Page › View Product Details', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'pd-6', module: 'Products', object: 'Hierarchy Tree', action: 'View', label: 'Hierarchy Tree › View', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'pd-7', module: 'Products', object: 'Claims (linked)', action: 'View', label: 'Claims (linked) › View', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'pd-8', module: 'Products', object: 'Audit Log', action: 'View', label: 'Audit Log › View', view: 'Yes', readOnly: 'No', edit: 'No' },
-    ],
+      { id: 'pd-1', module: 'Products', object: 'Workspace', action: 'Access, Search, Filter, Configure', label: 'Workspace › Access, Search, Filter, Configure' },
+      { id: 'pd-2', module: 'Products', object: 'Detail', action: 'View Product Details & Hierarchy', label: 'Detail › View Product Details & Hierarchy' },
+      { id: 'pd-3', module: 'Products', object: 'Create', action: 'Technology Product', label: 'Create › Technology Product' },
+      { id: 'pd-4', module: 'Products', object: 'Create', action: 'Variant Product', label: 'Create › Variant Product' },
+    ]
   },
   {
     id: 'assets', label: 'Assets',
     rows: [
-      { id: 'as-1', module: 'Assets', object: 'Library', action: 'Access & Browse', label: 'Library › Access & Browse', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'as-2', module: 'Assets', object: 'Library', action: 'All Assets View', label: 'Library › All Assets View', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'as-3', module: 'Assets', object: 'Library', action: 'My Assets View', label: 'Library › My Assets View', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'as-4', module: 'Assets', object: 'Library', action: 'Recently Viewed', label: 'Library › Recently Viewed', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'as-5', module: 'Assets', object: 'Library', action: 'Search & Filter', label: 'Library › Search & Filter', view: 'No', readOnly: 'Yes', edit: 'No' },
-      { id: 'as-6', module: 'Assets', object: 'Library', action: 'Mark / Unmark Favourite', label: 'Library › Mark / Unmark Favourite', view: 'No', readOnly: 'No', edit: 'Yes' },
-      { id: 'as-7', module: 'Assets', object: 'Detail', action: 'View Asset (rendition, metadata)', label: 'Detail › View Asset (rendition, metadata)', view: 'No', readOnly: 'Yes', edit: 'No' },
-    ],
+      { id: 'as-1', module: 'Assets', object: 'Library', action: 'Access, Search, Filter, Configure', label: 'Library › Access, Search, Filter, Configure' },
+      { id: 'as-2', module: 'Assets', object: 'Detail', action: 'View Asset Rendition & Metadata', label: 'Detail › View Asset Rendition & Metadata' },
+      { id: 'as-3', module: 'Assets', object: 'Create', action: 'Initiate Asset Creation', label: 'Create › Initiate Asset Creation' },
+      { id: 'as-4', module: 'Assets', object: 'Versioning', action: 'Create New Version', label: 'Versioning › Create New Version' },
+    ]
   },
+  {
+    id: 'documents', label: 'Documents',
+    rows: [
+      { id: 'do-1', module: 'Documents', object: 'Library', action: 'View All Types', label: 'Library › View All Types' },
+      { id: 'do-2', module: 'Documents', object: 'Project Documents', action: 'Upload', label: 'Project Documents › Upload' },
+      { id: 'do-3', module: 'Documents', object: 'Download', action: 'Download original file', label: 'Download › Download original file' },
+    ]
+  }
 ];
+
+// ─── Default Permission Matrix ───────────────────────────────────────────
+// This stores the assigned permissions per role (id). 
+// Format: Record<RoleId, Record<PermissionId, { view, readOnly, edit }>>
+
+export const ROLE_PERMISSIONS: Record<string, RolePermissions> = {
+  // R1: All Users
+  'R1': {
+    'lp-1': { view: 'No', readOnly: 'Yes', edit: 'No' },
+    'lp-2': { view: 'No', readOnly: 'Yes', edit: 'No' },
+    'lp-3': { view: 'No', readOnly: 'Yes', edit: 'No' },
+    'lp-4': { view: 'No', readOnly: 'Yes', edit: 'No' },
+    'lp-5': { view: 'No', readOnly: 'Yes', edit: 'No' },
+    'lp-6': { view: 'No', readOnly: 'Yes', edit: 'No' },
+    'lp-7': { view: 'No', readOnly: 'No', edit: 'No' },
+    'lp-8': { view: 'No', readOnly: 'No', edit: 'No' },
+    'pr-1': { view: 'No', readOnly: 'Yes', edit: 'No' },
+    'pr-2': { view: 'No', readOnly: 'Yes', edit: 'No' },
+    'pr-3': { view: 'No', readOnly: 'Yes', edit: 'No' },
+    'pr-4': { view: 'No', readOnly: 'Yes', edit: 'No' },
+    'pr-5': { view: 'No', readOnly: 'No', edit: 'Yes' },
+    'pr-6': { view: 'No', readOnly: 'No', edit: 'Yes' },
+    'pr-7': { view: 'No', readOnly: 'Yes', edit: 'No' },
+    'pr-8': { view: 'No', readOnly: 'No', edit: 'No' },
+    'pr-9': { view: 'No', readOnly: 'Yes', edit: 'No' },
+    'pr-10': { view: 'No', readOnly: 'No', edit: 'No' },
+    'pr-11': { view: 'No', readOnly: 'Yes', edit: 'No' },
+    'pr-12': { view: 'No', readOnly: 'No', edit: 'No' },
+    'pr-13': { view: 'No', readOnly: 'No', edit: 'No' },
+    'pr-14': { view: 'No', readOnly: 'No', edit: 'No' },
+    'pr-15': { view: 'No', readOnly: 'No', edit: 'No' },
+    'pr-16': { view: 'No', readOnly: 'Yes', edit: 'No' },
+    'cl-1': { view: 'No', readOnly: 'Yes', edit: 'No' },
+    'cl-2': { view: 'No', readOnly: 'Yes', edit: 'No' },
+    'cl-3': { view: 'No', readOnly: 'No', edit: 'No' },
+    'cl-4': { view: 'No', readOnly: 'No', edit: 'No' },
+    'cl-5': { view: 'No', readOnly: 'No', edit: 'No' },
+    'cl-6': { view: 'No', readOnly: 'No', edit: 'No' },
+    'cl-7': { view: 'No', readOnly: 'No', edit: 'No' },
+    'cl-8': { view: 'No', readOnly: 'No', edit: 'No' },
+    'cl-9': { view: 'No', readOnly: 'No', edit: 'No' },
+    'cl-10': { view: 'Yes', readOnly: 'No', edit: 'No' },
+    'pd-1': { view: 'No', readOnly: 'Yes', edit: 'No' },
+    'pd-2': { view: 'No', readOnly: 'Yes', edit: 'No' },
+    'pd-3': { view: 'No', readOnly: 'No', edit: 'No' },
+    'pd-4': { view: 'No', readOnly: 'No', edit: 'No' },
+    'as-1': { view: 'No', readOnly: 'Yes', edit: 'No' },
+    'as-2': { view: 'No', readOnly: 'Yes', edit: 'No' },
+    'as-3': { view: 'No', readOnly: 'No', edit: 'No' },
+    'as-4': { view: 'No', readOnly: 'No', edit: 'No' },
+    'do-1': { view: 'No', readOnly: 'Yes', edit: 'No' },
+    'do-2': { view: 'No', readOnly: 'No', edit: 'No' },
+    'do-3': { view: 'No', readOnly: 'Yes', edit: 'No' },
+  },
+  // R2: Project Lead
+  'R2': {
+    'lp-1': { view: 'Yes', readOnly: 'No', edit: 'No' },
+    'lp-2': { view: 'Yes', readOnly: 'No', edit: 'No' },
+    'lp-3': { view: 'Yes', readOnly: 'No', edit: 'No' },
+    'lp-4': { view: 'Yes', readOnly: 'No', edit: 'No' },
+    'lp-5': { view: 'No', readOnly: 'No', edit: 'No' },
+    'lp-6': { view: 'No', readOnly: 'No', edit: 'No' },
+    'lp-7': { view: 'No', readOnly: 'No', edit: 'Yes' },
+    'lp-8': { view: 'No', readOnly: 'No', edit: 'Yes' },
+    'pr-1': { view: 'No', readOnly: 'No', edit: 'Yes' },
+    'pr-2': { view: 'No', readOnly: 'No', edit: 'No' },
+    'pr-3': { view: 'No', readOnly: 'No', edit: 'No' },
+    'pr-4': { view: 'No', readOnly: 'No', edit: 'No' },
+    'pr-5': { view: 'No', readOnly: 'No', edit: 'Yes' },
+    'pr-6': { view: 'No', readOnly: 'No', edit: 'Yes' },
+    'pr-7': { view: 'No', readOnly: 'No', edit: 'Yes' },
+    'pr-8': { view: 'No', readOnly: 'No', edit: 'Yes' },
+    'pr-9': { view: 'Yes', readOnly: 'No', edit: 'No' },
+    'pr-10': { view: 'No', readOnly: 'No', edit: 'Yes' },
+    'pr-11': { view: 'No', readOnly: 'No', edit: 'Yes' },
+    'pr-12': { view: 'No', readOnly: 'No', edit: 'Yes' },
+    'pr-13': { view: 'No', readOnly: 'No', edit: 'Yes' },
+    'pr-14': { view: 'No', readOnly: 'No', edit: 'No' },
+    'pr-15': { view: 'No', readOnly: 'No', edit: 'Yes' },
+    'pr-16': { view: 'Yes', readOnly: 'No', edit: 'No' },
+    'cl-1': { view: 'Yes', readOnly: 'No', edit: 'No' },
+    'cl-2': { view: 'Yes', readOnly: 'No', edit: 'No' },
+    'cl-3': { view: 'No', readOnly: 'No', edit: 'Yes' },
+    'cl-4': { view: 'No', readOnly: 'No', edit: 'Yes' },
+    'cl-5': { view: 'No', readOnly: 'No', edit: 'Yes' },
+    'cl-6': { view: 'No', readOnly: 'No', edit: 'Yes' },
+    'cl-7': { view: 'No', readOnly: 'No', edit: 'Yes' },
+    'cl-8': { view: 'No', readOnly: 'No', edit: 'Yes' },
+    'cl-9': { view: 'No', readOnly: 'No', edit: 'Yes' },
+    'cl-10': { view: 'Yes', readOnly: 'No', edit: 'No' },
+    'pd-1': { view: 'Yes', readOnly: 'No', edit: 'No' },
+    'pd-2': { view: 'Yes', readOnly: 'No', edit: 'No' },
+    'pd-3': { view: 'No', readOnly: 'No', edit: 'Yes' },
+    'pd-4': { view: 'No', readOnly: 'No', edit: 'Yes' },
+    'as-1': { view: 'No', readOnly: 'No', edit: 'Yes' },
+    'as-2': { view: 'Yes', readOnly: 'No', edit: 'No' },
+    'as-3': { view: 'No', readOnly: 'No', edit: 'Yes' },
+    'as-4': { view: 'No', readOnly: 'No', edit: 'Yes' },
+    'do-1': { view: 'Yes', readOnly: 'No', edit: 'No' },
+    'do-2': { view: 'No', readOnly: 'No', edit: 'Yes' },
+    'do-3': { view: 'No', readOnly: 'Yes', edit: 'No' },
+  }
+};
+
+// Fill any missing roles with default empty permissions
+ROLES.forEach(r => {
+  if (!ROLE_PERMISSIONS[r.id]) {
+    const empty: RolePermissions = {};
+    PERMISSION_MODULES.forEach(m => m.rows.forEach(row => empty[row.id] = { view: 'No', readOnly: 'No', edit: 'No' }));
+    ROLE_PERMISSIONS[r.id] = empty;
+  } else {
+    // Ensure existing roles have all rows
+    PERMISSION_MODULES.forEach(m => m.rows.forEach(row => {
+      if (!ROLE_PERMISSIONS[r.id][row.id]) {
+        ROLE_PERMISSIONS[r.id][row.id] = { view: 'No', readOnly: 'No', edit: 'No' };
+      }
+    }));
+  }
+});
+
 
 export function formatLastActive(isoString: string): string {
   const date = new Date(isoString);
