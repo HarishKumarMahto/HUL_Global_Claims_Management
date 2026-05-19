@@ -1145,24 +1145,21 @@ export default function AssetWorkspace({
             />
           </button>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-2 flex-wrap">
+            <div className="flex items-center gap-2.5 mb-2 flex-wrap">
               {getFileIcon()}
               <h2 className="text-night truncate font-semibold leading-tight">
                 {asset.name}
               </h2>
-              <span className="px-2 py-0.5 rounded-full text-xs font-mono bg-earth text-gray-500 flex-shrink-0">
-                {asset.id}
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100 flex-shrink-0">
+                V {asset.currentVersionNumber}
+              </span>
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${ASSET_LIFECYCLE_COLORS[asset.lifecycleStage] || 'bg-gray-100 text-gray-600'}`}>
+                {asset.lifecycleStage}
               </span>
             </div>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <span className={`px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 ${ASSET_LIFECYCLE_COLORS[asset.lifecycleStage]}`}>
-                {asset.lifecycleStage}
-              </span>
               <span className="px-2.5 py-1 bg-earth text-gray-600 border border-pebble/40 rounded-full text-xs flex-shrink-0">
                 {asset.subtype || 'Unclassified'}
-              </span>
-              <span className="px-2.5 py-1 bg-green-50 text-green-700 border border-green-200 rounded-full text-xs flex-shrink-0">
-                v{asset.currentVersionNumber}
               </span>
               {asset.businessGroup && (
                 <span className="flex items-center gap-1.5 px-2.5 py-1 bg-sky/10 text-sky border border-sky/20 rounded-full text-xs flex-shrink-0">

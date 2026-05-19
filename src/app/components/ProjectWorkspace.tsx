@@ -1639,9 +1639,6 @@ export default function ProjectWorkspace({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2.5 mb-2 flex-wrap">
               <h2 className="text-night truncate font-semibold leading-tight">{project.name}</h2>
-              <span className="px-2 py-0.5 rounded-full text-xs font-mono bg-earth text-gray-500 flex-shrink-0">
-                {project.projectId}
-              </span>
 
               {isProjectArchived(project) && (
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-600 text-white tracking-wide flex-shrink-0 shadow-sm flex items-center gap-1">

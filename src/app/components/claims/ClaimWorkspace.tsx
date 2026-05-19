@@ -1893,13 +1893,18 @@ export default function ClaimWorkspace({
 
           <div className="flex-1 min-w-0">
             {/* Row 1: Primary statement + actions */}
-            <div className="flex items-start gap-3 mb-2 flex-wrap">
-              <h2 className="flex-1 text-night leading-tight font-semibold">
-                {primaryStatement}
-              </h2>
-              <span className="px-2 py-0.5 rounded-full text-xs font-mono bg-earth text-gray-500 flex-shrink-0">
-                {claim.id}
-              </span>
+            <div className="flex items-start justify-between gap-3 mb-2 flex-wrap">
+              <div className="flex items-center gap-2.5 flex-wrap flex-1 min-w-0">
+                <h2 className="text-night leading-tight font-semibold">
+                  {primaryStatement}
+                </h2>
+                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100 flex-shrink-0">
+                  V {typeof version.versionNumber === 'number' ? version.versionNumber.toFixed(1) : version.versionNumber}
+                </span>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${CLAIM_LIFECYCLE_COLORS[claim.lifecycleStage] || 'bg-gray-100 text-gray-600'}`}>
+                  {claim.lifecycleStage}
+                </span>
+              </div>
 
               {/* Lifecycle action buttons */}
               <div className="flex items-center gap-2">
@@ -2172,9 +2177,6 @@ export default function ClaimWorkspace({
 
             {/* Row 2: Summary strip */}
             <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <span className={`px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 ${CLAIM_LIFECYCLE_COLORS[claim.lifecycleStage]}`}>
-                {claim.lifecycleStage}
-              </span>
               {claim.finalRiskLevel && (
                 <span className={`px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 ${RISK_LEVEL_COLORS[claim.finalRiskLevel]}`}>
                   {claim.finalRiskLevel} Risk
@@ -2198,9 +2200,6 @@ export default function ClaimWorkspace({
                   +{claim.marketingChannels.length - 3} more
                 </span>
               )}
-              <span className="px-2.5 py-1 rounded-full text-xs bg-green-50 text-green-700 border border-green-200 flex-shrink-0">
-                v{version.versionNumber} · {version.isLatest ? "Latest" : "Archived"}
-              </span>
               {claim.challenged && (
                 <span className="flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-xs flex-shrink-0">
                   <AlertTriangle className="w-3 h-3 text-amber-500" />

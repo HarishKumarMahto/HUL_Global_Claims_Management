@@ -2860,28 +2860,30 @@ export default function ProductDetailsPage({
             />
           </button>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-2 flex-wrap">
-              <h2 className="text-night truncate">
+            <div className="flex items-center gap-2.5 mb-2 flex-wrap">
+              <h2 className="text-night truncate font-semibold leading-tight">
                 {product.name}
               </h2>
-              <span className="px-2 py-0.5 rounded-full text-xs font-mono bg-earth text-gray-500 flex-shrink-0">
-                {product.productId}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              {product.versionNumber && (
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100 flex-shrink-0">
+                  Version {product.versionNumber}
+                </span>
+              )}
               <span
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs flex-shrink-0"
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0"
                 style={{
                   background: lcStyle.bg,
                   color: lcStyle.text,
                 }}
               >
                 <div
-                  className="w-1.5 h-1.5 rounded-full"
+                  className="w-1 h-1 rounded-full"
                   style={{ background: lcStyle.dot }}
                 />
                 {product.lifecycleState}
               </span>
+            </div>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
               <span
                 className="px-2.5 py-1 rounded-full text-xs flex-shrink-0"
                 style={{ background: typeBg, color: typeColor }}
