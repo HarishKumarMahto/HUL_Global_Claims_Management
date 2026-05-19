@@ -5,7 +5,7 @@ import { type UserRecord, type FunctionArea, FUNCTIONS, BUSINESS_GROUPS, TIME_ZO
 import { MultiSelectDropdown } from '../MultiSelectDropdown';
 
 // Generic mockup data for BU, Categories, and Geographies
-const BU_OPTIONS = ['Global BU', 'BU 1', 'BU 2', 'BU 3'];
+const BU_OPTIONS = ['Global', 'North America', 'Indonesia', 'PTAB', 'Greater Asia', 'North Asia', 'India', 'Europe', 'LATAM', '1 UL Africa', '1UL EU'];
 const CATEGORY_OPTIONS = ['Skin Care', 'Hair Care', 'Deodorants', 'Fabric Cleaning', 'Home & Hygiene', 'Dressings', 'Ice Cream'];
 const GEOGRAPHY_OPTIONS = ['Global', 'North America', 'Europe', 'LATAM', 'SEAA', 'South Asia', 'Africa'];
 
@@ -96,7 +96,7 @@ export default function CreateUserDialog({ isOpen, onClose, onCreate, existingUs
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl p-0 overflow-hidden bg-[#F6F7F0] flex flex-col max-h-[90vh]">
+      <DialogContent className="max-w-5xl p-0 overflow-hidden bg-[#F6F7F0] flex flex-col max-h-[90vh]">
         <DialogHeader className="px-6 py-4 border-b border-[#DEDED7] bg-white flex-shrink-0">
           <DialogTitle className="text-xl font-bold text-[#133062]">Create New User</DialogTitle>
           <p className="text-xs text-gray-500 mt-1">Create a user profile to enable platform access and role assignment.</p>
