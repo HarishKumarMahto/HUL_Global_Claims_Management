@@ -771,7 +771,7 @@ export default function App() {
           {/* Left: Logo + Nav */}
           <div className="flex items-center gap-8">
             <div className="hover:scale-[1.03] transition-transform duration-300">
-              <Logo size={32} lightBg={false} />
+              <Logo size={48} lightBg={false} />
             </div>
 
             <nav className="flex items-center gap-2 h-full">
