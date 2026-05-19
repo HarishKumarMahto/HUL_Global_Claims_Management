@@ -8,6 +8,7 @@ import type { DocumentRecord, DocumentType, DocumentLifecycle } from './document
 import { CURRENT_USER } from '../../types';
 import DocumentsTable from './DocumentsTable';
 import UploadDocumentModal from './UploadDocumentModal';
+import { TablePagination } from '../ui/tableUtils';
 
 const DOC_TYPE_OPTIONS: DocumentType[] = ['Substantiation Evidence', 'Formulation Document', 'Project Document'];
 const LIFECYCLE_OPTIONS: DocumentLifecycle[] = ['Draft', 'In Use', 'Created', 'Expired', 'Cancelled', 'Withdrawn', 'Obsolete'];
@@ -164,34 +165,28 @@ export default function DocumentsModule({
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Page Header */}
+    <div className="flex flex-col h-full overflow-hidden bg-[#F6F7F0]">
+      {/* Page Header matching Projects */}
       <div className="bg-white border-b border-pebble px-6 py-4 flex-shrink-0">
-        {/* Row 1: Title + Upload button */}
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            {getViewIcon()}
-            <div>
-              <h1 className="text-night">{getPageHeading()}</h1>
-              <p className="text-xs text-gray-400 mt-0.5">
-                {filteredDocs.length} document{filteredDocs.length !== 1 ? 's' : ''}
-                {activeLibraryView !== 'All Documents' && ` · ${activeLibraryView}`}
-              </p>
-            </div>
+          <div className="flex items-center gap-3 relative">
+            <h1 className="text-night flex items-center gap-2">
+              {getPageHeading()}
+            </h1>
           </div>
           <button
             onClick={() => setIsUploadModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-sky text-white rounded-lg text-sm hover:bg-dark transition-colors shadow-sm shadow-sky/20"
+            className="flex items-center gap-2 px-4 py-2 bg-sky text-white rounded-lg text-sm hover:bg-dark transition-colors"
           >
             <Upload className="w-4 h-4" />
             Upload Document
           </button>
         </div>
 
-        {/* Row 2: Search + Filters toolbar */}
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Toolbar: Search + Filters */}
+        <div className="flex items-center gap-3 flex-wrap">
           {/* Search */}
-          <div className="relative flex-1 min-w-[180px] max-w-xs">
+          <div className="relative flex-1 min-w-[200px] max-w-sm">
             <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
@@ -207,115 +202,119 @@ export default function DocumentsModule({
             )}
           </div>
 
-          {/* Quick Filters */}
-          <QuickFilterDropdown<DocumentType>
-            label="Document Type"
-            options={DOC_TYPE_OPTIONS}
-            selected={typeFilter}
-            onToggle={v => setTypeFilter(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v])}
-            onClear={() => setTypeFilter([])}
-          />
-          <QuickFilterDropdown<DocumentLifecycle>
-            label="Lifecycle"
-            options={LIFECYCLE_OPTIONS}
-            selected={lifecycleFilter}
-            onToggle={v => setLifecycleFilter(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v])}
-            onClear={() => setLifecycleFilter([])}
-          />
-          <QuickFilterDropdown<string>
-            label="Geography"
-            options={GEO_OPTIONS}
-            selected={geoFilter}
-            onToggle={v => setGeoFilter(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v])}
-            onClear={() => setGeoFilter([])}
-          />
-
-          {/* Result count + Clear */}
-          <div className="flex items-center gap-2 ml-auto text-xs text-gray-500">
-            <span>
-              <strong className="text-night">{filteredDocs.length}</strong> result{filteredDocs.length !== 1 ? 's' : ''}
-            </span>
-            {activeFilterCount > 0 && (
-              <button onClick={clearAllFilters} className="text-red-400 hover:text-red-600 transition-colors font-medium">
-                Clear all
-              </button>
-            )}
+          {/* Quick Filter Dropdowns */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <QuickFilterDropdown<DocumentType>
+              label="Document Type"
+              options={DOC_TYPE_OPTIONS}
+              selected={typeFilter}
+              onToggle={v => setTypeFilter(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v])}
+              onClear={() => setTypeFilter([])}
+            />
+            <QuickFilterDropdown<DocumentLifecycle>
+              label="Lifecycle"
+              options={LIFECYCLE_OPTIONS}
+              selected={lifecycleFilter}
+              onToggle={v => setLifecycleFilter(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v])}
+              onClear={() => setLifecycleFilter([])}
+            />
+            <QuickFilterDropdown<string>
+              label="Geography"
+              options={GEO_OPTIONS}
+              selected={geoFilter}
+              onToggle={v => setGeoFilter(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v])}
+              onClear={() => setGeoFilter([])}
+            />
           </div>
         </div>
       </div>
 
-      {/* Bulk action bar */}
-      {selectedIds.length > 0 && (
-        <div className="bg-pale border-b border-sky/20 px-6 py-2 flex items-center gap-3 flex-shrink-0">
-          <span className="text-sm text-sky font-medium">{selectedIds.length} of {filteredDocs.length} selected</span>
-          <button className="flex items-center gap-2 px-3 py-1.5 border border-sky text-sky rounded-lg text-sm hover:bg-sky hover:text-white transition-colors">
-            <MoreHorizontal className="w-4 h-4" />
-            Bulk Actions
-          </button>
-          <button
-            onClick={() => setSelectedIds([])}
-            className="ml-auto text-xs text-gray-500 hover:text-night transition-colors"
-          >
-            Clear selection
-          </button>
-        </div>
-      )}
-
       {/* Table Area */}
       <div className="flex-1 p-5 overflow-hidden flex flex-col gap-3">
-        <DocumentsTable
-          documents={paginatedDocs}
-          onDocumentClick={onDocumentClick}
-          selectedIds={selectedIds}
-          onSelectionChange={setSelectedIds}
-        />
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-2 flex-shrink-0">
-            <span className="text-xs text-gray-500">
-              Showing {((safePage - 1) * PAGE_SIZE) + 1}–{Math.min(safePage * PAGE_SIZE, filteredDocs.length)} of {filteredDocs.length} documents
-            </span>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={safePage === 1}
-                className="p-1.5 rounded-lg border border-pebble hover:bg-earth disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronLeft className="w-4 h-4 text-gray-600" />
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter(p => p === 1 || p === totalPages || Math.abs(p - safePage) <= 1)
-                .reduce<(number | '...')[]>((acc, p, idx, arr) => {
-                  if (idx > 0 && (p as number) - (arr[idx - 1] as number) > 1) acc.push('...');
-                  acc.push(p);
-                  return acc;
-                }, [])
-                .map((p, i) =>
-                  p === '...' ? (
-                    <span key={`e-${i}`} className="px-2 text-gray-400 text-sm">…</span>
-                  ) : (
-                    <button
-                      key={p}
-                      onClick={() => setCurrentPage(p as number)}
-                      className={`min-w-[32px] h-8 px-2 rounded-lg text-sm transition-colors ${
-                        safePage === p ? 'bg-sky text-white font-medium' : 'border border-pebble hover:bg-earth text-gray-600'
-                      }`}
-                    >
-                      {p}
-                    </button>
-                  )
+        <div className="w-full h-full flex flex-col bg-white rounded-xl border border-gray-300 overflow-hidden shadow-sm">
+          {/* Active filter chips row */}
+          {(typeFilter.length > 0 || lifecycleFilter.length > 0 || geoFilter.length > 0) && (
+            <div className="px-4 py-2 bg-earth/30 border-b border-pebble flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-xs text-gray-500 font-medium mr-1">Active filters:</span>
+                {typeFilter.length > 0 && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-pebble text-sky rounded-full text-xs font-medium shadow-sm">
+                    <span className="text-gray-400 font-normal">Type:</span>
+                    <span>{typeFilter.join(", ")}</span>
+                    <button onClick={() => setTypeFilter([])} className="hover:text-red-500 ml-1 text-gray-400 transition-colors"><X className="w-2.5 h-2.5" /></button>
+                  </span>
                 )}
-              <button
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={safePage === totalPages}
-                className="p-1.5 rounded-lg border border-pebble hover:bg-earth disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronRight className="w-4 h-4 text-gray-600" />
+                {lifecycleFilter.length > 0 && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-pebble text-sky rounded-full text-xs font-medium shadow-sm">
+                    <span className="text-gray-400 font-normal">Lifecycle:</span>
+                    <span>{lifecycleFilter.join(", ")}</span>
+                    <button onClick={() => setLifecycleFilter([])} className="hover:text-red-500 ml-1 text-gray-400 transition-colors"><X className="w-2.5 h-2.5" /></button>
+                  </span>
+                )}
+                {geoFilter.length > 0 && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-pebble text-sky rounded-full text-xs font-medium shadow-sm">
+                    <span className="text-gray-400 font-normal">Geography:</span>
+                    <span>{geoFilter.join(", ")}</span>
+                    <button onClick={() => setGeoFilter([])} className="hover:text-red-500 ml-1 text-gray-400 transition-colors"><X className="w-2.5 h-2.5" /></button>
+                  </span>
+                )}
+              </div>
+              <button onClick={clearAllFilters} className="text-xs text-red-500 hover:text-red-700 transition-colors font-semibold px-2 py-1 hover:bg-red-50 rounded-lg mr-1">
+                Clear all
               </button>
             </div>
+          )}
+
+          {/* Top Toolbar inner */}
+          <div className="bg-white border-b border-pebble px-4 py-2.5 flex items-center justify-between flex-shrink-0">
+            <div className="flex items-center gap-3">
+              {selectedIds.length > 0 ? (
+                <>
+                  <span className="text-sm text-sky font-medium bg-sky/10 px-2.5 py-0.5 rounded">{selectedIds.length} of {filteredDocs.length} selected</span>
+                  <button
+                    onClick={() => setSelectedIds([])}
+                    className="text-xs text-gray-500 hover:text-night transition-colors"
+                  >
+                    Clear selection
+                  </button>
+                </>
+              ) : (
+                <span className="text-sm text-gray-600 font-medium ml-1">Documents Library</span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              {selectedIds.length > 0 && (
+                <button
+                  className="px-3 py-1.5 bg-sky text-white rounded-lg text-sm hover:bg-dark transition-colors font-medium shadow-sm flex items-center gap-1.5"
+                >
+                  <MoreHorizontal className="w-3.5 h-3.5" /> Bulk Actions
+                </button>
+              )}
+            </div>
           </div>
-        )}
+
+          {/* Table Area */}
+          <DocumentsTable
+            documents={paginatedDocs}
+            onDocumentClick={onDocumentClick}
+            selectedIds={selectedIds}
+            onSelectionChange={setSelectedIds}
+          />
+
+          {/* Pagination Footer */}
+          <TablePagination
+            currentPage={safePage}
+            totalPages={totalPages}
+            totalRecords={filteredDocs.length}
+            startIndex={(safePage - 1) * PAGE_SIZE}
+            itemsPerPage={PAGE_SIZE}
+            label="documents"
+            onPrev={() => setCurrentPage(p => Math.max(1, p - 1))}
+            onNext={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            onPageSelect={setCurrentPage}
+          />
+        </div>
       </div>
 
       {/* Upload Modal */}

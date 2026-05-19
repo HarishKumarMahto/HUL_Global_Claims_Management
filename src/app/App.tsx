@@ -42,6 +42,7 @@ import { Project, TableState, initialProjects, BUSINESS_GROUPS, CATEGORIES, PROJ
 import ProductsModule from './components/products/ProductsModule';
 import type { ProductModuleView } from './components/products/ProductsModule';
 import type { ProductItem } from './components/products/productData';
+import { initialProducts } from './components/products/productData';
 import ClaimsModule from './components/claims/ClaimsModule';
 import ClaimWorkspace from './components/claims/ClaimWorkspace';
 import HomePage from './components/home/HomePage';
@@ -1120,6 +1121,7 @@ export default function App() {
           isInDocumentWorkspace={activeModule === 'Documents' && !!selectedDocument}
           activeDocumentSection={activeDocumentSection}
           onDocumentSectionChange={setActiveDocumentSection}
+          selectedDocument={selectedDocument}
         />
 
         {/* Main Content */}
@@ -1509,6 +1511,40 @@ export default function App() {
                 allClaims={claims}
                 allAssets={assets}
                 allDocuments={documents}
+                onNavigateToClaim={(claimId) => {
+                  const claim = claims.find(c => c.id === claimId);
+                  if (claim) {
+                    setSelectedClaim(claim);
+                    setClaimsModuleView('workspace');
+                    setActiveModule('Claims');
+                    setActiveClaimsWorkspaceSection('Claim Details');
+                    if (claim.claimType === 'Global') setActiveClaimsBaseView('Global Claims');
+                    else if (claim.claimType === 'Regional') setActiveClaimsBaseView('Regional Claims');
+                    else if (claim.claimType === 'Local') setActiveClaimsBaseView('Local Claims');
+                    else setActiveClaimsBaseView('Local Claims SKU');
+                    setSelectedDocument(null);
+                  }
+                }}
+                onNavigateToAsset={(assetId) => {
+                  const asset = assets.find(a => a.id === assetId);
+                  if (asset) {
+                    setSelectedAsset(asset);
+                    setAssetsModuleView('workspace');
+                    setActiveModule('Assets');
+                    setActiveAssetSection('Asset Details');
+                    setSelectedDocument(null);
+                  }
+                }}
+                onNavigateToProduct={(productId) => {
+                  const product = initialProducts.find(p => p.id === productId || p.productId === productId);
+                  if (product) {
+                    setSelectedProduct(product);
+                    setActiveProductView('detail');
+                    setActiveModule('Products');
+                    setActiveProductSection('Product Details');
+                    setSelectedDocument(null);
+                  }
+                }}
               />
             ) : (
               <DocumentsModule

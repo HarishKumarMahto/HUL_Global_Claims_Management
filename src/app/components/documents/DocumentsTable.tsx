@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { FileText, FileSpreadsheet, File, MoreHorizontal, ExternalLink, GitBranch, Trash2, Archive } from 'lucide-react';
 import type { DocumentRecord } from './documentsData';
 import { canCreateNewVersion } from './documentsData';
-import DocumentLifecycleBadge from './DocumentLifecycleBadge';
 
 interface DocumentsTableProps {
   documents: DocumentRecord[];
@@ -11,11 +10,7 @@ interface DocumentsTableProps {
   onSelectionChange: (ids: string[]) => void;
 }
 
-const TYPE_COLORS: Record<string, string> = {
-  'Substantiation Evidence': 'bg-sky-50 text-sky-700 border-sky-200',
-  'Formulation Document':    'bg-violet-50 text-violet-700 border-violet-200',
-  'Project Document':        'bg-amber-50 text-amber-700 border-amber-200',
-};
+
 
 function FileIcon({ fileType }: { fileType?: string }) {
   const type = (fileType || '').toUpperCase();
@@ -66,11 +61,11 @@ export default function DocumentsTable({
   }
 
   return (
-    <div className="flex-1 overflow-auto rounded-xl border border-pebble bg-white">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-pebble bg-[#F6F7F0] sticky top-0 z-10">
-            <th className="px-4 py-3 w-10">
+    <div className="flex-1 overflow-auto no-scrollbar">
+      <table className="w-full border-collapse" style={{ minWidth: "1000px" }}>
+        <thead className="bg-earth sticky top-0 z-10">
+          <tr className="border-b border-gray-300">
+            <th className="px-4 py-3 w-10 text-left">
               <input
                 type="checkbox"
                 checked={selectedIds.length === documents.length && documents.length > 0}
@@ -127,12 +122,9 @@ export default function DocumentsTable({
                   </div>
                 </td>
 
-                {/* Type badge */}
-                <td className="px-4 py-3">
-                  <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${TYPE_COLORS[doc.documentType] ?? 'bg-gray-50 text-gray-600 border-gray-200'}`}>
-                    {doc.documentType === 'Substantiation Evidence' ? 'SE' :
-                     doc.documentType === 'Formulation Document' ? 'FD' : 'PD'}
-                  </span>
+                {/* Type */}
+                <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">
+                  {doc.documentType}
                 </td>
 
                 {/* Subtype / CUC */}
@@ -140,14 +132,12 @@ export default function DocumentsTable({
                   {doc.subtype || doc.cucSpecNumber || '—'}
                 </td>
 
-                {/* Lifecycle badge */}
-                <td className="px-4 py-3">
-                  <div className="flex flex-col gap-1">
-                    <DocumentLifecycleBadge state={doc.lifecycleState} size="sm" />
-                    {isExpiringSoon && doc.lifecycleState === 'In Use' && (
-                      <span className="text-[9px] text-orange-500 font-semibold">⚠ Expiring soon</span>
-                    )}
-                  </div>
+                {/* Lifecycle */}
+                <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">
+                  {doc.lifecycleState}
+                  {isExpiringSoon && doc.lifecycleState === 'In Use' && (
+                    <span className="ml-2 text-[9px] text-orange-500 font-semibold">⚠ Expiring soon</span>
+                  )}
                 </td>
 
                 {/* Version */}
@@ -159,15 +149,8 @@ export default function DocumentsTable({
                 </td>
 
                 {/* Geography */}
-                <td className="px-4 py-3">
-                  <div className="flex flex-wrap gap-1 max-w-[120px]">
-                    {(doc.geography || []).slice(0, 2).map(g => (
-                      <span key={g} className="text-[9px] bg-earth text-night px-1.5 py-0.5 rounded-full">{g}</span>
-                    ))}
-                    {doc.geography.length > 2 && (
-                      <span className="text-[9px] text-gray-400">+{doc.geography.length - 2}</span>
-                    )}
-                  </div>
+                <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">
+                  {(doc.geography || []).join(', ')}
                 </td>
 
                 {/* Valid To */}
@@ -180,13 +163,8 @@ export default function DocumentsTable({
                 </td>
 
                 {/* Created By */}
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-5 h-5 rounded-full bg-sky/20 text-sky text-[8px] font-bold flex items-center justify-center flex-shrink-0">
-                      {doc.createdBy.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                    </div>
-                    <span className="text-xs text-gray-500 truncate max-w-[90px]">{doc.createdBy}</span>
-                  </div>
+                <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">
+                  {doc.createdBy}
                 </td>
 
                 {/* Modified */}

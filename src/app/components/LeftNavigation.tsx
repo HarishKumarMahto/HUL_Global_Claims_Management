@@ -66,6 +66,7 @@ interface LeftNavigationProps {
   isInDocumentWorkspace?: boolean;
   activeDocumentSection?: string;
   onDocumentSectionChange?: (section: string) => void;
+  selectedDocument?: any;
 }
 
 const PROJECT_VIEWS = [
@@ -175,6 +176,7 @@ export default function LeftNavigation({
   isInDocumentWorkspace = false,
   activeDocumentSection = 'Document Details',
   onDocumentSectionChange,
+  selectedDocument,
 }: LeftNavigationProps) {
   const [isProjectsExpanded, setIsProjectsExpanded] = useState(true);
   const [isProductsExpanded, setIsProductsExpanded] = useState(true);
@@ -259,6 +261,21 @@ export default function LeftNavigation({
   }
 
   if (activeModule === 'Documents' && isInDocumentWorkspace) {
+    const isSubstantiationEvidence = selectedDocument?.documentType === 'Substantiation Evidence';
+    const sectionsToRender = DOCUMENT_WORKSPACE_SECTIONS
+      .filter(s => {
+        if (isSubstantiationEvidence) {
+          return ['Document Details', 'Related Claims', 'Related Assets', 'Related Products'].includes(s.id);
+        }
+        return true;
+      })
+      .map(s => {
+        if (isSubstantiationEvidence && s.id === 'Document Details') {
+          return { ...s, label: 'Substantiation Evidence Details' };
+        }
+        return s;
+      });
+
     return (
       <aside className={sidebarClass}>
         <CollapseButton />
@@ -271,7 +288,7 @@ export default function LeftNavigation({
           </div>
           <nav className="p-3 flex-1 overflow-y-auto">
             <div className="space-y-0.5">
-              {DOCUMENT_WORKSPACE_SECTIONS.map(section => {
+              {sectionsToRender.map(section => {
                 const isActive = activeDocumentSection === section.id;
                 return (
                   <button
