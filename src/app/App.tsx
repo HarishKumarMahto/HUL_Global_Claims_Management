@@ -778,8 +778,7 @@ export default function App() {
 
   return (
     <div 
-      className="h-screen flex flex-col overflow-hidden"
-      style={{ background: 'radial-gradient(100% 100% at 0% 100%, rgba(123, 192, 227, 0.4) 0%, rgba(232, 238, 238, 0.6) 30%, rgba(246, 247, 246, 1) 100%)', backgroundColor: '#F6F7F6' }}
+      className="h-screen flex flex-col overflow-hidden bg-background"
     >
       {/* Global Header */}
       <header 

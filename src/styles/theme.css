@@ -36,7 +36,7 @@
   --color-pebble: var(--brand-pebble);
   --color-water: var(--brand-water);
 
-  --background: var(--brand-earth);
+  --background: var(--brand-sky-pale);
   --foreground: var(--brand-night-text);
   --card: var(--brand-cloud);
   --card-foreground: var(--brand-night-text);

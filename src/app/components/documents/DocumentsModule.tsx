@@ -165,7 +165,7 @@ export default function DocumentsModule({
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-[#F6F7F0]">
+    <div className="flex flex-col h-full overflow-hidden bg-background">
       {/* Page Header matching Projects */}
       <div className="bg-white border-b border-pebble px-6 py-4 flex-shrink-0">
         <div className="flex items-center justify-between mb-4">
