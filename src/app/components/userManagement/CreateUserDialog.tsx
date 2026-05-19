@@ -20,7 +20,7 @@ export default function CreateUserDialog({ isOpen, onClose, onCreate, existingUs
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
-  
+
   const [functionArea, setFunctionArea] = useState<FunctionArea | ''>('');
   const [businessGroups, setBusinessGroups] = useState<string[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -28,7 +28,7 @@ export default function CreateUserDialog({ isOpen, onClose, onCreate, existingUs
   const [geographies, setGeographies] = useState<string[]>([]);
   const [status, setStatus] = useState<'Active' | 'Inactive'>('Active');
   const [timeZone, setTimeZone] = useState('');
-  
+
   const [notifySummary, setNotifySummary] = useState(true);
   const [notifyInApp, setNotifyInApp] = useState(true);
 
@@ -45,7 +45,7 @@ export default function CreateUserDialog({ isOpen, onClose, onCreate, existingUs
     } else if (existingUsers.some(u => u.email.toLowerCase() === email.toLowerCase().trim())) {
       newErrors.email = 'Email already exists';
     }
-    
+
     if (!functionArea) newErrors.functionArea = 'Required';
     if (businessGroups.length === 0) newErrors.businessGroups = 'Required';
     if (categories.length === 0) newErrors.categories = 'Required';
@@ -54,7 +54,7 @@ export default function CreateUserDialog({ isOpen, onClose, onCreate, existingUs
 
     // Mock validation: "User cannot be created with invalid geography/BG combinations"
     if (businessGroups.includes('Ice Cream') && !geographies.includes('Global')) {
-       newErrors.geographies = 'Ice Cream requires Global geography';
+      newErrors.geographies = 'Ice Cream requires Global geography';
     }
 
     setErrors(newErrors);
@@ -102,8 +102,8 @@ export default function CreateUserDialog({ isOpen, onClose, onCreate, existingUs
           <p className="text-xs text-gray-500 mt-1">Create a user profile to enable platform access and role assignment.</p>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
-          
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8 ">
+
           {/* Section 1: Personal Info */}
           <section className="space-y-4">
             <h3 className="text-sm font-bold text-[#133062] border-b border-[#DEDED7] pb-2 flex items-center gap-2">
@@ -115,14 +115,14 @@ export default function CreateUserDialog({ isOpen, onClose, onCreate, existingUs
                 <input value={firstName} onChange={e => setFirstName(e.target.value)}
                   className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#0066CC] outline-none ${errors.firstName ? 'border-red-500' : 'border-[#DEDED7]'}`}
                   placeholder="e.g. Jane" />
-                {errors.firstName && <span className="text-[10px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3"/>{errors.firstName}</span>}
+                {errors.firstName && <span className="text-[10px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3" />{errors.firstName}</span>}
               </div>
               <div>
                 <label className="block text-xs font-semibold text-[#133062] mb-1">Last Name *</label>
                 <input value={lastName} onChange={e => setLastName(e.target.value)}
                   className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#0066CC] outline-none ${errors.lastName ? 'border-red-500' : 'border-[#DEDED7]'}`}
                   placeholder="e.g. Doe" />
-                {errors.lastName && <span className="text-[10px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3"/>{errors.lastName}</span>}
+                {errors.lastName && <span className="text-[10px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3" />{errors.lastName}</span>}
               </div>
               <div className="col-span-2">
                 <label className="block text-xs font-semibold text-[#133062] mb-1">Email Address *</label>
@@ -132,7 +132,7 @@ export default function CreateUserDialog({ isOpen, onClose, onCreate, existingUs
                     className={`w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#0066CC] outline-none ${errors.email ? 'border-red-500' : 'border-[#DEDED7]'}`}
                     placeholder="jane.doe@unilever.com" />
                 </div>
-                {errors.email && <span className="text-[10px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3"/>{errors.email}</span>}
+                {errors.email && <span className="text-[10px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3" />{errors.email}</span>}
               </div>
             </div>
           </section>
@@ -150,9 +150,9 @@ export default function CreateUserDialog({ isOpen, onClose, onCreate, existingUs
                   <option value="" disabled>Select Function</option>
                   {FUNCTIONS.map(f => <option key={f} value={f}>{f}</option>)}
                 </select>
-                {errors.functionArea && <span className="text-[10px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3"/>{errors.functionArea}</span>}
+                {errors.functionArea && <span className="text-[10px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3" />{errors.functionArea}</span>}
               </div>
-              
+
               <div>
                 <label className="block text-xs font-semibold text-[#133062] mb-1">Business Unit (BU) *</label>
                 <select value={bu} onChange={e => setBu(e.target.value)}
@@ -160,19 +160,19 @@ export default function CreateUserDialog({ isOpen, onClose, onCreate, existingUs
                   <option value="" disabled>Select BU</option>
                   {BU_OPTIONS.map(b => <option key={b} value={b}>{b}</option>)}
                 </select>
-                {errors.bu && <span className="text-[10px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3"/>{errors.bu}</span>}
+                {errors.bu && <span className="text-[10px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3" />{errors.bu}</span>}
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-[#133062] mb-1">Business Group(s) *</label>
                 <MultiSelectDropdown options={BUSINESS_GROUPS} selected={businessGroups} onChange={setBusinessGroups} placeholder="Select BGs" />
-                {errors.businessGroups && <span className="text-[10px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3"/>{errors.businessGroups}</span>}
+                {errors.businessGroups && <span className="text-[10px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3" />{errors.businessGroups}</span>}
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-[#133062] mb-1">Categories *</label>
                 <MultiSelectDropdown options={CATEGORY_OPTIONS} selected={categories} onChange={setCategories} placeholder="Select Categories" />
-                {errors.categories && <span className="text-[10px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3"/>{errors.categories}</span>}
+                {errors.categories && <span className="text-[10px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3" />{errors.categories}</span>}
               </div>
             </div>
           </section>
@@ -186,7 +186,7 @@ export default function CreateUserDialog({ isOpen, onClose, onCreate, existingUs
               <div className="col-span-2">
                 <label className="block text-xs font-semibold text-[#133062] mb-1">Geography(s) *</label>
                 <MultiSelectDropdown options={GEOGRAPHY_OPTIONS} selected={geographies} onChange={setGeographies} placeholder="Select Geographies" />
-                {errors.geographies && <span className="text-[10px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3"/>{errors.geographies}</span>}
+                {errors.geographies && <span className="text-[10px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3" />{errors.geographies}</span>}
               </div>
 
               <div>
@@ -203,7 +203,7 @@ export default function CreateUserDialog({ isOpen, onClose, onCreate, existingUs
 
               <div>
                 <label className="block text-xs font-semibold text-[#133062] mb-1">Status *</label>
-                <select value={status} onChange={e => setStatus(e.target.value as 'Active'|'Inactive')}
+                <select value={status} onChange={e => setStatus(e.target.value as 'Active' | 'Inactive')}
                   className="w-full px-3 py-2 border border-[#DEDED7] rounded-lg text-sm focus:ring-2 focus:ring-[#0066CC] outline-none bg-white">
                   <option value="Active">Active</option>
                   <option value="Inactive">Inactive</option>
@@ -246,7 +246,7 @@ export default function CreateUserDialog({ isOpen, onClose, onCreate, existingUs
           <button onClick={onClose} className="px-5 py-2.5 text-sm font-bold text-gray-600 hover:bg-[#F6F7F0] rounded-xl transition-colors">
             Cancel
           </button>
-          <button onClick={handleSave} 
+          <button onClick={handleSave}
             className="px-5 py-2.5 text-sm font-bold text-white bg-[#0066CC] hover:bg-[#004D99] rounded-xl shadow-lg shadow-[#0066CC]/20 transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none">
             Create User
           </button>
