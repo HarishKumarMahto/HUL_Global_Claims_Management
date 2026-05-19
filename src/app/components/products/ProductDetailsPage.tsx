@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -1627,6 +1627,47 @@ export default function ProductDetailsPage({
     useState(false);
   const [localShowAudit, setLocalShowAudit] = useState(false);
 
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const isNavigatingRef = useRef(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const ORDERED_PRODUCT_SECTIONS = SECTIONS.filter(s => s.id !== "Audit Log");
+
+  useEffect(() => {
+    if (isNavigatingRef.current) return;
+
+    const el = sectionRefs.current[activeSection];
+    if (el) {
+      isNavigatingRef.current = true;
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      scrollTimeoutRef.current = setTimeout(() => {
+        isNavigatingRef.current = false;
+      }, 800);
+    }
+  }, [activeSection]);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (isNavigatingRef.current) return;
+
+    const container = e.currentTarget;
+    const containerRect = container.getBoundingClientRect();
+    const triggerLine = containerRect.top + containerRect.height * 0.3;
+
+    for (const item of ORDERED_PRODUCT_SECTIONS) {
+      const el = sectionRefs.current[item.id];
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        if (rect.top <= triggerLine && rect.bottom > triggerLine) {
+          if (activeSection !== item.id) {
+            onSectionChange(item.id);
+          }
+          break;
+        }
+      }
+    }
+  };
+
   useEffect(() => {
     setEditForm({ ...product });
     setIsEditing(initialEditMode);
@@ -1708,7 +1749,7 @@ export default function ProductDetailsPage({
     );
   };
 
-  const renderSection = () => {
+  const renderSection = (activeSection: ProductSection) => {
     switch (activeSection) {
       // ── Product Details ──────────────────────────────────────────────────
       case "Product Details":
@@ -2686,6 +2727,61 @@ export default function ProductDetailsPage({
     }
   };
 
+  const renderWrappedProductSection = (id: ProductSection) => {
+    if (id === "Claims" || id === "Audit Log") {
+      return renderSection(id);
+    }
+    return (
+      <div className="bg-white rounded-xl border border-pebble p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-lg text-night" style={{ fontWeight: 600 }}>
+            {id}
+          </h3>
+          {id === "Product Details" && (
+            <div className="flex items-center gap-2">
+              {isEditing ? (
+                <>
+                  <button
+                    onClick={() => {
+                      setEditForm({ ...product });
+                      setIsEditing(false);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 border border-pebble text-night rounded-lg hover:bg-earth transition-colors text-sm"
+                  >
+                    <X className="w-4 h-4" />Discard
+                  </button>
+                  <button
+                    onClick={() => {
+                      onProductChange(editForm);
+                      setIsEditing(false);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-sky text-white rounded-lg hover:bg-dark transition-colors text-sm"
+                  >
+                    <Check className="w-4 h-4" />Save Changes
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center gap-2 px-4 py-2 border border-sky text-sky rounded-lg hover:bg-pale transition-colors text-sm focus:outline-none focus:ring-2 focus:ring-sky focus:ring-offset-2"
+                >
+                  <Pencil className="w-4 h-4" />Edit
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+        {id === "Product Details" && isEditing && (
+          <div className="flex items-center gap-2 mb-5 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+            <span>You are in edit mode. Changes are not yet saved.</span>
+          </div>
+        )}
+        {renderSection(id)}
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* ── Header (V2 two-row layout) ────────────────────────────────────── */}
@@ -2915,60 +3011,28 @@ export default function ProductDetailsPage({
       </div>
 
       {/* ── Content ───────────────────────────────────────────────────────── */}
-      <main className="flex-1 overflow-y-auto p-6 bg-transparent">
-        {activeSection === "Claims" ? (
-          renderSection()
-        ) : (
-          <div className="bg-white rounded-xl border border-pebble p-6">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-lg text-night" style={{ fontWeight: 600 }}>
-                {activeSection}
-              </h3>
-              {activeSection === "Product Details" && (
-                <div className="flex items-center gap-2">
-                  {isEditing ? (
-                    <>
-                      <button
-                        onClick={() => {
-                          setEditForm({ ...product });
-                          setIsEditing(false);
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 border border-pebble text-night rounded-lg hover:bg-earth transition-colors text-sm"
-                      >
-                        <X className="w-4 h-4" />Discard
-                      </button>
-                      <button
-                        onClick={() => {
-                          onProductChange(editForm);
-                          setIsEditing(false);
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 bg-sky text-white rounded-lg hover:bg-dark transition-colors text-sm"
-                      >
-                        <Check className="w-4 h-4" />Save Changes
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className="flex items-center gap-2 px-4 py-2 border border-sky text-sky rounded-lg hover:bg-pale transition-colors text-sm focus:outline-none focus:ring-2 focus:ring-sky focus:ring-offset-2"
-                    >
-                      <Pencil className="w-4 h-4" />Edit
-                    </button>
-                  )}
+      <main className="flex-1 overflow-hidden flex flex-col bg-transparent">
+        <div 
+          className="flex-1 overflow-y-auto bg-transparent snap-y snap-proximity scroll-smooth no-scrollbar"
+          onScroll={handleScroll}
+        >
+          {ORDERED_PRODUCT_SECTIONS.map((item) => {
+            const isItemActive = activeSection === item.id;
+            return (
+              <div
+                key={item.id}
+                ref={(el) => { sectionRefs.current[item.id] = el; }}
+                className={`w-full h-full flex-shrink-0 flex flex-col snap-start snap-always bg-transparent transition-opacity duration-300 border-b-2 border-amber-100/60 ${
+                  isItemActive ? "opacity-100" : "opacity-80"
+                }`}
+              >
+                <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
+                  {renderWrappedProductSection(item.id)}
                 </div>
-              )}
-            </div>
-
-            {isEditing && activeSection === "Product Details" && (
-              <div className="flex items-center gap-2 mb-5 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
-                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                <span>You are in edit mode. Changes are not yet saved.</span>
               </div>
-            )}
-
-            {renderSection()}
-          </div>
-        )}
+            );
+          })}
+        </div>
       </main>
 
       {/* ── Cancel confirmation (US-M3-056) ───────────────────────────────── */}
