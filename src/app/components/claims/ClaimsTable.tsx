@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, ChevronRight, ChevronUp, Check, Flag, AlertCircle, FileText, Shield, Scale, Plus, Upload, X, Search, Lock, Save, Bold, Italic, List, Link, MoreHorizontal, Eye, EyeOff, ArrowUpDown, GripVertical, MessageSquare, Star } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronUp, Check, Flag, AlertCircle, FileText, Shield, Scale, Plus, Upload, X, Search, Lock, Save, Bold, Italic, List, Link, MoreHorizontal, Eye, EyeOff, ArrowUpDown, GripVertical, MessageSquare, Star, Send } from 'lucide-react';
 import type { Claim, ClaimBaseView, ClaimWorkView, RiskLevel, AuditEntry } from '../../types';
 import { formatDate, RISK_LEVEL_OPTIONS } from '../ui/tableUtils';
 import { CURRENT_USER, CURRENT_USER_ROLE, canEditSupportStrategy, CLAIM_LIFECYCLE_COLORS } from '../../types';
@@ -303,8 +303,53 @@ export default function ClaimsTable({
   onClaimsChange,
 }: ClaimsTableProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-  const [expandedSections, setExpandedSections] = useState<Record<string, 'support' | 'final' | 'risk' | null>>({});
+  const [expandedSections, setExpandedSections] = useState<Record<string, 'support' | 'final' | 'risk' | 'comments' | null>>({});
   const [expandedVersionIds, setExpandedVersionIds] = useState<Set<string>>(new Set());
+
+  interface CommentEntry {
+    id: string;
+    author: string;
+    initials: string;
+    text: string;
+    timestamp: string;
+  }
+
+  const [claimComments, setClaimComments] = useState<Record<string, CommentEntry[]>>({
+    'CLM-001': [
+      {
+        id: 'c1',
+        author: 'Sarah Johnson',
+        initials: 'SJ',
+        text: 'Claim substantiation looks good — please ensure the doc classification is updated.',
+        timestamp: '2026-04-28T10:30:00Z',
+      },
+      {
+        id: 'c2',
+        author: 'Michael Chen',
+        initials: 'MC',
+        text: '@Sarah Johnson Done — all docs are now classified as Level 1.',
+        timestamp: '2026-04-28T11:05:00Z',
+      },
+    ],
+    'CLM-002': [
+      {
+        id: 'c3',
+        author: 'David Smith',
+        initials: 'DS',
+        text: 'Need to upload supply chain certificate for cage-free eggs.',
+        timestamp: '2026-05-10T14:22:00Z',
+      }
+    ],
+    'CLM-003': [
+      {
+        id: 'c4',
+        author: 'Patricia Martinez',
+        initials: 'PM',
+        text: 'Competitor challenge seems to focus on the term 99%. We must provide specific stain list.',
+        timestamp: '2026-05-15T09:40:00Z',
+      }
+    ]
+  });
 
   // US-M4-015 to 030: Auto-expand rows and sync section when a Work View is selected from Sidebar
   useEffect(() => {
@@ -369,7 +414,7 @@ export default function ClaimsTable({
     });
   };
 
-  const toggleSection = (id: string, section: 'support' | 'final' | 'risk') => {
+  const toggleSection = (id: string, section: 'support' | 'final' | 'risk' | 'comments') => {
     setExpandedSections(prev => ({ ...prev, [id]: prev[id] === section ? null : section }));
   };
 
@@ -1054,6 +1099,112 @@ export default function ClaimsTable({
                                 )}
                               </div>
 
+                              {/* Section 3: Comments */}
+                              <div className="bg-white rounded-lg border border-pebble overflow-hidden shadow-sm">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleSection(claim.id, 'comments')}
+                                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-earth transition-colors"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <MessageSquare className="w-4 h-4 text-gray-400" />
+                                    <span className="text-sm text-night font-medium">Comments</span>
+                                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full border border-pebble font-semibold">
+                                      {(claimComments[claim.id] || []).length}
+                                    </span>
+                                  </div>
+                                  {expandedSection === 'comments' ? (
+                                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                                  ) : (
+                                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                                  )}
+                                </button>
+                                {expandedSection === 'comments' && (
+                                  <div className="px-6 py-5 border-t border-pebble bg-pale/5">
+                                    <div className="space-y-4 max-h-60 overflow-y-auto mb-4 no-scrollbar">
+                                      {(claimComments[claim.id] || []).length === 0 ? (
+                                        <div className="text-xs text-gray-400 italic py-2">No comments yet. Be the first to start the discussion.</div>
+                                      ) : (
+                                        (claimComments[claim.id] || []).map((c) => (
+                                          <div key={c.id} className="flex gap-3">
+                                            <div className="w-7 h-7 rounded-full bg-sky text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                                              {c.initials}
+                                            </div>
+                                            <div className="flex-1">
+                                              <div className="flex items-baseline gap-2 mb-1">
+                                                <span className="text-xs font-semibold text-night">
+                                                  {c.author}
+                                                </span>
+                                                <span className="text-[10px] text-gray-400">
+                                                  {new Date(c.timestamp).toLocaleString()}
+                                                </span>
+                                              </div>
+                                              <p className="text-xs text-gray-700 leading-relaxed bg-earth rounded-lg px-3 py-2">
+                                                {c.text}
+                                              </p>
+                                            </div>
+                                          </div>
+                                        ))
+                                      )}
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <textarea
+                                        id={`new-comment-${claim.id}`}
+                                        placeholder="Add a comment... (Press Send or Enter to submit)"
+                                        rows={2}
+                                        className="flex-1 px-3 py-2 border border-pebble rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-sky resize-none bg-white text-night"
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter" && !e.shiftKey) {
+                                            e.preventDefault();
+                                            const target = e.currentTarget;
+                                            const text = target.value.trim();
+                                            if (text) {
+                                              const newEntry: CommentEntry = {
+                                                id: `c-${Date.now()}`,
+                                                author: 'Current User',
+                                                initials: 'CU',
+                                                text,
+                                                timestamp: new Date().toISOString()
+                                              };
+                                              setClaimComments(prev => ({
+                                                ...prev,
+                                                [claim.id]: [...(prev[claim.id] || []), newEntry]
+                                              }));
+                                              target.value = '';
+                                            }
+                                          }
+                                        }}
+                                      />
+                                      <button
+                                        onClick={() => {
+                                          const textarea = document.getElementById(`new-comment-${claim.id}`) as HTMLTextAreaElement | null;
+                                          if (textarea) {
+                                            const text = textarea.value.trim();
+                                            if (text) {
+                                              const newEntry: CommentEntry = {
+                                                id: `c-${Date.now()}`,
+                                                author: 'Current User',
+                                                initials: 'CU',
+                                                text,
+                                                timestamp: new Date().toISOString()
+                                              };
+                                              setClaimComments(prev => ({
+                                                ...prev,
+                                                [claim.id]: [...(prev[claim.id] || []), newEntry]
+                                              }));
+                                              textarea.value = '';
+                                            }
+                                          }
+                                        }}
+                                        className="px-4 bg-sky text-white rounded-lg hover:bg-dark text-xs font-semibold shadow-sm transition-colors flex items-center justify-center gap-1.5"
+                                      >
+                                        <Send className="w-3.5 h-3.5" />
+                                        Send
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
 
                             </div>
                           </div>
