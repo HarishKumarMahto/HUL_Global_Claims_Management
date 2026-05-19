@@ -96,7 +96,7 @@ export default function CreateUserDialog({ isOpen, onClose, onCreate, existingUs
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl p-0 overflow-hidden bg-[#F6F7F0]/95 backdrop-blur-md flex flex-col max-h-[90vh]">
+      <DialogContent className="w-[95vw] sm:w-[90vw] max-w-6xl sm:max-w-6xl p-0 overflow-hidden bg-[#F6F7F0]/95 backdrop-blur-md flex flex-col max-h-[90vh]">
         <DialogHeader className="px-6 py-4 border-b border-[#DEDED7] bg-white/90 flex-shrink-0">
           <DialogTitle className="text-xl font-bold text-[#133062]">Create New User</DialogTitle>
           <p className="text-xs text-gray-500 mt-1">Create a user profile to enable platform access and role assignment.</p>
