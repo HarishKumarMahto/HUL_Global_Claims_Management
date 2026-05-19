@@ -995,7 +995,7 @@ export default function AssetWorkspace({
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden relative">
+    <div className="p-6 flex flex-col h-full overflow-hidden relative bg-transparent no-scrollbar">
       {/* Toast */}
       {showCollabToast && (
         <div className="absolute top-4 right-4 z-50 bg-night text-white px-4 py-2.5 rounded-lg shadow-xl text-sm flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
@@ -1190,7 +1190,7 @@ export default function AssetWorkspace({
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-6 bg-earth">
+      <div className="flex-1 overflow-auto p-6 bg-transparent">
         <div className={activeSection === 'Asset Details' || activeSection === 'Related Projects' || activeSection === 'Related Claim' ? '' : ''}>
           {activeSection === 'Asset Details' ? (
             <div className="bg-white rounded-xl border border-pebble p-6">

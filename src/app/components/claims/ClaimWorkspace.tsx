@@ -1721,7 +1721,7 @@ export default function ClaimWorkspace({
   };
 
   return (
-    <div className="flex flex-col h-full bg-earth overflow-hidden">
+    <div className="p-6 flex flex-col h-full overflow-hidden no-scrollbar bg-transparent">
       {/* M6 iRA Success Toast */}
       {iraSaveSuccess && (
         <div className="fixed top-4 right-4 z-[9999] flex items-center gap-3 bg-green-600 text-white px-5 py-3 rounded-xl shadow-2xl animate-pulse">
