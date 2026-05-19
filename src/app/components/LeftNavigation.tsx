@@ -190,6 +190,11 @@ export default function LeftNavigation({
     return null;
   }
 
+  // ─── USER MANAGEMENT ──────────────────────────────────────────────────────
+  if (activeModule === 'UserManagement') {
+    return null; // Module has its own built-in left panel
+  }
+
   // ─── ASSETS MODULE ────────────────────────────────────────────────────────
   if (activeModule === 'Assets' && !isInAssetWorkspace) {
     return (
