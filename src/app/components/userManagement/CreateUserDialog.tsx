@@ -5,7 +5,7 @@ import { type UserRecord, type FunctionArea, FUNCTIONS, BUSINESS_GROUPS, TIME_ZO
 import { MultiSelectDropdown } from '../MultiSelectDropdown';
 
 // Generic mockup data for BU, Categories, and Geographies
-const BU_OPTIONS = ['Global', 'North America', 'Indonesia', 'PTAB', 'Greater Asia', 'North Asia', 'India', 'Europe', 'LATAM', '1 UL Africa', '1UL EU'];
+const BU_OPTIONS = ['Global', 'North America', 'India', 'Indonesia', 'PTAB', 'Greater Asia', 'North Asia', 'Europe', 'LATAM', '1 UL Africa', '1 UL EU', '1 UL NALI', '1 UL LATAM', '1 UL Israel'];
 const CATEGORY_OPTIONS = ['Skin Care', 'Hair Care', 'Deodorants', 'Fabric Cleaning', 'Home & Hygiene', 'Dressings', 'Ice Cream'];
 const GEOGRAPHY_OPTIONS = ['Global', 'North America', 'Europe', 'LATAM', 'SEAA', 'South Asia', 'Africa'];
 
