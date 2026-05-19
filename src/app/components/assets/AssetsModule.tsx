@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Plus, Search, X, ChevronDown, ChevronUp, Check, MoreHorizontal, Archive, Sparkles, ChevronLeft, ChevronRight, Bookmark } from 'lucide-react';
 import type { Asset, AssetLifecycle, AssetSubtype } from '../../types';
+import { CURRENT_USER } from '../../types';
 import AssetsTable from './AssetsTable';
 import CreateAssetModal from './CreateAssetModal';
 import SavedAssetViewsModal, { type AssetSavedView } from './SavedAssetViewsModal';
@@ -127,7 +128,7 @@ export default function AssetsModule({
   // Filter by active library view
   const viewFilteredAssets = assets.filter(asset => {
     if (activeLibraryView === 'My Assets') {
-      return asset.createdBy === 'Current User';
+      return asset.createdBy === 'Current User' || asset.createdBy === CURRENT_USER;
     }
     if (activeLibraryView === 'Favorites') {
       return asset.isFavorite;
