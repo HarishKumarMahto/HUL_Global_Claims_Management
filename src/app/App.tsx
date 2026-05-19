@@ -51,6 +51,7 @@ import { ToastContainer } from './components/ui/Toast';
 import { useToast } from './hooks/useToast';
 import CreateAssetModal from './components/assets/CreateAssetModal';
 // import { ThemeToggle } from './components/ui/ThemeToggle';
+import UserManagementModule from './components/userManagement/UserManagementModule';
 
 type WorkspaceSection =
   | 'Project Details'
@@ -285,6 +286,7 @@ export default function App() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
+  const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
 
   // Products module state
   const [activeProductView, setActiveProductView] = useState<ProductModuleView>('landing');
@@ -888,24 +890,43 @@ export default function App() {
               </button>
             </div>
 
-            {/* Settings */}
-            <button
-              className="p-2.5 text-white/85 hover:text-white bg-white/10 hover:bg-white/20 border border-white/5 rounded-xl transition-all duration-300 hover:rotate-45 active:scale-95 flex items-center justify-center w-10 h-10"
-              title="Settings"
-            >
-              <SettingsIcon sx={{ fontSize: 16 }} />
-            </button>
-
-            {/* Setup */}
-            {CURRENT_USER_ROLE === 'Admin' && (
+            {/* Settings Dropdown */}
+            <div className="relative">
               <button
-                onClick={() => handleModuleChange('Setup')}
-                className="p-2.5 text-white/85 hover:text-white bg-white/10 hover:bg-white/20 border border-white/5 rounded-xl transition-all duration-300 hover:rotate-90 active:scale-95 flex items-center justify-center w-10 h-10"
-                title="Setup"
+                onClick={() => { setSettingsMenuOpen(p => !p); setNotifOpen(false); setUserMenuOpen(false); }}
+                className="p-2.5 text-white/85 hover:text-white bg-white/10 hover:bg-white/20 border border-white/5 rounded-xl transition-all duration-300 hover:rotate-45 active:scale-95 flex items-center justify-center w-10 h-10"
+                title="Settings"
               >
                 <SettingsIcon sx={{ fontSize: 16 }} />
               </button>
-            )}
+              {settingsMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setSettingsMenuOpen(false)} />
+                  <div className="absolute right-0 top-full mt-2 bg-white border border-[#DEDED7] rounded-2xl shadow-[0_12px_40px_rgba(19,48,98,0.12)] z-50 w-56 overflow-hidden animate-drop-in">
+                    <div className="px-4 py-2.5 bg-[#F6F7F0]/60 border-b border-[#DEDED7]">
+                      <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Settings</span>
+                    </div>
+                    <div className="py-1">
+                      <button
+                        onClick={() => { handleModuleChange('UserManagement'); setSettingsMenuOpen(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-[#133062]/80 hover:text-[#0066CC] hover:bg-[#C2E0FF]/10 transition-colors text-left font-semibold"
+                      >
+                        <VerifiedUserIcon sx={{ fontSize: 16 }} className="text-[#133062]/40" />
+                        User Management
+                      </button>
+                      <button className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-[#133062]/80 hover:text-[#0066CC] hover:bg-[#C2E0FF]/10 transition-colors text-left font-semibold">
+                        <PersonIcon sx={{ fontSize: 16 }} className="text-[#133062]/40" />
+                        Profile Settings
+                      </button>
+                      <button className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-[#133062]/80 hover:text-[#0066CC] hover:bg-[#C2E0FF]/10 transition-colors text-left font-semibold">
+                        <SettingsIcon sx={{ fontSize: 16 }} className="text-[#133062]/40" />
+                        Preferences
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
 
             {/* User Avatar */}
             <div className="relative">
@@ -1429,6 +1450,8 @@ export default function App() {
                 externalSearchQuery={assetSearchQuery}
               />
             )
+          ) : activeModule === 'UserManagement' ? (
+            <UserManagementModule />
           ) : (
             // Other modules placeholder
             <div className="flex-1 flex items-center justify-center">

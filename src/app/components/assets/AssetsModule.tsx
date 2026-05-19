@@ -128,7 +128,39 @@ export default function AssetsModule({
   // Filter by active library view
   const viewFilteredAssets = assets.filter(asset => {
     if (activeLibraryView === 'My Assets') {
-      return asset.createdBy === 'Current User' || asset.createdBy === CURRENT_USER;
+      const creator = (asset.createdBy || '').toLowerCase();
+      const isCreator = creator === 'current user' || 
+                        creator === CURRENT_USER.toLowerCase() ||
+                        creator.includes('sarah');
+      
+      const isApprover = asset.approvalWorkflow?.approvers.some(
+        a => {
+          const name = (a.name || '').toLowerCase();
+          return name === 'current user' || 
+                 name === CURRENT_USER.toLowerCase() ||
+                 name.includes('sarah');
+        }
+      ) ?? false;
+
+      const isUploader = asset.versions.some(
+        v => {
+          const uploader = (v.uploadedBy || '').toLowerCase();
+          return uploader === 'current user' || 
+                 uploader === CURRENT_USER.toLowerCase() ||
+                 uploader.includes('sarah');
+        }
+      );
+
+      const isCommenter = asset.assetLevelComments.some(
+        c => {
+          const author = (c.author || '').toLowerCase();
+          return author === 'current user' || 
+                 author === CURRENT_USER.toLowerCase() ||
+                 author.includes('sarah');
+        }
+      );
+
+      return isCreator || isApprover || isUploader || isCommenter;
     }
     if (activeLibraryView === 'Favorites') {
       return asset.isFavorite;
