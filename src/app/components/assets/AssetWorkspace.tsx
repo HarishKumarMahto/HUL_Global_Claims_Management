@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type React from 'react';
 import { Asset, AssetLifecycle, AssetRiskRecord, AssetComment, AssetApprovalWorkflow, ASSET_LIFECYCLE_COLORS } from '../../types';
 import { ChevronLeft, ChevronRight, Users, Star, ChevronDown, Plus, Upload, Link2, Shield, History, CheckCircle, CheckCircle2, FileText, Image, Film, Music, Sparkles, X, Download, ArrowRight, MessageSquare, Send, FolderKanban, ExternalLink, Zap, ArrowLeft, Globe, Search } from 'lucide-react';
@@ -19,6 +19,17 @@ interface AssetWorkspaceProps {
   onNavigateToClaim?: (claimId: string) => void;
   onAssetSelect?: (asset: Asset) => void;
 }
+
+const ORDERED_ASSET_SECTIONS = [
+  { id: 'Asset Details', label: 'Asset Details' },
+  { id: 'Support Strategy & Substantiation', label: 'Support Strategy & Substantiation' },
+  { id: 'Final Risk Level Summary', label: 'Final Risk Level Summary' },
+  { id: 'Risk Level Assessments', label: 'Risk Level Assessments' },
+  { id: 'Linked Claims', label: 'Linked Claims' },
+  { id: 'Related Projects', label: 'Related Projects' },
+  { id: 'Related Products', label: 'Related Products' },
+  { id: 'Approval Workflow', label: 'Approval Workflow' },
+];
 
 export default function AssetWorkspace({
   asset,
@@ -48,6 +59,45 @@ export default function AssetWorkspace({
   const [newRiskComment, setNewRiskComment] = useState('');
   const [showCollabToast, setShowCollabToast] = useState(false);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
+
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const isNavigatingRef = useRef(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (isNavigatingRef.current) return;
+
+    const el = sectionRefs.current[activeSection];
+    if (el) {
+      isNavigatingRef.current = true;
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      scrollTimeoutRef.current = setTimeout(() => {
+        isNavigatingRef.current = false;
+      }, 800);
+    }
+  }, [activeSection]);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (isNavigatingRef.current) return;
+
+    const container = e.currentTarget;
+    const containerRect = container.getBoundingClientRect();
+    const triggerLine = containerRect.top + containerRect.height * 0.3;
+
+    for (const item of ORDERED_ASSET_SECTIONS) {
+      const el = sectionRefs.current[item.id];
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        if (rect.top <= triggerLine && rect.bottom > triggerLine) {
+          if (activeSection !== item.id) {
+            onSectionChange(item.id);
+          }
+          break;
+        }
+      }
+    }
+  };
   // Linked Claims tab filter — must be at top level (React hook rules)
   type ClaimFilterTab = 'All' | 'Global' | 'Regional' | 'Local' | 'SKU';
   const [claimTypeFilter, setClaimTypeFilter] = useState<ClaimFilterTab>('All');
@@ -194,8 +244,8 @@ export default function AssetWorkspace({
     return `${Math.floor(diffDays / 365)}y ago`;
   };
 
-  const renderSectionContent = () => {
-    switch (activeSection) {
+  const renderSectionContent = (id: string) => {
+    switch (id) {
       case 'Asset Details':
         return (
           <div className="flex gap-6">
@@ -994,6 +1044,25 @@ export default function AssetWorkspace({
     }
   };
 
+  const renderWrappedSection = (id: string) => {
+    if (
+      id === 'Support Strategy & Substantiation' ||
+      id === 'Final Risk Level Summary' ||
+      id === 'Risk Level Assessments'
+    ) {
+      return renderSectionContent(id);
+    }
+    const headerTitle = id === 'Asset Details' ? 'Asset Details' : id;
+    return (
+      <div className="bg-white rounded-xl border border-pebble p-6">
+        <h3 className="text-lg text-night mb-5 flex items-center gap-2" style={{ fontWeight: 600 }}>
+          {headerTitle}
+        </h3>
+        {renderSectionContent(id)}
+      </div>
+    );
+  };
+
   return (
     <div className="p-6 flex flex-col h-full overflow-hidden relative bg-transparent no-scrollbar">
       {/* Toast */}
@@ -1190,25 +1259,27 @@ export default function AssetWorkspace({
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-6 bg-transparent">
-        <div className={activeSection === 'Asset Details' || activeSection === 'Related Projects' || activeSection === 'Related Claim' ? '' : ''}>
-          {activeSection === 'Asset Details' ? (
-            <div className="bg-white rounded-xl border border-pebble p-6">
-              <h3 className="text-lg text-night mb-5 flex items-center gap-2" style={{ fontWeight: 600 }}>
-                Asset Details
-              </h3>
-              {renderSectionContent()}
-            </div>
-          ) : activeSection === 'Support Strategy & Substantiation' || activeSection === 'Final Risk Level Summary' || activeSection === 'Risk Level Assessments' ? (
-            renderSectionContent()
-          ) : (
-            <div className="bg-white rounded-xl border border-pebble p-6">
-              <h3 className="text-lg text-night mb-4 flex items-center gap-2" style={{ fontWeight: 600 }}>
-                {activeSection}
-              </h3>
-              {renderSectionContent()}
-            </div>
-          )}
+      <div className="flex-1 overflow-hidden flex flex-col bg-transparent">
+        <div 
+          className="flex-1 overflow-y-auto bg-transparent snap-y snap-proximity scroll-smooth no-scrollbar"
+          onScroll={handleScroll}
+        >
+          {ORDERED_ASSET_SECTIONS.map((item) => {
+            const isItemActive = activeSection === item.id;
+            return (
+              <div
+                key={item.id}
+                ref={(el) => { sectionRefs.current[item.id] = el; }}
+                className={`w-full h-full flex-shrink-0 flex flex-col snap-start snap-always bg-transparent transition-opacity duration-300 border-b-2 border-amber-100/60 ${
+                  isItemActive ? "opacity-100" : "opacity-80"
+                }`}
+              >
+                <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
+                  {renderWrappedSection(item.id)}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 

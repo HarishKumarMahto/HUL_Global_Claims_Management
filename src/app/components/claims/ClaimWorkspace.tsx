@@ -1359,6 +1359,14 @@ function RelatedAssetsSection({ claim, onClaimSave }: { claim: Claim; onClaimSav
   );
 }
 
+const ORDERED_SECTIONS = [
+  { id: "Claim Details", label: "Claim Details" },
+  { id: "Support Strategy & Substantiation", label: "Support Strategy & Substantiation" },
+  { id: "Final Risk Summary", label: "Final Risk Summary" },
+  { id: "Risk Level Assessments", label: "Risk Level Assessments" },
+  { id: "Related Assets", label: "Related Assets" },
+];
+
 export default function ClaimWorkspace({
   claim,
   claims,
@@ -1401,6 +1409,45 @@ export default function ClaimWorkspace({
   const [showRiskModal, setShowRiskModal] = useState(false);
   // US-M4-053: File upload in Support Strategy
   const fileUploadRef = useRef<HTMLInputElement>(null);
+
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const isNavigatingRef = useRef(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (isNavigatingRef.current) return;
+
+    const el = sectionRefs.current[activeSection];
+    if (el) {
+      isNavigatingRef.current = true;
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      scrollTimeoutRef.current = setTimeout(() => {
+        isNavigatingRef.current = false;
+      }, 800);
+    }
+  }, [activeSection]);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (isNavigatingRef.current) return;
+
+    const container = e.currentTarget;
+    const containerRect = container.getBoundingClientRect();
+    const triggerLine = containerRect.top + containerRect.height * 0.3;
+
+    for (const item of ORDERED_SECTIONS) {
+      const el = sectionRefs.current[item.id];
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        if (rect.top <= triggerLine && rect.bottom > triggerLine) {
+          if (activeSection !== item.id) {
+            onSectionChange(item.id);
+          }
+          break;
+        }
+      }
+    }
+  };
   // US-M4-055: Inline add-assessment form in workspace
   const [showAddAssessment, setShowAddAssessment] =
     useState(false);
@@ -1718,6 +1765,344 @@ export default function ClaimWorkspace({
     });
     setVersioningMode(false);
     setVersionDraft("");
+  };
+
+  const renderSectionContent = (id: string) => {
+    switch (id) {
+      case "Claim Details":
+        return (
+          <div className="space-y-6">
+            {/* Claim Details */}
+            <div className="bg-white rounded-xl border border-pebble p-6">
+              <h3
+                className="text-night mb-4"
+                style={{ fontWeight: 600 }}
+              >
+                Claim Details
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-6 gap-x-6">
+                <div className="col-span-3">
+                  <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    Global Statement
+                  </label>
+                  <div className="text-sm text-night bg-earth/30 p-3 rounded border border-pebble">
+                    {version.globalStatement || "—"}
+                  </div>
+                </div>
+                {version.localStatement && (
+                  <div className="col-span-3">
+                    <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
+                      Local Statement
+                    </label>
+                    <div className="text-sm text-night bg-earth/30 p-3 rounded border border-pebble">
+                      {version.localStatement}
+                    </div>
+                  </div>
+                )}
+                {version.backtranslation && (
+                  <div className="col-span-3">
+                    <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
+                      Backtranslation
+                    </label>
+                    <div className="text-sm text-night bg-earth/30 p-3 rounded border border-pebble">
+                      {version.backtranslation}
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    Claim Type
+                  </label>
+                  <div className="text-sm text-night">
+                    {claim.claimType}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    Version
+                  </label>
+                  <div className="text-sm text-night">
+                    v{version.versionNumber}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    Order
+                  </label>
+                  <div className="text-sm text-night">
+                    {claim.order || "—"}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1 flex items-center gap-1">
+                    Lifecycle Stage
+                    <span
+                      className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded cursor-help"
+                      title="Editable By: Legal / Claims Lead"
+                    >
+                      Roles
+                    </span>
+                  </label>
+                  <div className="text-sm text-night">
+                    {claim.lifecycleStage}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    Marketing Channels
+                  </label>
+                  <div className="text-sm text-night flex flex-wrap gap-1">
+                    {claim.marketingChannels.length > 0
+                      ? claim.marketingChannels.map((ch) => (
+                          <span
+                            key={ch}
+                            className="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-xs"
+                          >
+                            {ch}
+                          </span>
+                        ))
+                      : "—"}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1 flex items-center gap-1">
+                    Final Risk Level
+                    <span
+                      className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded cursor-help"
+                      title="Editable By: Claims Lead / R&D / Legal"
+                    >
+                      Roles
+                    </span>
+                  </label>
+                  <div className="text-sm text-night flex items-center gap-1.5">
+                    {claim.finalRiskLevel === "Low" ? (
+                      <Shield className="w-3.5 h-3.5 text-green-500" />
+                    ) : (
+                      <AlertTriangle
+                        className={`w-3.5 h-3.5 ${claim.finalRiskLevel === "Medium" ? "text-amber-500" : "text-orange-500"}`}
+                      />
+                    )}
+                    <span
+                      className={
+                        claim.finalRiskLevel
+                          ? RISK_LEVEL_COLORS[
+                              claim.finalRiskLevel
+                            ]
+                          : ""
+                      }
+                    >
+                      {claim.finalRiskLevel || "Pending"}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    Restricted Use
+                  </label>
+                  <div className="text-sm text-night">
+                    {claim.restrictedUse ? (
+                      <span className="text-orange-600 font-medium">
+                        Yes
+                      </span>
+                    ) : (
+                      "No"
+                    )}
+                  </div>
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    Restricted Use Comment
+                  </label>
+                  <div className="text-sm text-night">
+                    {(claim as any).restrictedUseComment ||
+                      "—"}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    Claim Identifier
+                  </label>
+                  <div className="text-sm text-night">
+                    {claim.claimIdentifier || "—"}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    Claim Categories
+                  </label>
+                  <div className="text-sm text-night">
+                    {claim.claimCategory || "—"}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    Geography
+                  </label>
+                  <div className="text-sm text-night">
+                    {claim.claimType === "Global" ? (
+                      <span className="text-gray-400 italic">
+                        Global (Hidden)
+                      </span>
+                    ) : (
+                      claim.geography || "—"
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    Related Projects
+                  </label>
+                  <div className="flex flex-wrap gap-1">
+                    {claim.relatedProjectIds.length > 0 ? (
+                      claim.relatedProjectIds.map(
+                        (p: string) => (
+                          <span
+                            key={p}
+                            className="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-xs"
+                          >
+                            {p}
+                          </span>
+                        ),
+                      )
+                    ) : (
+                      <span className="text-sm text-night">
+                        —
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    Challenged
+                  </label>
+                  <div className="text-sm text-night">
+                    {claim.challenged ? (
+                      <span className="text-red-500 font-medium">
+                        Yes
+                      </span>
+                    ) : (
+                      "No"
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    Copied From
+                  </label>
+                  <div className="text-sm text-night font-medium">
+                    {claim.copiedFromClaimId || "—"}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Product Details Component */}
+            <div className="bg-white rounded-xl border border-pebble p-6">
+              <h3
+                className="text-night mb-4"
+                style={{ fontWeight: 600 }}
+              >
+                Product Details
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-6 gap-x-6">
+                <div>
+                  <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    Product Name
+                  </label>
+                  <div className="text-sm text-sky cursor-pointer hover:underline">
+                    {claim.productName || "—"}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    Product Hierarchy
+                  </label>
+                  <div className="text-sm text-night">
+                    {(claim as any).productHierarchy ||
+                      "Variant"}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    Business Group (BG)
+                  </label>
+                  <div className="text-sm text-night">
+                    {(claim as any).businessGroup ||
+                      "Beauty & Personal Care"}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    Category
+                  </label>
+                  <div className="text-sm text-night">
+                    {(claim as any).category || "Skin Care"}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    Technology Linkage
+                  </label>
+                  <div className="text-sm text-night">
+                    {(claim as any).technologyLinkage ||
+                      "MicroMoisture Technology"}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    Consumer Benefit Platform
+                  </label>
+                  <div className="text-sm text-night">
+                    {(claim as any).consumerBenefitPlatform ||
+                      "Deep Hydration"}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    Target Audience
+                  </label>
+                  <div className="text-sm text-night">
+                    {(claim as any).targetAudience ||
+                      "Adults 25–45"}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      case "Support Strategy & Substantiation":
+        return (
+          <SupportStrategySection
+            claim={claim}
+            onClaimSave={onClaimSave}
+            fileUploadRef={fileUploadRef}
+            surface="workspace"
+          />
+        );
+      case "Final Risk Summary":
+        return (
+          <FinalRiskSummarySection
+            claim={claim}
+            onClaimSave={onClaimSave}
+          />
+        );
+      case "Risk Level Assessments":
+        return (
+          <div className="p-6">
+            <RiskLevelAssessmentsSection claim={claim} onClaimSave={onClaimSave} />
+          </div>
+        );
+      case "Related Assets":
+        return (
+          <RelatedAssetsSection claim={claim} onClaimSave={onClaimSave} />
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -2220,338 +2605,28 @@ export default function ClaimWorkspace({
       {/* Body */}
       <div className="flex-1 flex overflow-hidden">
         {/* Main content area */}
-        <div className="flex-1 overflow-y-auto p-6 no-scrollbar">
-          {activeSection === "Claim Details" && (
-            <div className="space-y-6">
-              {/* Claim Details */}
-              <div className="bg-white rounded-xl border border-pebble p-6">
-                <h3
-                  className="text-night mb-4"
-                  style={{ fontWeight: 600 }}
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <div 
+            className="flex-1 overflow-y-auto bg-transparent snap-y snap-proximity scroll-smooth no-scrollbar"
+            onScroll={handleScroll}
+          >
+            {ORDERED_SECTIONS.map((item) => {
+              const isItemActive = activeSection === item.id;
+              return (
+                <div
+                  key={item.id}
+                  ref={(el) => { sectionRefs.current[item.id] = el; }}
+                  className={`w-full h-full flex-shrink-0 flex flex-col snap-start snap-always bg-transparent transition-opacity duration-300 border-b-2 border-amber-100/60 ${
+                    isItemActive ? "opacity-100" : "opacity-80"
+                  }`}
                 >
-                  Claim Details
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-6 gap-x-6">
-                  <div className="col-span-3">
-                    <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
-                      Global Statement
-                    </label>
-                    <div className="text-sm text-night bg-earth/30 p-3 rounded border border-pebble">
-                      {version.globalStatement || "—"}
-                    </div>
-                  </div>
-                  {version.localStatement && (
-                    <div className="col-span-3">
-                      <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
-                        Local Statement
-                      </label>
-                      <div className="text-sm text-night bg-earth/30 p-3 rounded border border-pebble">
-                        {version.localStatement}
-                      </div>
-                    </div>
-                  )}
-                  {version.backtranslation && (
-                    <div className="col-span-3">
-                      <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
-                        Backtranslation
-                      </label>
-                      <div className="text-sm text-night bg-earth/30 p-3 rounded border border-pebble">
-                        {version.backtranslation}
-                      </div>
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
-                      Claim Type
-                    </label>
-                    <div className="text-sm text-night">
-                      {claim.claimType}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
-                      Version
-                    </label>
-                    <div className="text-sm text-night">
-                      v{version.versionNumber}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
-                      Order
-                    </label>
-                    <div className="text-sm text-night">
-                      {claim.order || "—"}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1 flex items-center gap-1">
-                      Lifecycle Stage
-                      <span
-                        className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded cursor-help"
-                        title="Editable By: Legal / Claims Lead"
-                      >
-                        Roles
-                      </span>
-                    </label>
-                    <div className="text-sm text-night">
-                      {claim.lifecycleStage}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
-                      Marketing Channels
-                    </label>
-                    <div className="text-sm text-night flex flex-wrap gap-1">
-                      {claim.marketingChannels.length > 0
-                        ? claim.marketingChannels.map((ch) => (
-                            <span
-                              key={ch}
-                              className="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-xs"
-                            >
-                              {ch}
-                            </span>
-                          ))
-                        : "—"}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1 flex items-center gap-1">
-                      Final Risk Level
-                      <span
-                        className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded cursor-help"
-                        title="Editable By: Claims Lead / R&D / Legal"
-                      >
-                        Roles
-                      </span>
-                    </label>
-                    <div className="text-sm text-night flex items-center gap-1.5">
-                      {claim.finalRiskLevel === "Low" ? (
-                        <Shield className="w-3.5 h-3.5 text-green-500" />
-                      ) : (
-                        <AlertTriangle
-                          className={`w-3.5 h-3.5 ${claim.finalRiskLevel === "Medium" ? "text-amber-500" : "text-orange-500"}`}
-                        />
-                      )}
-                      <span
-                        className={
-                          claim.finalRiskLevel
-                            ? RISK_LEVEL_COLORS[
-                                claim.finalRiskLevel
-                              ]
-                            : ""
-                        }
-                      >
-                        {claim.finalRiskLevel || "Pending"}
-                      </span>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
-                      Restricted Use
-                    </label>
-                    <div className="text-sm text-night">
-                      {claim.restrictedUse ? (
-                        <span className="text-orange-600 font-medium">
-                          Yes
-                        </span>
-                      ) : (
-                        "No"
-                      )}
-                    </div>
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
-                      Restricted Use Comment
-                    </label>
-                    <div className="text-sm text-night">
-                      {(claim as any).restrictedUseComment ||
-                        "—"}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
-                      Claim Identifier
-                    </label>
-                    <div className="text-sm text-night">
-                      {claim.claimIdentifier || "—"}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
-                      Claim Categories
-                    </label>
-                    <div className="text-sm text-night">
-                      {claim.claimCategory || "—"}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
-                      Geography
-                    </label>
-                    <div className="text-sm text-night">
-                      {claim.claimType === "Global" ? (
-                        <span className="text-gray-400 italic">
-                          Global (Hidden)
-                        </span>
-                      ) : (
-                        claim.geography || "—"
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
-                      Related Projects
-                    </label>
-                    <div className="flex flex-wrap gap-1">
-                      {claim.relatedProjectIds.length > 0 ? (
-                        claim.relatedProjectIds.map(
-                          (p: string) => (
-                            <span
-                              key={p}
-                              className="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-xs"
-                            >
-                              {p}
-                            </span>
-                          ),
-                        )
-                      ) : (
-                        <span className="text-sm text-night">
-                          —
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
-                      Challenged
-                    </label>
-                    <div className="text-sm text-night">
-                      {claim.challenged ? (
-                        <span className="text-red-500 font-medium">
-                          Yes
-                        </span>
-                      ) : (
-                        "No"
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
-                      Copied From
-                    </label>
-                    <div className="text-sm text-night font-medium">
-                      {claim.copiedFromClaimId || "—"}
-                    </div>
+                  <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
+                    {renderSectionContent(item.id)}
                   </div>
                 </div>
-              </div>
-
-              {/* Product Details Component */}
-              <div className="bg-white rounded-xl border border-pebble p-6">
-                <h3
-                  className="text-night mb-4"
-                  style={{ fontWeight: 600 }}
-                >
-                  Product Details
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-6 gap-x-6">
-                  <div>
-                    <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
-                      Product Name
-                    </label>
-                    <div className="text-sm text-sky cursor-pointer hover:underline">
-                      {claim.productName || "—"}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
-                      Product Hierarchy
-                    </label>
-                    <div className="text-sm text-night">
-                      {(claim as any).productHierarchy ||
-                        "Variant"}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
-                      Business Group (BG)
-                    </label>
-                    <div className="text-sm text-night">
-                      {(claim as any).businessGroup ||
-                        "Beauty & Personal Care"}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
-                      Category
-                    </label>
-                    <div className="text-sm text-night">
-                      {(claim as any).category || "Skin Care"}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
-                      Technology Linkage
-                    </label>
-                    <div className="text-sm text-night">
-                      {(claim as any).technologyLinkage ||
-                        "MicroMoisture Technology"}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
-                      Consumer Benefit Platform
-                    </label>
-                    <div className="text-sm text-night">
-                      {(claim as any).consumerBenefitPlatform ||
-                        "Deep Hydration"}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
-                      Target Audience
-                    </label>
-                    <div className="text-sm text-night">
-                      {(claim as any).targetAudience ||
-                        "Adults 25–45"}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeSection ===
-            "Support Strategy & Substantiation" && (
-            <SupportStrategySection
-              claim={claim}
-              onClaimSave={onClaimSave}
-              fileUploadRef={fileUploadRef}
-              surface="workspace"
-            />
-          )}
-
-          {activeSection === "Final Risk Summary" && (
-            <FinalRiskSummarySection
-              claim={claim}
-              onClaimSave={onClaimSave}
-            />
-          )}
-
-          {activeSection === "Risk Level Assessments" && (
-            <div className="p-6">
-              <RiskLevelAssessmentsSection claim={claim} onClaimSave={onClaimSave} />
-            </div>
-          )}
-
-          {activeSection === "Related Assets" && (
-            <RelatedAssetsSection claim={claim} onClaimSave={onClaimSave} />
-          )}
+              );
+            })}
+          </div>
         </div>
 
         {/* Version History Panel */}
