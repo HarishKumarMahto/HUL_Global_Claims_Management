@@ -165,7 +165,6 @@ function ProductRow({ product, depth, columnOrder }: ProductRowProps) {
                     ) : (
                       <div className="w-5" />
                     )}
-                    <Package className={`w-3.5 h-3.5 flex-shrink-0 ${product.type === 'parent' ? 'text-sky' : product.type === 'variant' ? 'text-mid' : product.type === 'local_variant' ? 'text-amber-600' : 'text-gray-400'}`} />
                     <span className={`text-sm ${product.type === 'parent' ? 'text-night font-medium' : product.type === 'variant' ? 'text-night font-medium' : product.type === 'local_variant' ? 'text-night' : 'text-gray-600'}`}>
                       {product.name}
                     </span>

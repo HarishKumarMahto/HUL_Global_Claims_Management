@@ -10,7 +10,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import FolderSpecialIcon from "@mui/icons-material/FolderSpecial";
 import DescriptionIcon from "@mui/icons-material/Description";
-import ShoppingBagIcon from "@mui/icons-material/ShoppingBag";
+import Inventory2Icon from "@mui/icons-material/Inventory2";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import LogoutIcon from "@mui/icons-material/Logout";
@@ -270,7 +270,7 @@ const NAV_ITEMS = [
   {
     id: "Products",
     label: "Products",
-    icon: <ShoppingBagIcon sx={{ fontSize: 16 }} />,
+    icon: <Inventory2Icon sx={{ fontSize: 16 }} />,
   },
   {
     id: "Claims",
