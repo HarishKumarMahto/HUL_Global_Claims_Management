@@ -69,7 +69,7 @@ function MultiSelectDropdown({
       </label>
       
       {disabled ? (
-        <div className="flex items-center gap-2 p-2.5 bg-earth rounded-lg border border-pebble text-gray-400 text-sm">
+        <div className="flex items-center gap-2 p-1.5 bg-earth rounded-lg border border-pebble text-gray-400 text-sm">
           <Info className="w-4 h-4 text-amber-500 flex-shrink-0" />
           <span>{disabledMessage || 'Select required fields first'}</span>
         </div>
@@ -79,7 +79,7 @@ function MultiSelectDropdown({
             type="button"
             disabled={disabled}
             onClick={() => setIsOpen(!isOpen)}
-            className={`w-full px-3 py-2.5 border rounded-lg text-sm text-left flex items-center justify-between transition-all bg-white cursor-pointer ${
+            className={`w-full px-3 py-1.5 border rounded-lg text-sm text-left flex items-center justify-between transition-all bg-white cursor-pointer ${
               error ? 'border-red-400 focus:ring-red-400' : 'border-pebble focus:ring-2 focus:ring-sky'
             }`}
           >
@@ -90,7 +90,7 @@ function MultiSelectDropdown({
           </button>
 
           {isOpen && (
-            <div className="absolute left-0 right-0 mt-1 bg-white border border-pebble rounded-xl shadow-xl z-50 max-h-60 overflow-y-auto py-1">
+            <div className="absolute left-0 right-0 mt-1 bg-white border border-pebble rounded-xl shadow-xl z-50 max-h-36 overflow-y-auto py-1">
               {options.length === 0 ? (
                 <div className="px-3 py-2 text-xs text-gray-400 italic">No options available</div>
               ) : (
@@ -164,7 +164,7 @@ const TextField = ({
       value={value}
       onChange={e => onChange(fieldKey, e.target.value)}
       placeholder={placeholder}
-      className={`w-full px-3 py-2.5 border rounded-lg text-sm text-night focus:outline-none focus:ring-2 focus:ring-sky ${
+      className={`w-full px-3 py-1.5 border rounded-lg text-sm text-night focus:outline-none focus:ring-2 focus:ring-sky ${
         error || isDuplicate ? 'border-red-400' : 'border-pebble'
       }`}
     />
@@ -208,7 +208,7 @@ const SelectField = ({
       <select
         value={value}
         onChange={e => onChange(fieldKey, e.target.value)}
-        className={`w-full px-3 py-2.5 border rounded-lg text-sm text-night focus:outline-none focus:ring-2 focus:ring-sky appearance-none bg-white ${
+        className={`w-full px-3 py-1.5 border rounded-lg text-sm text-night focus:outline-none focus:ring-2 focus:ring-sky appearance-none bg-white ${
           error ? 'border-red-400' : 'border-pebble'
         }`}
       >
@@ -251,7 +251,7 @@ export default function CreateProjectModal({
   const [formData, setFormData] = useState(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isDuplicateName, setIsDuplicateName] = useState(false);
-  const [externalRefType, setExternalRefType] = useState<'innoflex' | 'blg'>('innoflex');
+  const [externalRefType, setExternalRefType] = useState<'innoflex' | 'blg' | null>(null);
 
   if (!isOpen) return null;
 
@@ -361,7 +361,7 @@ export default function CreateProjectModal({
       setFormData(emptyForm);
       setErrors({});
       setIsDuplicateName(false);
-      setExternalRefType('innoflex');
+      setExternalRefType(null);
     } else {
       handleClose();
     }
@@ -371,23 +371,20 @@ export default function CreateProjectModal({
     setFormData(emptyForm);
     setErrors({});
     setIsDuplicateName(false);
-    setExternalRefType('innoflex');
+    setExternalRefType(null);
     onClose();
   };
 
 
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4 sm:p-10 lg:p-16 animate-fade-in">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[1500px] h-[92vh] max-h-[92vh] flex flex-col transform transition-all duration-300 scale-100">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4 sm:p-6 md:p-10 animate-fade-in">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-auto max-h-[80vh] flex flex-col transform transition-all duration-300 scale-100 overflow-hidden">
 
         {/* Header */}
-        <div className="px-6 py-4 border-b border-pebble flex items-center justify-between flex-shrink-0">
+        <div className="px-5 py-3 border-b border-pebble flex items-center justify-between flex-shrink-0">
           <div>
             <h2 className="text-night font-bold text-lg">Create New Project</h2>
-            <p className="text-xs text-gray-400 mt-0.5">
-              Fill in the required fields to create a new claims project
-            </p>
           </div>
           <button onClick={handleClose} className="p-2 hover:bg-earth rounded-lg transition-colors">
             <X className="w-5 h-5 text-gray-500" />
@@ -395,80 +392,73 @@ export default function CreateProjectModal({
         </div>
 
         {/* Form Body */}
-        <div className="flex-1 overflow-y-auto p-8">
-          <div className="space-y-10">
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="space-y-4">
 
-            {/* Section: Basic Information */}
-            <div className="space-y-4">
-              <div className="text-xs text-gray-400 uppercase tracking-wide font-bold pb-2 border-b border-pebble">
-                Basic Information
+            {/* Basic Information fields */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-1">
+                <TextField
+                  label="Project Name"
+                  fieldKey="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  error={errors.name}
+                  isDuplicate={isDuplicateName}
+                  placeholder="e.g. Dove Intensive Repair"
+                  required
+                />
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                <div className="lg:col-span-1">
-                  <TextField
-                    label="Project Name"
-                    fieldKey="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    error={errors.name}
-                    isDuplicate={isDuplicateName}
-                    placeholder="e.g. Dove Intensive Repair"
-                    required
-                  />
-                </div>
-                <div className="lg:col-span-3">
-                  <label className="block text-xs text-gray-500 mb-1 uppercase tracking-wide font-semibold">
-                    Description <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    value={formData.description}
-                    onChange={e => handleChange('description', e.target.value)}
-                    rows={2}
-                    placeholder="Brief description of the project scope and objectives..."
-                    className="w-full px-3 py-2.5 border border-pebble rounded-lg text-sm text-night focus:outline-none focus:ring-2 focus:ring-sky resize-none"
-                  />
-                </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs text-gray-500 mb-1 uppercase tracking-wide font-semibold">
+                  Description <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={e => handleChange('description', e.target.value)}
+                  rows={1}
+                  placeholder="Brief description of the project scope..."
+                  className="w-full px-3 py-1.5 border border-pebble rounded-lg text-sm text-night focus:outline-none focus:ring-2 focus:ring-sky resize-none"
+                />
               </div>
             </div>
 
-            {/* Section: External References */}
-            <div className="space-y-4">
-              <div className="text-xs text-gray-400 uppercase tracking-wide font-bold pb-2 border-b border-pebble">
-                External References <span className="text-red-500">*</span>
-              </div>
-              
+            {/* External References fields */}
+            <div className="space-y-2">
               {/* Radio Selector */}
               <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-6 p-3 bg-earth rounded-xl border border-pebble">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-2 bg-earth rounded-lg border border-pebble text-xs">
                   <span className="text-xs text-gray-500 font-bold uppercase tracking-wide">Select Reference Type: <span className="text-red-500">*</span></span>
-                  <label className="flex items-center gap-2 cursor-pointer text-sm text-night font-medium">
-                    <input
-                      type="radio"
-                      name="externalRefType"
-                      checked={externalRefType === 'innoflex'}
-                      onChange={() => {
-                        setExternalRefType('innoflex');
-                        handleChange('blgProjectName', '');
-                        setErrors(prev => ({ ...prev, externalRef: '' }));
-                      }}
-                      className="w-4 h-4 accent-sky"
-                    />
-                    Innoflex Project Name
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer text-sm text-night font-medium">
-                    <input
-                      type="radio"
-                      name="externalRefType"
-                      checked={externalRefType === 'blg'}
-                      onChange={() => {
-                        setExternalRefType('blg');
-                        handleChange('innoflexProjectName', '');
-                        setErrors(prev => ({ ...prev, externalRef: '' }));
-                      }}
-                      className="w-4 h-4 accent-sky"
-                    />
-                    BLG Project Name
-                  </label>
+                  <div className="flex items-center gap-6">
+                    <label className="flex items-center gap-2 cursor-pointer text-sm text-night font-medium">
+                      <input
+                        type="radio"
+                        name="externalRefType"
+                        checked={externalRefType === 'innoflex'}
+                        onChange={() => {
+                          setExternalRefType('innoflex');
+                          handleChange('blgProjectName', '');
+                          setErrors(prev => ({ ...prev, externalRef: '' }));
+                        }}
+                        className="w-4 h-4 accent-sky"
+                      />
+                      Innoflex Project Name
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer text-sm text-night font-medium">
+                      <input
+                        type="radio"
+                        name="externalRefType"
+                        checked={externalRefType === 'blg'}
+                        onChange={() => {
+                          setExternalRefType('blg');
+                          handleChange('innoflexProjectName', '');
+                          setErrors(prev => ({ ...prev, externalRef: '' }));
+                        }}
+                        className="w-4 h-4 accent-sky"
+                      />
+                      BLG Project Name
+                    </label>
+                  </div>
                 </div>
                 {errors.externalRef && (
                   <p className="flex items-center gap-1 text-xs text-red-500 mt-1 ml-1">
@@ -478,9 +468,9 @@ export default function CreateProjectModal({
                 )}
               </div>
 
-              {/* Input Fields (always visible) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
+              {/* Conditional Input Fields */}
+              {externalRefType === 'innoflex' && (
+                <div className="animate-fade-in">
                   <label className="block text-xs text-gray-500 mb-1 uppercase tracking-wide font-semibold">
                     Innoflex project name <span className="text-red-500">*</span>
                   </label>
@@ -488,10 +478,9 @@ export default function CreateProjectModal({
                     <select
                       value={formData.innoflexProjectName}
                       onChange={e => handleChange('innoflexProjectName', e.target.value)}
-                      disabled={externalRefType !== 'innoflex'}
-                      className={`w-full px-3 py-2.5 border rounded-lg text-sm text-night focus:outline-none focus:ring-2 focus:ring-sky appearance-none bg-white ${
+                      className={`w-full px-3 py-1.5 border rounded-lg text-sm text-night focus:outline-none focus:ring-2 focus:ring-sky appearance-none bg-white ${
                         errors.innoflexProjectName ? 'border-red-400 font-medium' : 'border-pebble'
-                      } ${externalRefType !== 'innoflex' ? 'bg-gray-50 opacity-60 cursor-not-allowed' : ''}`}
+                      }`}
                     >
                       <option value="">Select Innoflex project...</option>
                       {INNOFLEX_PROJECTS.map(p => (
@@ -506,8 +495,10 @@ export default function CreateProjectModal({
                     </p>
                   )}
                 </div>
+              )}
 
-                <div>
+              {externalRefType === 'blg' && (
+                <div className="animate-fade-in">
                   <label className="block text-xs text-gray-500 mb-1 uppercase tracking-wide font-semibold">
                     BLG project name <span className="text-red-500">*</span>
                   </label>
@@ -515,11 +506,10 @@ export default function CreateProjectModal({
                     type="text"
                     value={formData.blgProjectName}
                     onChange={e => handleChange('blgProjectName', e.target.value)}
-                    disabled={externalRefType !== 'blg'}
                     placeholder="e.g. BLG-DOVE-2026-IR"
-                    className={`w-full px-3 py-2.5 border rounded-lg text-sm text-night focus:outline-none focus:ring-2 focus:ring-sky ${
+                    className={`w-full px-3 py-1.5 border rounded-lg text-sm text-night focus:outline-none focus:ring-2 focus:ring-sky ${
                       errors.blgProjectName ? 'border-red-400 font-medium' : 'border-pebble'
-                    } ${externalRefType !== 'blg' ? 'bg-gray-50 opacity-60 cursor-not-allowed' : ''}`}
+                    }`}
                   />
                   {errors.blgProjectName && (
                     <p className="flex items-start gap-1 text-xs text-red-500 mt-1">
@@ -527,49 +517,44 @@ export default function CreateProjectModal({
                     </p>
                   )}
                 </div>
-              </div>
+              )}
             </div>
 
-            {/* Section: Classification */}
-            <div className="space-y-4">
-              <div className="text-xs text-gray-400 uppercase tracking-wide font-bold pb-2 border-b border-pebble">
-                Classification & Geography
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                <SelectField
-                  label="Business Group"
-                  fieldKey="businessGroup"
-                  value={formData.businessGroup}
-                  onChange={handleChange}
-                  options={BUSINESS_GROUPS}
-                  error={errors.businessGroup}
-                  required
-                />
-                
-                <MultiSelectDropdown
-                  label="Category"
-                  placeholder="Select categories..."
-                  options={CATEGORIES[formData.businessGroup] || []}
-                  selected={formData.category}
-                  onToggle={handleToggleCategory}
-                  error={errors.category}
-                  disabled={!formData.businessGroup}
-                  disabledMessage="Select BG first"
-                  required
-                />
+            {/* Classification & Geography fields */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              <SelectField
+                label="Business Group"
+                fieldKey="businessGroup"
+                value={formData.businessGroup}
+                onChange={handleChange}
+                options={BUSINESS_GROUPS}
+                error={errors.businessGroup}
+                required
+              />
+              
+              <MultiSelectDropdown
+                label="Category"
+                placeholder="Select categories..."
+                options={CATEGORIES[formData.businessGroup] || []}
+                selected={formData.category}
+                onToggle={handleToggleCategory}
+                error={errors.category}
+                disabled={!formData.businessGroup}
+                disabledMessage="Select BG first"
+                required
+              />
 
-                <MultiSelectDropdown
-                  label="Geography"
-                  placeholder="Select geographies..."
-                  options={REGIONS}
-                  selected={formData.region}
-                  onToggle={handleToggleRegion}
-                  error={errors.region}
-                />
+              <MultiSelectDropdown
+                label="Geography"
+                placeholder="Select geographies..."
+                options={REGIONS}
+                selected={formData.region}
+                onToggle={handleToggleRegion}
+                error={errors.region}
+              />
 
-                <SelectField label="Type"  fieldKey="type"  value={formData.type} onChange={handleChange} options={PROJECT_TYPES} />
-                <SelectField label="Scope" fieldKey="scope" value={formData.scope} onChange={handleChange} options={PROJECT_SCOPES} />
-              </div>
+              <SelectField label="Type"  fieldKey="type"  value={formData.type} onChange={handleChange} options={PROJECT_TYPES} />
+              <SelectField label="Scope" fieldKey="scope" value={formData.scope} onChange={handleChange} options={PROJECT_SCOPES} />
             </div>
 
             {/* Rollout-specific fields */}
@@ -587,7 +572,7 @@ export default function CreateProjectModal({
                     <input
                       type="text"
                       placeholder="Search or enter source project ID..."
-                      className="w-full px-3 py-2.5 border border-pebble rounded-lg text-sm text-night focus:outline-none focus:ring-2 focus:ring-sky bg-white"
+                      className="w-full px-3 py-2 border border-pebble rounded-lg text-sm text-night focus:outline-none focus:ring-2 focus:ring-sky bg-white"
                     />
                   </div>
                   <div>
@@ -597,68 +582,63 @@ export default function CreateProjectModal({
                     <input
                       type="text"
                       placeholder="e.g. IN, PK, BD..."
-                      className="w-full px-3 py-2.5 border border-pebble rounded-lg text-sm text-night focus:outline-none focus:ring-2 focus:ring-sky bg-white"
+                      className="w-full px-3 py-2 border border-pebble rounded-lg text-sm text-night focus:outline-none focus:ring-2 focus:ring-sky bg-white"
                     />
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Section: Key Dates */}
-            <div className="space-y-4">
-              <div className="text-xs text-gray-400 uppercase tracking-wide font-bold pb-2 border-b border-pebble">
-                Key Project Dates
+            {/* Key Project Dates fields */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1 uppercase tracking-wide font-semibold">
+                  Start date
+                </label>
+                <input
+                  type="date"
+                  value={formData.startDate}
+                  onChange={e => handleChange('startDate', e.target.value)}
+                  className="w-full px-3 py-1.5 border border-pebble rounded-lg text-sm text-night focus:outline-none focus:ring-2 focus:ring-sky"
+                />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1 uppercase tracking-wide font-semibold">
-                    Start date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.startDate}
-                    onChange={e => handleChange('startDate', e.target.value)}
-                    className="w-full px-3 py-2.5 border border-pebble rounded-lg text-sm text-night focus:outline-none focus:ring-2 focus:ring-sky"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1 uppercase tracking-wide font-semibold">
-                    Evaluation date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.evaluationDate}
-                    onChange={e => handleChange('evaluationDate', e.target.value)}
-                    className="w-full px-3 py-2.5 border border-pebble rounded-lg text-sm text-night focus:outline-none focus:ring-2 focus:ring-sky"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1 uppercase tracking-wide font-semibold">
-                    Launch date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.launchDate}
-                    onChange={e => handleChange('launchDate', e.target.value)}
-                    className="w-full px-3 py-2.5 border border-pebble rounded-lg text-sm text-night focus:outline-none focus:ring-2 focus:ring-sky"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1 uppercase tracking-wide font-semibold">
+                  Evaluation date
+                </label>
+                <input
+                  type="date"
+                  value={formData.evaluationDate}
+                  onChange={e => handleChange('evaluationDate', e.target.value)}
+                  className="w-full px-3 py-1.5 border border-pebble rounded-lg text-sm text-night focus:outline-none focus:ring-2 focus:ring-sky"
+                />
               </div>
-              {formData.evaluationDate &&
-                formData.launchDate &&
-                new Date(formData.launchDate) < new Date(formData.evaluationDate) && (
-                  <div className="mt-2 flex items-center gap-2 text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
-                    <AlertCircle className="w-3.5 h-3.5" />
-                    Launch date is before evaluation date
-                  </div>
-                )}
+              <div>
+                <label className="block text-xs text-gray-500 mb-1 uppercase tracking-wide font-semibold">
+                  Launch date
+                </label>
+                <input
+                  type="date"
+                  value={formData.launchDate}
+                  onChange={e => handleChange('launchDate', e.target.value)}
+                  className="w-full px-3 py-1.5 border border-pebble rounded-lg text-sm text-night focus:outline-none focus:ring-2 focus:ring-sky"
+                />
+              </div>
             </div>
+            {formData.evaluationDate &&
+              formData.launchDate &&
+              new Date(formData.launchDate) < new Date(formData.evaluationDate) && (
+                <div className="mt-2 flex items-center gap-2 text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  Launch date is before evaluation date
+                </div>
+              )}
 
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-pebble flex items-center justify-between flex-shrink-0 bg-earth/30">
+        <div className="px-5 py-2.5 border-t border-pebble flex items-center justify-between flex-shrink-0 bg-earth/30">
           <button
             onClick={handleClose}
             className="px-6 py-2 border border-pebble text-night rounded-lg text-sm font-semibold hover:bg-earth transition-colors"
