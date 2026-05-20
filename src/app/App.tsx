@@ -68,6 +68,7 @@ import {
   mockAssets,
   generateTeamMembersForProject,
   isProjectArchived,
+  mockHomeTasks,
 } from "./types";
 import ProductsModule from "./components/products/ProductsModule";
 import type { ProductModuleView } from "./components/products/ProductsModule";
@@ -1654,9 +1655,103 @@ export default function App() {
               onRelatedClaimsSubFilterChange={setRelatedClaimsSubFilter}
             />
           ) : activeModule === "Projects" ? (
-            // Projects Module
-            <>
-              {/* Page Header */}
+            activeView.startsWith("My Asset:") ? (
+              <AssetsModule
+                assets={assets}
+                onAssetsChange={setAssets}
+                activeLibraryView={activeView.replace("My Asset: ", "")}
+                onLibraryViewChange={(view) => setActiveView("My Asset: " + view)}
+                onAssetClick={(asset) => {
+                  setSelectedAsset(asset);
+                  setAssetsModuleView("workspace");
+                  setActiveModule("Assets");
+                }}
+                externalSearchQuery={assetSearchQuery}
+              />
+            ) : activeView === "My Tasks" ? (
+              <div className="flex-1 flex flex-col overflow-hidden bg-sky-50/20">
+                {/* Tasks Page Header */}
+                <div className="bg-white border-b border-pebble px-6 py-4 flex-shrink-0">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <h1 className="text-night font-bold text-lg">My Tasks</h1>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        Track and manage your assigned tasks and project actions
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tasks Table Container */}
+                <div className="flex-1 p-6 overflow-auto">
+                  <div className="bg-white rounded-xl border border-pebble shadow-sm overflow-hidden">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-earth/40 border-b border-pebble text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                          <th className="px-6 py-3.5">Project Name</th>
+                          <th className="px-6 py-3.5">Task Detail</th>
+                          <th className="px-6 py-3.5">Assigned By</th>
+                          <th className="px-6 py-3.5">Due Date</th>
+                          <th className="px-6 py-3.5">Priority</th>
+                          <th className="px-6 py-3.5">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-pebble/60 text-sm">
+                        {mockHomeTasks.map((task) => {
+                          const assignedBy = task.id === 'TSK-001' ? 'Emma Williams' : 
+                                             task.id === 'TSK-002' ? 'Michael Chen' : 
+                                             task.id === 'TSK-003' ? 'Emma Williams' : 
+                                             task.id === 'TSK-004' ? 'Michael Chen' : 
+                                             task.id === 'TSK-005' ? 'Emma Williams' : 
+                                             task.id === 'TSK-006' ? 'System' : 
+                                             task.id === 'TSK-007' ? 'Emma Williams' : 'Michael Chen';
+                          const isOverdue = task.status === "Overdue";
+                          const isDueToday = task.status === "Due Today";
+                          
+                          let badgeBg = "bg-gray-100 text-gray-700";
+                          if (isOverdue) badgeBg = "bg-red-50 text-red-700 border border-red-100";
+                          else if (isDueToday) badgeBg = "bg-amber-50 text-amber-700 border border-amber-100";
+                          else if (task.status === "Completed") badgeBg = "bg-green-50 text-green-700 border border-green-100";
+                          else badgeBg = "bg-sky-50 text-sky-700 border border-sky-100";
+
+                          let prioColor = "text-gray-600";
+                          if (task.priority === "High") prioColor = "text-red-600 font-semibold";
+                          else if (task.priority === "Medium") prioColor = "text-amber-600 font-semibold";
+
+                          return (
+                            <tr key={task.id} className="hover:bg-earth/20 transition-colors">
+                              <td className="px-6 py-4 font-semibold text-night max-w-[220px] truncate">
+                                {task.projectName}
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="font-semibold text-night">{task.title}</div>
+                                <div className="text-xs text-gray-400 mt-0.5">{task.description}</div>
+                              </td>
+                              <td className="px-6 py-4 text-gray-600 font-medium">
+                                {assignedBy}
+                              </td>
+                              <td className="px-6 py-4 text-gray-500 font-mono text-xs">
+                                {task.dueDate}
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className={`text-xs ${prioColor}`}>{task.priority}</span>
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badgeBg}`}>
+                                  {task.status}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Page Header */}
               <div className="bg-white border-b border-pebble px-6 py-4 flex-shrink-0">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3 relative">
@@ -1933,7 +2028,7 @@ export default function App() {
                   onProjectClone={setProjectToClone}
                 />
               </div>
-            </>
+            </>)
           ) : activeModule === "Claims" ? (
             // Claims Module
             selectedClaim && claimsModuleView === "workspace" ? (
@@ -2072,6 +2167,7 @@ export default function App() {
                 document={selectedDocument}
                 activeSection={activeDocumentSection}
                 onSectionChange={setActiveDocumentSection}
+                onDocumentSelect={setSelectedDocument}
                 onClose={() => {
                   setSelectedDocument(null);
                   setActiveDocumentSection("Document Details");
