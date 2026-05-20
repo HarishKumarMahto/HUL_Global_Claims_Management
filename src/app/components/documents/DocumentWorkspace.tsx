@@ -3,7 +3,8 @@ import {
   ArrowLeft, Download, GitBranch, Trash2,
   FileText, Package, Paperclip, History, MessageSquare,
   Info, AlertTriangle, Clock, User, Archive, ChevronDown,
-  ZoomIn, ZoomOut, Maximize2, MessageCircle, Link2, Anchor, X
+  ZoomIn, ZoomOut, Maximize2, MessageCircle, Link2, Anchor, X,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import type { DocumentRecord } from './documentsData';
 import { isDocumentReadOnly, canCreateNewVersion } from './documentsData';
@@ -24,6 +25,7 @@ interface DocumentWorkspaceProps {
   onNavigateToClaim?: (claimId: string) => void;
   onNavigateToAsset?: (assetId: string) => void;
   onNavigateToProduct?: (productId: string) => void;
+  onDocumentSelect?: (doc: DocumentRecord) => void;
 }
 
 const SECTIONS = [
@@ -35,7 +37,6 @@ const SECTIONS = [
   { id: 'Comments',         icon: <MessageSquare className="w-4 h-4" /> },
 ];
 
-
 function formatDate(d?: string) {
   if (!d) return '—';
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -45,8 +46,6 @@ function formatBytes(b?: number) {
   if (!b) return '—';
   return b < 1048576 ? `${(b / 1024).toFixed(0)} KB` : `${(b / 1048576).toFixed(1)} MB`;
 }
-
-
 
 export default function DocumentWorkspace({
   document,
@@ -61,6 +60,7 @@ export default function DocumentWorkspace({
   onNavigateToClaim,
   onNavigateToAsset,
   onNavigateToProduct,
+  onDocumentSelect,
 }: DocumentWorkspaceProps) {
   const [actionsOpen, setActionsOpen] = useState(false);
   const [newComment, setNewComment] = useState('');
@@ -68,6 +68,21 @@ export default function DocumentWorkspace({
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const readOnly = isDocumentReadOnly(document);
   const currentVer = document.versions.find(v => v.versionNumber === document.currentVersion);
+
+  const currentIndex = allDocuments && document ? allDocuments.findIndex(doc => doc.id === document.id) : -1;
+  const totalDocuments = allDocuments ? allDocuments.length : 0;
+
+  const handlePrev = () => {
+    if (currentIndex > 0 && onDocumentSelect && allDocuments) {
+      onDocumentSelect(allDocuments[currentIndex - 1]);
+    }
+  };
+
+  const handleNext = () => {
+    if (currentIndex >= 0 && currentIndex < totalDocuments - 1 && onDocumentSelect && allDocuments) {
+      onDocumentSelect(allDocuments[currentIndex + 1]);
+    }
+  };
   const isExpiringSoon = document.validToDate
     ? (new Date(document.validToDate).getTime() - Date.now()) < 30 * 24 * 60 * 60 * 1000
     : false;
@@ -198,6 +213,31 @@ export default function DocumentWorkspace({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Record navigation */}
+            {allDocuments && allDocuments.length > 0 && (
+              <div className="flex items-center border border-pebble rounded-lg overflow-hidden bg-white shadow-sm mr-1">
+                <button
+                  onClick={handlePrev}
+                  disabled={currentIndex <= 0}
+                  className="p-1.5 hover:bg-earth disabled:opacity-30 transition-colors border-r border-pebble"
+                  title="Previous Document"
+                >
+                  <ChevronLeft className="w-4 h-4 text-gray-500" />
+                </button>
+                <span className="px-2.5 text-xs text-gray-500 font-medium">
+                  {currentIndex + 1} / {totalDocuments}
+                </span>
+                <button
+                  onClick={handleNext}
+                  disabled={currentIndex < 0 || currentIndex >= totalDocuments - 1}
+                  className="p-1.5 hover:bg-earth disabled:opacity-30 transition-colors border-l border-pebble"
+                  title="Next Document"
+                >
+                  <ChevronRight className="w-4 h-4 text-gray-500" />
+                </button>
+              </div>
+            )}
+
             {/* Actions Menu */}
             <div className="relative">
               <button

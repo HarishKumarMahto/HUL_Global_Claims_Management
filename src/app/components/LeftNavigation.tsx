@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ChevronDown,
   ChevronRight,
@@ -368,6 +368,13 @@ export default function LeftNavigation({
     Record<string, "recents" | "favorites" | null>
   >({});
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMyAssetDropdownExpanded, setIsMyAssetDropdownExpanded] = useState(false);
+
+  useEffect(() => {
+    if (activeView && activeView.startsWith("My Asset:")) {
+      setIsMyAssetDropdownExpanded(true);
+    }
+  }, [activeView]);
 
   const toggleSidebar = () => setIsCollapsed(!isCollapsed);
 
@@ -1426,6 +1433,97 @@ export default function LeftNavigation({
           </div>
 
           <div className="my-3 border-t border-pebble" />
+
+          {/* Marketing Team Only Options */}
+          <div className="space-y-0.5">
+            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-3">
+              Marketing View
+            </div>
+
+            {/* My Asset Dropdown */}
+            <div className="space-y-0.5">
+              <button
+                onClick={() => {
+                  setIsMyAssetDropdownExpanded(!isMyAssetDropdownExpanded);
+                  onViewChange("My Asset: My Assets");
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150 text-sm ${
+                  activeView.startsWith("My Asset:")
+                    ? "bg-pale text-sky"
+                    : "text-gray-600 hover:bg-earth hover:text-night"
+                }`}
+              >
+                <span className={activeView.startsWith("My Asset:") ? "text-sky" : "text-gray-400"}>
+                  <Paperclip className="w-4 h-4" />
+                </span>
+                <span
+                  className="flex-1 text-left"
+                  style={{
+                    fontWeight: activeView.startsWith("My Asset:") ? 500 : 400,
+                  }}
+                >
+                  My Asset
+                </span>
+                {isMyAssetDropdownExpanded ? (
+                  <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+                ) : (
+                  <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
+                )}
+              </button>
+
+              {isMyAssetDropdownExpanded && (
+                <div className="ml-6 mt-1 space-y-0.5 border-l border-pebble pl-2">
+                  {ASSET_VIEWS.map((subView) => {
+                    const viewId = `My Asset: ${subView.id}`;
+                    const isSubActive = activeView === viewId;
+                    return (
+                      <button
+                        key={subView.id}
+                        onClick={() => onViewChange(viewId)}
+                        className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all ${
+                          isSubActive
+                            ? "bg-sky/10 text-sky font-semibold"
+                            : "text-gray-500 hover:bg-earth hover:text-night"
+                        }`}
+                      >
+                        <span className={isSubActive ? "text-sky" : "text-gray-400"}>
+                          {subView.icon}
+                        </span>
+                        <span className="text-left flex-1 truncate">
+                          {subView.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* My Tasks Button */}
+            <button
+              onClick={() => onViewChange("My Tasks")}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150 text-sm mt-1 ${
+                activeView === "My Tasks"
+                  ? "bg-pale text-sky"
+                  : "text-gray-600 hover:bg-earth hover:text-night"
+              }`}
+            >
+              <span className={activeView === "My Tasks" ? "text-sky" : "text-gray-400"}>
+                <FileText className="w-4 h-4" />
+              </span>
+              <span
+                className="flex-1 text-left"
+                style={{
+                  fontWeight: activeView === "My Tasks" ? 500 : 400,
+                }}
+              >
+                My Tasks
+              </span>
+              {activeView === "My Tasks" && (
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sky" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </aside>

@@ -478,57 +478,55 @@ export default function CreateProjectModal({
                 )}
               </div>
 
-              {/* Conditional Input Fields */}
-              <div className="grid grid-cols-1 gap-6">
-                {externalRefType === 'innoflex' && (
-                  <div className="animate-fade-in">
-                    <label className="block text-xs text-gray-500 mb-1 uppercase tracking-wide font-semibold">
-                      Innoflex project name <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={formData.innoflexProjectName}
-                        onChange={e => handleChange('innoflexProjectName', e.target.value)}
-                        className={`w-full px-3 py-2.5 border rounded-lg text-sm text-night focus:outline-none focus:ring-2 focus:ring-sky appearance-none bg-white ${
-                          errors.innoflexProjectName ? 'border-red-400 font-medium' : 'border-pebble'
-                        }`}
-                      >
-                        <option value="">Select Innoflex project...</option>
-                        {INNOFLEX_PROJECTS.map(p => (
-                          <option key={p} value={p}>{p}</option>
-                        ))}
-                      </select>
-                      <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    </div>
-                    {errors.innoflexProjectName && (
-                      <p className="flex items-start gap-1 text-xs text-red-500 mt-1">
-                        <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />{errors.innoflexProjectName}
-                      </p>
-                    )}
+              {/* Input Fields (always visible) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1 uppercase tracking-wide font-semibold">
+                    Innoflex project name <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={formData.innoflexProjectName}
+                      onChange={e => handleChange('innoflexProjectName', e.target.value)}
+                      disabled={externalRefType !== 'innoflex'}
+                      className={`w-full px-3 py-2.5 border rounded-lg text-sm text-night focus:outline-none focus:ring-2 focus:ring-sky appearance-none bg-white ${
+                        errors.innoflexProjectName ? 'border-red-400 font-medium' : 'border-pebble'
+                      } ${externalRefType !== 'innoflex' ? 'bg-gray-50 opacity-60 cursor-not-allowed' : ''}`}
+                    >
+                      <option value="">Select Innoflex project...</option>
+                      {INNOFLEX_PROJECTS.map(p => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
-                )}
+                  {errors.innoflexProjectName && (
+                    <p className="flex items-start gap-1 text-xs text-red-500 mt-1">
+                      <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />{errors.innoflexProjectName}
+                    </p>
+                  )}
+                </div>
 
-                {externalRefType === 'blg' && (
-                  <div className="animate-fade-in">
-                    <label className="block text-xs text-gray-500 mb-1 uppercase tracking-wide font-semibold">
-                      BLG project name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.blgProjectName}
-                      onChange={e => handleChange('blgProjectName', e.target.value)}
-                      placeholder="e.g. BLG-DOVE-2026-IR"
-                      className={`w-full px-3 py-2.5 border rounded-lg text-sm text-night focus:outline-none focus:ring-2 focus:ring-sky ${
-                        errors.blgProjectName ? 'border-red-400 font-medium' : 'border-pebble'
-                      }`}
-                    />
-                    {errors.blgProjectName && (
-                      <p className="flex items-start gap-1 text-xs text-red-500 mt-1">
-                        <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />{errors.blgProjectName}
-                      </p>
-                    )}
-                  </div>
-                )}
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1 uppercase tracking-wide font-semibold">
+                    BLG project name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.blgProjectName}
+                    onChange={e => handleChange('blgProjectName', e.target.value)}
+                    disabled={externalRefType !== 'blg'}
+                    placeholder="e.g. BLG-DOVE-2026-IR"
+                    className={`w-full px-3 py-2.5 border rounded-lg text-sm text-night focus:outline-none focus:ring-2 focus:ring-sky ${
+                      errors.blgProjectName ? 'border-red-400 font-medium' : 'border-pebble'
+                    } ${externalRefType !== 'blg' ? 'bg-gray-50 opacity-60 cursor-not-allowed' : ''}`}
+                  />
+                  {errors.blgProjectName && (
+                    <p className="flex items-start gap-1 text-xs text-red-500 mt-1">
+                      <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />{errors.blgProjectName}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 
