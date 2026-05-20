@@ -21,7 +21,7 @@ export default function UserManagementModule() {
   const activeUsers = users.filter(u => u.status === 'Active').length;
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-background">
+    <div className="flex flex-col h-full overflow-hidden bg-transparent">
       {/* Page header */}
       <div className="bg-white border-b border-[#DEDED7] px-6 pt-4 flex-shrink-0">
         <div className="flex items-center justify-between mb-4">

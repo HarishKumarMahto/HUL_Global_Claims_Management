@@ -314,3 +314,17 @@
   scrollbar-width: none;
   /* Firefox */
 }
+
+/* Custom App Background Gradient mapping to the user's provided design */
+.bg-background {
+  background: radial-gradient(at 0% 100%, rgba(99, 179, 237, 0.3) 0%, transparent 70%),
+              radial-gradient(at 0% 0%, rgba(178, 235, 242, 0.35) 0%, transparent 70%),
+              radial-gradient(at 100% 0%, rgba(255, 255, 255, 0.95) 0%, transparent 80%),
+              #f6f7f0 !important;
+}
+
+.dark .bg-background {
+  background: radial-gradient(at 0% 100%, rgba(19, 48, 98, 0.45) 0%, transparent 65%),
+              radial-gradient(at 0% 0%, rgba(10, 22, 40, 0.8) 0%, transparent 60%),
+              #0A1628 !important;
+}
