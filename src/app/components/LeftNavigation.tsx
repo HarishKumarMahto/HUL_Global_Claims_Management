@@ -106,10 +106,10 @@ const ASSET_WORKSPACE_SECTIONS = [
   { id: 'Support Strategy & Substantiation', label: 'Support Strategy & Substantiation', icon: <FileText className="w-4 h-4" /> },
   { id: 'Final Risk Level Summary', label: 'Final Risk Level Summary', icon: <Shield className="w-4 h-4" /> },
   { id: 'Risk Level Assessments', label: 'Risk Level Assessments', icon: <Shield className="w-4 h-4" /> },
+  { id: 'Approval Workflow', label: 'Approval Workflow', icon: <Users className="w-4 h-4" /> },
   { id: 'Linked Claims', label: 'Linked Claims', icon: <GitBranch className="w-4 h-4" /> },
   { id: 'Related Projects', label: 'Related Projects', icon: <Layers className="w-4 h-4" /> },
   { id: 'Related Products', label: 'Related Products', icon: <Package className="w-4 h-4" /> },
-  { id: 'Approval Workflow', label: 'Approval Workflow', icon: <Users className="w-4 h-4" /> },
 ];
 
 const PRODUCT_VIEWS = [
