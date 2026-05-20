@@ -10,7 +10,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import FolderSpecialIcon from '@mui/icons-material/FolderSpecial';
 import DescriptionIcon from '@mui/icons-material/Description';
-import Inventory2Icon from '@mui/icons-material/Inventory2';
+import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import LogoutIcon from '@mui/icons-material/Logout';
@@ -189,7 +189,7 @@ function FilterDropdown({
 const NAV_ITEMS = [
   { id: 'Home', label: 'Home', icon: <HomeIcon sx={{ fontSize: 16 }} /> },
   { id: 'Projects', label: 'Projects', icon: <FolderSpecialIcon sx={{ fontSize: 16 }} /> },
-  { id: 'Products', label: 'Products', icon: <Inventory2Icon sx={{ fontSize: 16 }} /> },
+  { id: 'Products', label: 'Products', icon: <ShoppingBagIcon sx={{ fontSize: 16 }} /> },
   { id: 'Claims', label: 'Claims', icon: <DescriptionIcon sx={{ fontSize: 16 }} /> },
   { id: 'Assets', label: 'Assets', icon: <AttachFileIcon sx={{ fontSize: 16 }} /> },
   { id: 'Documents', label: 'Documents', icon: <MenuBookIcon sx={{ fontSize: 16 }} /> },
@@ -837,7 +837,7 @@ export default function App() {
                           style={{ color: isActive ? navyBlue : `${baseColor}CC` }}>
                       {item.icon}
                     </span>
-                    <span className="hidden xl:inline tracking-wider font-bold text-[11px] uppercase transition-colors duration-300"
+                    <span className={`hidden ${!globalSearchOpen ? 'xl:inline' : ''} tracking-wider font-bold text-[11px] uppercase transition-colors duration-300`}
                           style={{ color: isActive ? navyBlue : `${baseColor}CC` }}>
                       {item.label}
                     </span>
