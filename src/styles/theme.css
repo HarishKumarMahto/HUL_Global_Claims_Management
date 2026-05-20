@@ -4,25 +4,25 @@
   --font-size: 14px;
 
   /* Unilever Brand Palette (May 2025) */
-  --brand-sky: #0066CC;
-  --brand-sky-mid: #47A3FF;
-  --brand-sky-light: #85C2FF;
-  --brand-sky-pale: #C2E0FF;
+  --brand-sky: #0066cc;
+  --brand-sky-mid: #47a3ff;
+  --brand-sky-light: #85c2ff;
+  --brand-sky-pale: #c2e0ff;
   --brand-night: #133062;
-  --brand-dark: #004D99;
-  --brand-earth: #F6F7F0;
-  --brand-cloud: #FFFFFF;
-  --brand-pebble: #DEDED7;
-  --brand-water: #23E7FF;
+  --brand-dark: #004d99;
+  --brand-earth: #f6f7f0;
+  --brand-cloud: #ffffff;
+  --brand-pebble: #deded7;
+  --brand-water: #23e7ff;
   --brand-night-text: #133062;
-  --brand-muted-text: #6B7589;
+  --brand-muted-text: #6b7589;
 
   /* Highlight accents (status/tags only) */
-  --brand-lilac: #8652DF;
+  --brand-lilac: #8652df;
   --brand-aqua: #008090;
-  --brand-clover: #2B911C;
-  --brand-sorbet: #DA5700;
-  --brand-rose: #E13591;
+  --brand-clover: #2b911c;
+  --brand-sorbet: #da5700;
+  --brand-rose: #e13591;
 
   /* Legacy aliases for compatibility */
   --color-sky: var(--brand-sky);
@@ -50,7 +50,7 @@
   --muted-foreground: var(--brand-muted-text);
   --accent: var(--brand-water);
   --accent-foreground: var(--brand-night-text);
-  --destructive: #CC2200;
+  --destructive: #cc2200;
   --destructive-foreground: var(--brand-cloud);
   --border: var(--brand-pebble);
   --input: transparent;
@@ -79,40 +79,40 @@
 
 .dark {
   /* Night mode - Unilever Brand Palette */
-  --background: #0A1628;
-  --foreground: #C2E0FF;
-  --card: #0D1F42;
-  --card-foreground: #C2E0FF;
-  --popover: #0D1F42;
-  --popover-foreground: #C2E0FF;
-  --primary: #0066CC;
-  --primary-foreground: #FFFFFF;
+  --background: #0a1628;
+  --foreground: #c2e0ff;
+  --card: #0d1f42;
+  --card-foreground: #c2e0ff;
+  --popover: #0d1f42;
+  --popover-foreground: #c2e0ff;
+  --primary: #0066cc;
+  --primary-foreground: #ffffff;
   --secondary: #133062;
-  --secondary-foreground: #85C2FF;
-  --muted: #1A3566;
-  --muted-foreground: #47A3FF;
-  --accent: #23E7FF;
-  --accent-foreground: #0A1628;
-  --destructive: #5C0A36;
-  --destructive-foreground: #FFB3D6;
-  --border: #1A3566;
-  --input: #0D1F42;
-  --input-background: #0D1F42;
-  --switch-background: #1A3566;
-  --ring: #47A3FF;
-  --chart-1: #0066CC;
-  --chart-2: #47A3FF;
-  --chart-3: #85C2FF;
-  --chart-4: #23E7FF;
-  --chart-5: #004D99;
-  --sidebar: #0D1F42;
-  --sidebar-foreground: #47A3FF;
-  --sidebar-primary: #1557B0;
-  --sidebar-primary-foreground: #C2E0FF;
+  --secondary-foreground: #85c2ff;
+  --muted: #1a3566;
+  --muted-foreground: #47a3ff;
+  --accent: #23e7ff;
+  --accent-foreground: #0a1628;
+  --destructive: #5c0a36;
+  --destructive-foreground: #ffb3d6;
+  --border: #1a3566;
+  --input: #0d1f42;
+  --input-background: #0d1f42;
+  --switch-background: #1a3566;
+  --ring: #47a3ff;
+  --chart-1: #0066cc;
+  --chart-2: #47a3ff;
+  --chart-3: #85c2ff;
+  --chart-4: #23e7ff;
+  --chart-5: #004d99;
+  --sidebar: #0d1f42;
+  --sidebar-foreground: #47a3ff;
+  --sidebar-primary: #1557b0;
+  --sidebar-primary-foreground: #c2e0ff;
   --sidebar-accent: #133062;
-  --sidebar-accent-foreground: #85C2FF;
-  --sidebar-border: #1A3566;
-  --sidebar-ring: #47A3FF;
+  --sidebar-accent-foreground: #85c2ff;
+  --sidebar-border: #1a3566;
+  --sidebar-ring: #47a3ff;
 }
 
 @theme inline {
@@ -317,14 +317,16 @@
 
 /* Custom App Background Gradient mapping to the user's provided design */
 .bg-background {
-  background: radial-gradient(at 0% 100%, rgba(99, 179, 237, 0.3) 0%, transparent 70%),
-              radial-gradient(at 0% 0%, rgba(178, 235, 242, 0.35) 0%, transparent 70%),
-              radial-gradient(at 100% 0%, rgba(255, 255, 255, 0.95) 0%, transparent 80%),
-              #f6f7f0 !important;
+  background:
+    radial-gradient(at 0% 100%, rgba(99, 179, 237, 0.3) 0%, transparent 70%),
+    radial-gradient(at 0% 0%, rgba(178, 235, 242, 0.35) 0%, transparent 70%),
+    radial-gradient(at 100% 0%, rgba(255, 255, 255, 0.95) 0%, transparent 80%),
+    #f6f7f0 !important;
 }
 
 .dark .bg-background {
-  background: radial-gradient(at 0% 100%, rgba(19, 48, 98, 0.45) 0%, transparent 65%),
-              radial-gradient(at 0% 0%, rgba(10, 22, 40, 0.8) 0%, transparent 60%),
-              #0A1628 !important;
+  background:
+    radial-gradient(at 0% 100%, rgba(19, 48, 98, 0.45) 0%, transparent 65%),
+    radial-gradient(at 0% 0%, rgba(10, 22, 40, 0.8) 0%, transparent 60%),
+    #0a1628 !important;
 }
