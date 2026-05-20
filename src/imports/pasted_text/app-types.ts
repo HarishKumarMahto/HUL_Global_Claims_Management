@@ -135,7 +135,7 @@ export interface Claim {
   createdAt: string;
   updatedAt: string;
   qualifier?: string;
-  cucCode?: string;              // required on linked product for Assessed transition
+  cucCode?: string;              // required on Related product for Assessed transition
   expiryDate?: string;           // auto-triggers Expired lifecycle
 }
 
@@ -410,7 +410,7 @@ TAB 1 CONTENT — Support Strategy & Substantiation:
   - Claim Classification Level: <select> from CLASSIFICATION_LEVELS
   - Reasons: <input>
   - Substantiation Evidence Documents: file list with classification dropdown per file + Upload button
-  - Linked Assets: asset list with Add/Remove
+  - Related Assets: asset list with Add/Remove
   - [Save] button
   Editable by: Claims Lead, TPM, Nutritionist, Substantiator
   Post-Assessed: all read-only
@@ -682,7 +682,7 @@ STEP 3 — TABBED WORKBENCH (same as creation flow):
     Local Statement (editable — this is what gets adapted)
     Qualifier, Marketing Channels pre-filled
   User can: edit local statement, reorder, add/delete rows
-  Save creates adaptation claims linked to parent.
+  Save creates adaptation claims Related to parent.
   Adaptation IDs:
     Regional: CLM-{parentId}-{region}
     Local: CLM-{parentId}-{country}

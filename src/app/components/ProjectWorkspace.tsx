@@ -46,7 +46,7 @@ import GeographyTab from "./workspace/GeographyTab";
 import LinkedProductsTab from "./workspace/LinkedProductsTab";
 import RelatedClaimsTab from "./workspace/RelatedClaimsTab";
 import RiskReviewPanel from "./workspace/RiskReviewPanel";
-import ProductDocumentsTab from './workspace/ProductDocumentsTab';
+import ProductDocumentsTab from "./workspace/ProductDocumentsTab";
 import LinkedAssetsTab from "./workspace/LinkedAssetsTab";
 import CollaborationDrawer from "./CollaborationDrawer";
 import AuditLogModal, { AuditLogItem } from "./AuditLogModal";
@@ -57,11 +57,11 @@ type WorkspaceSection =
   | "Project Details"
   | "Project Team"
   | "Geography"
-  | "Linked Products"
+  | "Related Products"
   | "Related Claims"
   | "Risk & Review"
   | "Project Documents"
-  | "Linked Assets";
+  | "Related Assets";
 
 interface ProjectWorkspaceProps {
   project: Project;
@@ -81,51 +81,125 @@ const STATUS_STYLES: Record<string, string> = {
   Draft: "bg-gray-100 text-gray-600 border border-gray-200",
   "In Progress": "bg-blue-50 text-blue-700 border border-blue-200",
   "Under Review": "bg-amber-50 text-amber-700 border border-amber-200",
-  "Assessment Complete": "bg-purple-50 text-purple-700 border border-purple-200",
+  "Assessment Complete":
+    "bg-purple-50 text-purple-700 border border-purple-200",
   Completed: "bg-green-50 text-green-700 border border-green-200",
   Archived: "bg-gray-100 text-gray-500 border border-gray-200",
   Cancelled: "bg-red-50 text-red-600 border border-red-200",
 };
 
 // Review progress mock data per project
-const REVIEW_PROGRESS: Record<string, {
-  global: { label: string; done: boolean; completedBy?: string; completedOn?: string }[];
-  regional: { label: string; done: boolean; completedBy?: string; completedOn?: string }[];
-  local: { label: string; done: boolean; completedBy?: string; completedOn?: string }[];
-}> = {
+const REVIEW_PROGRESS: Record<
+  string,
+  {
+    global: {
+      label: string;
+      done: boolean;
+      completedBy?: string;
+      completedOn?: string;
+    }[];
+    regional: {
+      label: string;
+      done: boolean;
+      completedBy?: string;
+      completedOn?: string;
+    }[];
+    local: {
+      label: string;
+      done: boolean;
+      completedBy?: string;
+      completedOn?: string;
+    }[];
+  }
+> = {
   "1": {
     global: [
-      { label: "R&D", done: true, completedBy: "John Doe", completedOn: "4/20/2026" },
-      { label: "RA", done: true, completedBy: "Sarah Johnson", completedOn: "4/21/2026" },
-      { label: "Legal", done: true, completedBy: "Michael Chen", completedOn: "4/22/2026" },
+      {
+        label: "R&D",
+        done: true,
+        completedBy: "John Doe",
+        completedOn: "4/20/2026",
+      },
+      {
+        label: "RA",
+        done: true,
+        completedBy: "Sarah Johnson",
+        completedOn: "4/21/2026",
+      },
+      {
+        label: "Legal",
+        done: true,
+        completedBy: "Michael Chen",
+        completedOn: "4/22/2026",
+      },
       { label: "Claims Forum", done: false },
     ],
     regional: [
       { label: "R&D", done: false },
       { label: "RA", done: false },
-      { label: "Legal", done: true, completedBy: "Emma Wilson", completedOn: "4/23/2026" },
+      {
+        label: "Legal",
+        done: true,
+        completedBy: "Emma Wilson",
+        completedOn: "4/23/2026",
+      },
       { label: "Claims Forum", done: false },
     ],
     local: [
-      { label: "R&D", done: true, completedBy: "David Kumar", completedOn: "4/24/2026" },
+      {
+        label: "R&D",
+        done: true,
+        completedBy: "David Kumar",
+        completedOn: "4/24/2026",
+      },
       { label: "RA", done: false },
-      { label: "Legal", done: true, completedBy: "Lisa Anderson", completedOn: "4/25/2026" },
+      {
+        label: "Legal",
+        done: true,
+        completedBy: "Lisa Anderson",
+        completedOn: "4/25/2026",
+      },
       { label: "Claims Forum", done: false },
     ],
   },
   "2": {
     global: [
-      { label: "R&D", done: true, completedBy: "Tom Harris", completedOn: "4/18/2026" },
-      { label: "RA", done: true, completedBy: "Nina Patel", completedOn: "4/19/2026" },
+      {
+        label: "R&D",
+        done: true,
+        completedBy: "Tom Harris",
+        completedOn: "4/18/2026",
+      },
+      {
+        label: "RA",
+        done: true,
+        completedBy: "Nina Patel",
+        completedOn: "4/19/2026",
+      },
       { label: "Legal", done: false },
     ],
     regional: [
-      { label: "R&D", done: true, completedBy: "Sam Lee", completedOn: "4/20/2026" },
-      { label: "RA", done: true, completedBy: "Chris Brown", completedOn: "4/21/2026" },
+      {
+        label: "R&D",
+        done: true,
+        completedBy: "Sam Lee",
+        completedOn: "4/20/2026",
+      },
+      {
+        label: "RA",
+        done: true,
+        completedBy: "Chris Brown",
+        completedOn: "4/21/2026",
+      },
       { label: "Legal", done: false },
     ],
     local: [
-      { label: "R&D", done: true, completedBy: "Ana Silva", completedOn: "4/22/2026" },
+      {
+        label: "R&D",
+        done: true,
+        completedBy: "Ana Silva",
+        completedOn: "4/22/2026",
+      },
       { label: "RA", done: false },
       { label: "Legal", done: false },
     ],
@@ -133,8 +207,15 @@ const REVIEW_PROGRESS: Record<string, {
 };
 
 // ─── Risk & Review Sub-Lifecycle Panel ────────────────────────────────────
-function ReviewSubLifecyclePanel({ projectId, onClose, onNotify }: { projectId: string; onClose: () => void; onNotify: (tileLabel: string, scope: string) => void }) {
-
+function ReviewSubLifecyclePanel({
+  projectId,
+  onClose,
+  onNotify,
+}: {
+  projectId: string;
+  onClose: () => void;
+  onNotify: (tileLabel: string, scope: string) => void;
+}) {
   const DEFAULT_CHECKLIST = [
     { label: "R&D", done: false },
     { label: "RA", done: false },
@@ -142,9 +223,9 @@ function ReviewSubLifecyclePanel({ projectId, onClose, onNotify }: { projectId: 
     { label: "Claims Forum", done: false },
   ];
   const rp = REVIEW_PROGRESS[projectId] ?? {
-    global: DEFAULT_CHECKLIST.map(t => ({ ...t })),
-    regional: DEFAULT_CHECKLIST.map(t => ({ ...t })),
-    local: DEFAULT_CHECKLIST.map(t => ({ ...t })),
+    global: DEFAULT_CHECKLIST.map((t) => ({ ...t })),
+    regional: DEFAULT_CHECKLIST.map((t) => ({ ...t })),
+    local: DEFAULT_CHECKLIST.map((t) => ({ ...t })),
   };
   // Local mutable state so tiles can be toggled independently
   const [progress, setProgress] = useState(() => ({
@@ -172,12 +253,17 @@ function ReviewSubLifecyclePanel({ projectId, onClose, onNotify }: { projectId: 
         const nowDone = !t.done;
         return nowDone
           ? {
-            ...t,
-            done: true,
-            completedBy: "You",
-            completedOn: new Date().toLocaleDateString("en-US"),
-          }
-          : { ...t, done: false, completedBy: undefined, completedOn: undefined };
+              ...t,
+              done: true,
+              completedBy: "You",
+              completedOn: new Date().toLocaleDateString("en-US"),
+            }
+          : {
+              ...t,
+              done: false,
+              completedBy: undefined,
+              completedOn: undefined,
+            };
       });
       return { ...prev, [scope]: updated };
     });
@@ -198,9 +284,12 @@ function ReviewSubLifecyclePanel({ projectId, onClose, onNotify }: { projectId: 
         {/* Header */}
         <div className="flex items-start justify-between mb-2">
           <div>
-            <h3 className="text-base font-bold text-night">Risk &amp; Review Sub-Lifecycle</h3>
+            <h3 className="text-base font-bold text-night">
+              Risk &amp; Review Sub-Lifecycle
+            </h3>
             <p className="text-xs text-gray-500 mt-1">
-              Track review completion across functional teams and scopes with clear target timelines
+              Track review completion across functional teams and scopes with
+              clear target timelines
             </p>
           </div>
           <button
@@ -220,12 +309,19 @@ function ReviewSubLifecyclePanel({ projectId, onClose, onNotify }: { projectId: 
               <div key={label} className="flex items-start gap-3">
                 {/* Scope label + count */}
                 <div className="w-20 flex-shrink-0 mt-1">
-                  <span className="text-xs font-bold text-night uppercase tracking-wider">{label}</span>
-                  <span className="block text-[11px] text-gray-400 mt-0.5 font-medium">{doneCount} of {items.length} done</span>
+                  <span className="text-xs font-bold text-night uppercase tracking-wider">
+                    {label}
+                  </span>
+                  <span className="block text-[11px] text-gray-400 mt-0.5 font-medium">
+                    {doneCount} of {items.length} done
+                  </span>
                 </div>
                 {/* Tiles row */}
-                <div className="flex-1 grid gap-2"
-                  style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
+                <div
+                  className="flex-1 grid gap-2"
+                  style={{
+                    gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))`,
+                  }}
                 >
                   {items.map((tile, idx) => {
                     const notifyKey = `${key}-${idx}`;
@@ -234,22 +330,37 @@ function ReviewSubLifecyclePanel({ projectId, onClose, onNotify }: { projectId: 
                     return (
                       <div
                         key={tile.label}
-                        className={`rounded-lg border px-3 py-2 transition-all ${tile.done
-                          ? "bg-emerald-50 border-emerald-200 shadow-sm"
-                          : "bg-white border-pebble hover:border-sky/50"
-                          }`}
+                        className={`rounded-lg border px-3 py-2 transition-all ${
+                          tile.done
+                            ? "bg-emerald-50 border-emerald-200 shadow-sm"
+                            : "bg-white border-pebble hover:border-sky/50"
+                        }`}
                       >
                         {/* Top row: label + actions */}
                         <div className="flex items-start justify-between gap-1.5">
-                          <span className="text-xs font-bold text-night leading-snug truncate" title={tile.label}>{tile.label}</span>
+                          <span
+                            className="text-xs font-bold text-night leading-snug truncate"
+                            title={tile.label}
+                          >
+                            {tile.label}
+                          </span>
                           <div className="flex items-center gap-1.5 flex-shrink-0">
                             {/* Bell */}
                             <div className="relative">
                               <button
-                                onClick={() => sendNotification(notifyKey, tile.label, label)}
-                                title={isNotified ? "Notification sent" : "Send notification"}
-                                className={`transition-colors p-0.5 hover:bg-earth rounded ${isNotified ? "text-sky" : "text-gray-400 hover:text-sky"
-                                  }`}
+                                onClick={() =>
+                                  sendNotification(notifyKey, tile.label, label)
+                                }
+                                title={
+                                  isNotified
+                                    ? "Notification sent"
+                                    : "Send notification"
+                                }
+                                className={`transition-colors p-0.5 hover:bg-earth rounded ${
+                                  isNotified
+                                    ? "text-sky"
+                                    : "text-gray-400 hover:text-sky"
+                                }`}
                               >
                                 <Bell className="w-3.5 h-3.5" />
                               </button>
@@ -257,13 +368,20 @@ function ReviewSubLifecyclePanel({ projectId, onClose, onNotify }: { projectId: 
                             {/* Checkbox */}
                             <button
                               onClick={() => toggleDone(key, idx)}
-                              title={tile.done ? "Mark as incomplete" : "Mark as complete"}
-                              className={`w-4.5 h-4.5 rounded flex items-center justify-center border transition-colors flex-shrink-0 ${tile.done
-                                ? "bg-emerald-500 border-emerald-500 hover:bg-emerald-600 text-white"
-                                : "bg-white border-gray-300 hover:border-emerald-400"
-                                }`}
+                              title={
+                                tile.done
+                                  ? "Mark as incomplete"
+                                  : "Mark as complete"
+                              }
+                              className={`w-4.5 h-4.5 rounded flex items-center justify-center border transition-colors flex-shrink-0 ${
+                                tile.done
+                                  ? "bg-emerald-500 border-emerald-500 hover:bg-emerald-600 text-white"
+                                  : "bg-white border-gray-300 hover:border-emerald-400"
+                              }`}
                             >
-                              {tile.done && <CheckCircle className="w-3.5 h-3.5 text-white" />}
+                              {tile.done && (
+                                <CheckCircle className="w-3.5 h-3.5 text-white" />
+                              )}
                             </button>
                           </div>
                         </div>
@@ -287,8 +405,9 @@ function ReviewSubLifecyclePanel({ projectId, onClose, onNotify }: { projectId: 
 
         {/* Footer note */}
         <p className="text-xs text-gray-400 mt-4 border-t border-pebble pt-3">
-          <strong>Note:</strong> Tiles can be completed in any order. Lifecycle progression is
-          independent of tile completion status. All actions are audit logged.
+          <strong>Note:</strong> Tiles can be completed in any order. Lifecycle
+          progression is independent of tile completion status. All actions are
+          audit logged.
         </p>
       </div>
     </div>
@@ -341,13 +460,18 @@ function LifecycleRibbon({
     const handleClick = (e: MouseEvent) => {
       const target = e.target as Node;
       if (
-        pillRef.current && !pillRef.current.contains(target) &&
-        panelRef.current && !panelRef.current.contains(target)
+        pillRef.current &&
+        !pillRef.current.contains(target) &&
+        panelRef.current &&
+        !panelRef.current.contains(target)
       ) {
         onToggleReviewPanel();
       }
     };
-    const id = setTimeout(() => document.addEventListener("mousedown", handleClick), 0);
+    const id = setTimeout(
+      () => document.addEventListener("mousedown", handleClick),
+      0,
+    );
     return () => {
       clearTimeout(id);
       document.removeEventListener("mousedown", handleClick);
@@ -371,11 +495,17 @@ function LifecycleRibbon({
                 <span
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (!onSelectStage || (currentStage === "Review & Risk Assessment" && stage === "Draft")) return;
+                    if (
+                      !onSelectStage ||
+                      (currentStage === "Review & Risk Assessment" &&
+                        stage === "Draft")
+                    )
+                      return;
                     onSelectStage(stage);
                   }}
                   className={`flex items-center justify-center rounded-full p-0.5 transition-all ${
-                    (currentStage === "Review & Risk Assessment" && stage === "Draft")
+                    currentStage === "Review & Risk Assessment" &&
+                    stage === "Draft"
                       ? "text-gray-200 bg-transparent cursor-not-allowed opacity-50"
                       : "cursor-pointer hover:scale-110 active:scale-95"
                   } ${
@@ -383,15 +513,20 @@ function LifecycleRibbon({
                       ? "text-emerald-700 bg-emerald-50 hover:bg-emerald-200"
                       : "text-gray-300 hover:text-gray-500 hover:bg-gray-100"
                   }`}
-                  title={(currentStage === "Review & Risk Assessment" && stage === "Draft") 
-                    ? "Cannot revert to Draft from Review stage directly" 
-                    : isCompleted ? "Click tick to move backward stage" : "Click circle to move forward stage"}
+                  title={
+                    currentStage === "Review & Risk Assessment" &&
+                    stage === "Draft"
+                      ? "Cannot revert to Draft from Review stage directly"
+                      : isCompleted
+                        ? "Click tick to move backward stage"
+                        : "Click circle to move forward stage"
+                  }
                 >
                   {isCompleted ? (
                     <Check className="w-3.5 h-3.5 stroke-[3]" />
                   ) : (
                     <Circle className="w-3.5 h-3.5" />
-                  ) }
+                  )}
                 </span>
               )}
 
@@ -405,12 +540,15 @@ function LifecycleRibbon({
             </div>
           );
 
-          const pillClass = `flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium transition-all select-none ${isCompleted
-            ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
-            : isCurrent
-              ? (stage === "Complete" ? "bg-emerald-600 text-white shadow-sm border border-emerald-700 font-semibold" : "bg-sky text-white shadow-sm")
-              : "bg-earth text-gray-400 border border-pebble"
-            }`;
+          const pillClass = `flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium transition-all select-none ${
+            isCompleted
+              ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+              : isCurrent
+                ? stage === "Complete"
+                  ? "bg-emerald-600 text-white shadow-sm border border-emerald-700 font-semibold"
+                  : "bg-sky text-white shadow-sm"
+                : "bg-earth text-gray-400 border border-pebble"
+          }`;
 
           return (
             <div key={stage} className="flex items-center flex-shrink-0">
@@ -419,48 +557,55 @@ function LifecycleRibbon({
                   <button
                     ref={pillRef}
                     onClick={onToggleReviewPanel}
-                    className={`${pillClass} ${reviewPanelOpen ? "ring-2 ring-sky/40 ring-offset-1" : ""
-                      }`}
+                    className={`${pillClass} ${
+                      reviewPanelOpen ? "ring-2 ring-sky/40 ring-offset-1" : ""
+                    }`}
                     title="Click to view review progress"
                   >
                     {pillContent}
                   </button>
 
                   {/* ── Portal popover — renders at body level to escape overflow clipping ── */}
-                  {reviewPanelOpen && pillRect && createPortal(
-                    <div
-                      ref={panelRef}
-                      style={{
-                        position: "fixed",
-                        top: pillRect.bottom + 8,
-                        left: pillRect.left,
-                        zIndex: 9999,
-                      }}
-                    >
-                      <ReviewSubLifecyclePanel
-                        projectId={projectId}
-                        onClose={onToggleReviewPanel}
-                        onNotify={onNotify}
-                      />
-                    </div>,
-                    document.body
-                  )}
+                  {reviewPanelOpen &&
+                    pillRect &&
+                    createPortal(
+                      <div
+                        ref={panelRef}
+                        style={{
+                          position: "fixed",
+                          top: pillRect.bottom + 8,
+                          left: pillRect.left,
+                          zIndex: 9999,
+                        }}
+                      >
+                        <ReviewSubLifecyclePanel
+                          projectId={projectId}
+                          onClose={onToggleReviewPanel}
+                          onNotify={onNotify}
+                        />
+                      </div>,
+                      document.body,
+                    )}
                 </>
               ) : (
                 <div className={pillClass}>{pillContent}</div>
               )}
               {i < LIFECYCLE_STAGES.length - 1 && (
                 <div
-                  className={`w-8 h-px mx-0.5 flex-shrink-0 ${isCompleted ? "bg-emerald-300" : "bg-pebble"
-                    }`}
+                  className={`w-8 h-px mx-0.5 flex-shrink-0 ${
+                    isCompleted ? "bg-emerald-300" : "bg-pebble"
+                  }`}
                 />
               )}
             </div>
           );
         })}
         <span className="text-[11px] text-gray-400 ml-4 flex-shrink-0 whitespace-nowrap border-l border-pebble pl-4">
-          Updated {new Date(lastUpdated).toLocaleDateString('en-US', {
-            month: 'short', day: 'numeric', year: 'numeric'
+          Updated{" "}
+          {new Date(lastUpdated).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
           })}
         </span>
       </div>
@@ -501,16 +646,19 @@ function LifecycleDropdown({
               ? "Project is Complete — use Reopen to re-enable"
               : "Change lifecycle stage"
         }
-        className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-colors border ${isReadOnly
-          ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-          : canChange
-            ? "bg-sky text-white border-sky hover:bg-dark cursor-pointer"
-            : "bg-earth text-gray-400 border-pebble cursor-not-allowed opacity-60"
-          }`}
+        className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-colors border ${
+          isReadOnly
+            ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+            : canChange
+              ? "bg-sky text-white border-sky hover:bg-dark cursor-pointer"
+              : "bg-earth text-gray-400 border-pebble cursor-not-allowed opacity-60"
+        }`}
       >
         <span className="w-1.5 h-1.5 rounded-full bg-white/70 flex-shrink-0" />
         {project.lifecycleStage}
-        {canChange && !isReadOnly && <ChevronDown className="w-3.5 h-3.5 ml-0.5" />}
+        {canChange && !isReadOnly && (
+          <ChevronDown className="w-3.5 h-3.5 ml-0.5" />
+        )}
       </button>
 
       {open && !isReadOnly && (
@@ -521,7 +669,10 @@ function LifecycleDropdown({
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
                 Select Lifecycle Stage
               </p>
-              <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-night">
+              <button
+                onClick={() => setOpen(false)}
+                className="text-gray-400 hover:text-night"
+              >
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -537,26 +688,45 @@ function LifecycleDropdown({
                       setOpen(false);
                       onSelect(stage);
                     }}
-                    disabled={isCurrent || (project.lifecycleStage === "Review & Risk Assessment" && stage === "Draft")}
-                    title={project.lifecycleStage === "Review & Risk Assessment" && stage === "Draft" ? "Cannot revert to Draft from Review stage — use Reopen option" : undefined}
+                    disabled={
+                      isCurrent ||
+                      (project.lifecycleStage === "Review & Risk Assessment" &&
+                        stage === "Draft")
+                    }
+                    title={
+                      project.lifecycleStage === "Review & Risk Assessment" &&
+                      stage === "Draft"
+                        ? "Cannot revert to Draft from Review stage — use Reopen option"
+                        : undefined
+                    }
                     className="w-full text-left px-4 py-3 text-sm text-night hover:bg-earth/60 disabled:opacity-50 disabled:hover:bg-transparent transition-all flex items-center justify-between gap-4"
                   >
                     <div className="flex items-start gap-3">
                       <div
-                        className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${isCurrent
-                          ? "bg-sky ring-4 ring-sky/10"
-                          : isForward
-                            ? "bg-pebble"
-                            : "bg-amber-300"
-                          }`}
+                        className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${
+                          isCurrent
+                            ? "bg-sky ring-4 ring-sky/10"
+                            : isForward
+                              ? "bg-pebble"
+                              : "bg-amber-300"
+                        }`}
                       />
                       <div className="flex flex-col text-left">
-                        <span className={`text-sm ${isCurrent ? 'text-sky font-bold' : 'text-night font-medium'}`}>{stage}</span>
+                        <span
+                          className={`text-sm ${isCurrent ? "text-sky font-bold" : "text-night font-medium"}`}
+                        >
+                          {stage}
+                        </span>
                         <span className="text-xs text-gray-400 mt-0.5">
-                          {stage === 'Draft' ? `Start Date: ${project.startDate || 'N/A'}` :
-                            stage === 'Substantiate' ? `Evaluation Date: ${project.evaluationDate || 'N/A'}` :
-                              stage === 'Review & Risk Assessment' ? 'Review & Validation' :
-                                stage === 'Complete' ? `Launch Date: ${project.launchDate || 'N/A'}` : ''}
+                          {stage === "Draft"
+                            ? `Start Date: ${project.startDate || "N/A"}`
+                            : stage === "Substantiate"
+                              ? `Evaluation Date: ${project.evaluationDate || "N/A"}`
+                              : stage === "Review & Risk Assessment"
+                                ? "Review & Validation"
+                                : stage === "Complete"
+                                  ? `Launch Date: ${project.launchDate || "N/A"}`
+                                  : ""}
                         </span>
                       </div>
                     </div>
@@ -565,8 +735,16 @@ function LifecycleDropdown({
                         Current
                       </span>
                     )}
-                    {isForward && <span className="text-xs text-gray-400 flex-shrink-0">Advance →</span>}
-                    {isBack && <span className="text-xs text-amber-600 font-medium flex-shrink-0">← Reverse</span>}
+                    {isForward && (
+                      <span className="text-xs text-gray-400 flex-shrink-0">
+                        Advance →
+                      </span>
+                    )}
+                    {isBack && (
+                      <span className="text-xs text-amber-600 font-medium flex-shrink-0">
+                        ← Reverse
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -586,7 +764,12 @@ interface ActionModalProps {
   onCancel: () => void;
 }
 
-function ActionModal({ action, project, onConfirm, onCancel }: ActionModalProps) {
+function ActionModal({
+  action,
+  project,
+  onConfirm,
+  onCancel,
+}: ActionModalProps) {
   const configs: Record<
     string,
     {
@@ -644,7 +827,9 @@ function ActionModal({ action, project, onConfirm, onCancel }: ActionModalProps)
           <div className="p-2 bg-earth rounded-lg">{config.icon}</div>
           <h3 className="text-night">{config.title}</h3>
         </div>
-        <p className="text-sm text-gray-600 leading-relaxed mb-6">{config.description}</p>
+        <p className="text-sm text-gray-600 leading-relaxed mb-6">
+          {config.description}
+        </p>
         <div className="flex gap-3 justify-end">
           <button
             onClick={onCancel}
@@ -718,7 +903,13 @@ function ToastContainer({
 }
 
 // ─── Validation Error Modal ────────────────────────────────────────────────
-function ValidationModal({ errors, onClose }: { errors: string[]; onClose: () => void }) {
+function ValidationModal({
+  errors,
+  onClose,
+}: {
+  errors: string[];
+  onClose: () => void;
+}) {
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
@@ -737,10 +928,11 @@ function ValidationModal({ errors, onClose }: { errors: string[]; onClose: () =>
           {errors.map((err, i) => (
             <p
               key={i}
-              className={`text-sm leading-relaxed ${err.startsWith("  •")
-                ? "pl-3 text-gray-600"
-                : "text-red-700 font-medium"
-                }`}
+              className={`text-sm leading-relaxed ${
+                err.startsWith("  •")
+                  ? "pl-3 text-gray-600"
+                  : "text-red-700 font-medium"
+              }`}
             >
               {err.startsWith("  •") ? `• ${err.slice(3)}` : err}
             </p>
@@ -775,12 +967,14 @@ function ConfirmTransitionModal({
   onConfirm,
   onCancel,
 }: ConfirmTransitionModalProps) {
-  const recipients = (STAGE_TRANSITION_NOTIFICATIONS[toStage] ?? []) as NotificationTeam[];
+  const recipients = (STAGE_TRANSITION_NOTIFICATIONS[toStage] ??
+    []) as NotificationTeam[];
 
   const stageDescriptions: Record<string, string> = {
     Substantiate:
       "Substantiation activities will begin. The team will be notified to start claim review and evidence gathering.",
-    Draft: "The project will revert to Draft. Substantiation readiness will need to be re-established.",
+    Draft:
+      "The project will revert to Draft. Substantiation readiness will need to be re-established.",
     "Review & Risk Assessment":
       "Legal and Regulatory teams will be notified to begin evaluation of the project claims.",
     "Assessment Complete":
@@ -807,18 +1001,24 @@ function ConfirmTransitionModal({
           </div>
           <div>
             <h3 className="text-night">Confirm Transition</h3>
-            <p className="text-xs text-gray-400 mt-0.5">Lifecycle stage change</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Lifecycle stage change
+            </p>
           </div>
         </div>
 
         {/* Stage change visual */}
         <div className="flex items-center gap-2 mb-4 bg-earth rounded-lg px-4 py-3">
-          <span className="text-xs font-medium text-gray-500 truncate">{fromStage}</span>
+          <span className="text-xs font-medium text-gray-500 truncate">
+            {fromStage}
+          </span>
           <div className="flex items-center gap-0.5 flex-shrink-0 mx-1">
             <div className="w-4 h-px bg-pebble" />
             <ChevronRight className="w-3.5 h-3.5 text-sky" />
           </div>
-          <span className="text-xs font-semibold text-sky truncate">{toStage}</span>
+          <span className="text-xs font-semibold text-sky truncate">
+            {toStage}
+          </span>
         </div>
 
         {/* Description */}
@@ -838,8 +1038,9 @@ function ConfirmTransitionModal({
               {infoMessages.map((msg, i) => (
                 <p
                   key={i}
-                  className={`text-xs text-blue-700 leading-relaxed ${msg.startsWith("  •") ? "pl-3" : ""
-                    }`}
+                  className={`text-xs text-blue-700 leading-relaxed ${
+                    msg.startsWith("  •") ? "pl-3" : ""
+                  }`}
                 >
                   {msg}
                 </p>
@@ -889,14 +1090,22 @@ function ConfirmTransitionModal({
 
 // ─── Main ProjectWorkspace Component ──────────────────────────────────────
 const mapAuditEntriesToLogs = (entries: AuditEntry[]): AuditLogItem[] => {
-  return entries.map(entry => {
-    let type: 'create' | 'update' | 'delete' | 'status' | 'link' | 'system' = 'update';
-    if (entry.action.toLowerCase().includes('created') || entry.action.toLowerCase().includes('initialized')) {
-      type = 'create';
-    } else if (entry.action.toLowerCase().includes('transition') || entry.fromStage || entry.toStage) {
-      type = 'status';
-    } else if (entry.action.toLowerCase().includes('reopened')) {
-      type = 'status';
+  return entries.map((entry) => {
+    let type: "create" | "update" | "delete" | "status" | "link" | "system" =
+      "update";
+    if (
+      entry.action.toLowerCase().includes("created") ||
+      entry.action.toLowerCase().includes("initialized")
+    ) {
+      type = "create";
+    } else if (
+      entry.action.toLowerCase().includes("transition") ||
+      entry.fromStage ||
+      entry.toStage
+    ) {
+      type = "status";
+    } else if (entry.action.toLowerCase().includes("reopened")) {
+      type = "status";
     }
 
     let details = entry.details;
@@ -907,16 +1116,16 @@ const mapAuditEntriesToLogs = (entries: AuditEntry[]): AuditLogItem[] => {
     // Format timestamp nicely
     let formattedTime = entry.timestamp;
     try {
-      formattedTime = new Date(entry.timestamp).toLocaleString('en-US', {
-        month: 'numeric',
-        day: 'numeric',
-        year: 'numeric',
-        hour: 'numeric',
-        minute: 'numeric',
-        second: 'numeric',
-        hour12: true
+      formattedTime = new Date(entry.timestamp).toLocaleString("en-US", {
+        month: "numeric",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "numeric",
+        second: "numeric",
+        hour12: true,
       });
-    } catch (e) { }
+    } catch (e) {}
 
     return {
       id: entry.id,
@@ -925,7 +1134,7 @@ const mapAuditEntriesToLogs = (entries: AuditEntry[]): AuditLogItem[] => {
       role: entry.actorRole,
       action: entry.action,
       details,
-      type
+      type,
     };
   });
 };
@@ -940,7 +1149,7 @@ export default function ProjectWorkspace({
   activeSection,
   onSectionChange,
   currentUserRole = "Project Creator",
-  relatedClaimsSubFilter = 'all',
+  relatedClaimsSubFilter = "all",
   onRelatedClaimsSubFilterChange,
 }: ProjectWorkspaceProps) {
   const [isFavorite, setIsFavorite] = useState(project.isFavorite || false);
@@ -956,17 +1165,19 @@ export default function ProjectWorkspace({
   } | null>(null);
 
   // Compute highest risk level of any claim in this project
-  const projectClaims = mockClaims.filter((c) => c.relatedProjectIds?.includes(project.id));
+  const projectClaims = mockClaims.filter((c) =>
+    c.relatedProjectIds?.includes(project.id),
+  );
 
   const getHighestRisk = () => {
     if (projectClaims.length === 0) return null;
 
     const RISK_WEIGHTS: Record<string, number> = {
-      'Low': 1,
-      'Medium': 2,
-      'High': 3,
-      'Very High': 4,
-      'Not Allowed': 5,
+      Low: 1,
+      Medium: 2,
+      High: 3,
+      "Very High": 4,
+      "Not Allowed": 5,
     };
 
     let maxWeight = -1;
@@ -1011,7 +1222,10 @@ export default function ProjectWorkspace({
   const pushToast = (toast: Omit<Toast, "id">) => {
     const id = Date.now().toString();
     setToasts((prev) => [...prev, { ...toast, id }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 5000);
+    setTimeout(
+      () => setToasts((prev) => prev.filter((t) => t.id !== id)),
+      5000,
+    );
   };
 
   // Only Project Lead / Claims Lead can change lifecycle stage
@@ -1051,7 +1265,10 @@ export default function ProjectWorkspace({
     });
   };
 
-  const executeExport = (format: "pdf" | "excel" | "word" | "csv", selectedAttrs: string[]) => {
+  const executeExport = (
+    format: "pdf" | "excel" | "word" | "csv",
+    selectedAttrs: string[],
+  ) => {
     const headers = ["Attribute", "Value"];
     const allRows = [
       ["Project Name", project.name],
@@ -1065,19 +1282,22 @@ export default function ProjectWorkspace({
       ["Lifecycle Stage", project.lifecycleStage],
       ["Last Modified", new Date(project.lastUpdated).toLocaleString()],
     ];
-    const rows = allRows.filter(r => selectedAttrs.includes(r[0]));
+    const rows = allRows.filter((r) => selectedAttrs.includes(r[0]));
 
     if (format === "csv") {
       const csvContent = [
         headers.join(","),
-        ...rows.map(r => `"${r[0]}","${r[1]}"`)
+        ...rows.map((r) => `"${r[0]}","${r[1]}"`),
       ].join("\n");
 
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.setAttribute("href", url);
-      link.setAttribute("download", `${project.name.toLowerCase().replace(/\s+/g, "_")}_export_${new Date().toISOString().slice(0, 10)}.csv`);
+      link.setAttribute(
+        "download",
+        `${project.name.toLowerCase().replace(/\s+/g, "_")}_export_${new Date().toISOString().slice(0, 10)}.csv`,
+      );
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -1089,14 +1309,18 @@ export default function ProjectWorkspace({
           <h2>Project Details: ${project.name}</h2>
           <table border="1">
             <tr style="background-color: #F6F7F0; font-weight: bold;">
-              ${headers.map(h => `<th>${h}</th>`).join("")}
+              ${headers.map((h) => `<th>${h}</th>`).join("")}
             </tr>
-            ${rows.map(r => `
+            ${rows
+              .map(
+                (r) => `
               <tr>
                 <td><b>${r[0]}</b></td>
                 <td>${r[1]}</td>
               </tr>
-            `).join("")}
+            `,
+              )
+              .join("")}
           </table>
         </body>
         </html>
@@ -1105,7 +1329,10 @@ export default function ProjectWorkspace({
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.setAttribute("href", url);
-      link.setAttribute("download", `${project.name.toLowerCase().replace(/\s+/g, "_")}_export_${new Date().toISOString().slice(0, 10)}.xls`);
+      link.setAttribute(
+        "download",
+        `${project.name.toLowerCase().replace(/\s+/g, "_")}_export_${new Date().toISOString().slice(0, 10)}.xls`,
+      );
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -1117,14 +1344,18 @@ export default function ProjectWorkspace({
           <h2>Project Details: ${project.name}</h2>
           <table border="1" style="border-collapse: collapse; width: 100%;">
             <tr style="background-color: #F6F7F0; font-weight: bold;">
-              ${headers.map(h => `<th style="padding: 8px;">${h}</th>`).join("")}
+              ${headers.map((h) => `<th style="padding: 8px;">${h}</th>`).join("")}
             </tr>
-            ${rows.map(r => `
+            ${rows
+              .map(
+                (r) => `
               <tr>
                 <td style="padding: 8px; width: 30%;"><b>${r[0]}</b></td>
                 <td style="padding: 8px;">${r[1]}</td>
               </tr>
-            `).join("")}
+            `,
+              )
+              .join("")}
           </table>
         </body>
         </html>
@@ -1133,7 +1364,10 @@ export default function ProjectWorkspace({
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.setAttribute("href", url);
-      link.setAttribute("download", `${project.name.toLowerCase().replace(/\s+/g, "_")}_export_${new Date().toISOString().slice(0, 10)}.doc`);
+      link.setAttribute(
+        "download",
+        `${project.name.toLowerCase().replace(/\s+/g, "_")}_export_${new Date().toISOString().slice(0, 10)}.doc`,
+      );
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -1143,7 +1377,7 @@ export default function ProjectWorkspace({
       report += `                             Generated on: ${new Date().toLocaleDateString()}           \n`;
       report += `========================================================================================\n\n`;
 
-      rows.forEach(r => {
+      rows.forEach((r) => {
         report += `• ${r[0].padEnd(25)}: ${r[1]}\n`;
       });
       report += `\n========================================================================================\n`;
@@ -1152,7 +1386,10 @@ export default function ProjectWorkspace({
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.setAttribute("href", url);
-      link.setAttribute("download", `${project.name.toLowerCase().replace(/\s+/g, "_")}_export_${new Date().toISOString().slice(0, 10)}.txt`);
+      link.setAttribute(
+        "download",
+        `${project.name.toLowerCase().replace(/\s+/g, "_")}_export_${new Date().toISOString().slice(0, 10)}.txt`,
+      );
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -1164,9 +1401,12 @@ export default function ProjectWorkspace({
     setValidationErrors([]);
     setInfoMessages([]);
     if (newStage === project.lifecycleStage) return;
-    
+
     // Restriction: Cannot manually revert to Draft from Review & Risk Assessment
-    if (project.lifecycleStage === "Review & Risk Assessment" && newStage === "Draft") {
+    if (
+      project.lifecycleStage === "Review & Risk Assessment" &&
+      newStage === "Draft"
+    ) {
       return;
     }
 
@@ -1175,36 +1415,42 @@ export default function ProjectWorkspace({
 
     if (newStage === "Substantiate") {
       const { globalClaimsCount, localClaimsCount, assetsCount } = projectStats;
-      if (globalClaimsCount === 0 && localClaimsCount === 0 && assetsCount === 0) {
+      if (
+        globalClaimsCount === 0 &&
+        localClaimsCount === 0 &&
+        assetsCount === 0
+      ) {
         errors.push(
-          "Transition blocked: at least one of the following must exist before moving to Substantiate:"
+          "Transition blocked: at least one of the following must exist before moving to Substantiate:",
         );
         errors.push("  • ≥ 1 Global Claim");
         errors.push("  • ≥ 1 Local Claim");
         errors.push("  • ≥ 1 Asset");
         errors.push(
-          `Currently: ${globalClaimsCount} Global Claims, ${localClaimsCount} Local Claims, ${assetsCount} Assets.`
+          `Currently: ${globalClaimsCount} Global Claims, ${localClaimsCount} Local Claims, ${assetsCount} Assets.`,
         );
       }
     } else if (newStage === "Review & Risk Assessment") {
       const { claimsWithMissingSupportStrategy } = projectStats;
       if (claimsWithMissingSupportStrategy.length > 0) {
         infos.push(
-          `${claimsWithMissingSupportStrategy.length} claim(s) are missing a Support Strategy:`
+          `${claimsWithMissingSupportStrategy.length} claim(s) are missing a Support Strategy:`,
         );
         claimsWithMissingSupportStrategy.forEach((c) => infos.push(`  • ${c}`));
-        infos.push("This does not block the transition but should be addressed.");
+        infos.push(
+          "This does not block the transition but should be addressed.",
+        );
       }
     } else if (newStage === "Complete") {
       if (!projectStats.allClaimsAssessed) {
         errors.push(
-          "Transition blocked: all of the following must have status 'Assessed' before completing the project:"
+          "Transition blocked: all of the following must have status 'Assessed' before completing the project:",
         );
         errors.push("  • All Global Claims");
         errors.push("  • All Local Claims");
         errors.push("  • All SKU Claims");
         errors.push(
-          "Navigate to the Related Claims tab to update outstanding claim statuses."
+          "Navigate to the Related Claims tab to update outstanding claim statuses.",
         );
       }
     }
@@ -1226,7 +1472,10 @@ export default function ProjectWorkspace({
     const entry: AuditEntry = {
       id: Date.now().toString(),
       timestamp: new Date().toISOString(),
-      actor: currentUserRole === "Project Creator" ? "Sarah Johnson" : "Michael Chen",
+      actor:
+        currentUserRole === "Project Creator"
+          ? "Sarah Johnson"
+          : "Michael Chen",
       actorRole: currentUserRole as UserRole,
       action: "Lifecycle stage transition",
       fromStage: prevStage,
@@ -1265,7 +1514,8 @@ export default function ProjectWorkspace({
     if (currentIndex > 0) onProjectChange(projects[currentIndex - 1]);
   };
   const handleNext = () => {
-    if (currentIndex < projects.length - 1) onProjectChange(projects[currentIndex + 1]);
+    if (currentIndex < projects.length - 1)
+      onProjectChange(projects[currentIndex + 1]);
   };
   const handleAction = (action: string) => {
     setActionsOpen(false);
@@ -1290,7 +1540,7 @@ export default function ProjectWorkspace({
     //     title: "Project Reopened",
     //     message: "Lifecycle reset to Substantiate. Editing is now enabled.",
     //   });
-    // } 
+    // }
     if (pendingAction === "Clone Project") {
       const clonedId = String(Date.now());
       const clonedProject: Project = {
@@ -1332,16 +1582,66 @@ export default function ProjectWorkspace({
   };
 
   const ORDERED_SECTIONS = [
-    { id: "Project Details", section: "Project Details", subFilter: "all", title: "Project Details" },
-    { id: "Geography", section: "Geography", subFilter: "all", title: "Geography" },
-    { id: "Project Team", section: "Project Team", subFilter: "all", title: "Project Team" },
-    { id: "Linked Products", section: "Linked Products", subFilter: "all", title: "Linked Products" },
-    { id: "Related Claims - Global", section: "Related Claims", subFilter: "global", title: "Related Claims — Global" },
-    { id: "Related Claims - Regional", section: "Related Claims", subFilter: "regional", title: "Related Claims — Regional" },
-    { id: "Related Claims - Local", section: "Related Claims", subFilter: "local", title: "Related Claims — Local" },
-    { id: "Related Claims - SKU", section: "Related Claims", subFilter: "local_sku", title: "Related Claims — SKU Claim" },
-    { id: "Linked Assets", section: "Linked Assets", subFilter: "all", title: "Linked Assets" },
-    { id: "Project Documents", section: "Project Documents", subFilter: "all", title: "Project Documents" },
+    {
+      id: "Project Details",
+      section: "Project Details",
+      subFilter: "all",
+      title: "Project Details",
+    },
+    {
+      id: "Geography",
+      section: "Geography",
+      subFilter: "all",
+      title: "Geography",
+    },
+    {
+      id: "Project Team",
+      section: "Project Team",
+      subFilter: "all",
+      title: "Project Team",
+    },
+    {
+      id: "Related Products",
+      section: "Related Products",
+      subFilter: "all",
+      title: "Related Products",
+    },
+    {
+      id: "Related Claims - Global",
+      section: "Related Claims",
+      subFilter: "global",
+      title: "Related Claims — Global",
+    },
+    {
+      id: "Related Claims - Regional",
+      section: "Related Claims",
+      subFilter: "regional",
+      title: "Related Claims — Regional",
+    },
+    {
+      id: "Related Claims - Local",
+      section: "Related Claims",
+      subFilter: "local",
+      title: "Related Claims — Local",
+    },
+    {
+      id: "Related Claims - SKU",
+      section: "Related Claims",
+      subFilter: "local_sku",
+      title: "Related Claims — SKU Claim",
+    },
+    {
+      id: "Related Assets",
+      section: "Related Assets",
+      subFilter: "all",
+      title: "Related Assets",
+    },
+    {
+      id: "Project Documents",
+      section: "Project Documents",
+      subFilter: "all",
+      title: "Project Documents",
+    },
   ];
 
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -1353,13 +1653,14 @@ export default function ProjectWorkspace({
 
     let targetId = activeSection as string;
     if (activeSection === "Related Claims") {
-      targetId = relatedClaimsSubFilter === "all" || relatedClaimsSubFilter === "global"
-        ? "Related Claims - Global"
-        : relatedClaimsSubFilter === "regional"
-        ? "Related Claims - Regional"
-        : relatedClaimsSubFilter === "local"
-        ? "Related Claims - Local"
-        : "Related Claims - SKU";
+      targetId =
+        relatedClaimsSubFilter === "all" || relatedClaimsSubFilter === "global"
+          ? "Related Claims - Global"
+          : relatedClaimsSubFilter === "regional"
+            ? "Related Claims - Regional"
+            : relatedClaimsSubFilter === "local"
+              ? "Related Claims - Local"
+              : "Related Claims - SKU";
     }
 
     const el = sectionRefs.current[targetId];
@@ -1389,7 +1690,11 @@ export default function ProjectWorkspace({
           if (activeSection !== item.section) {
             onSectionChange(item.section as WorkspaceSection);
           }
-          if (item.section === "Related Claims" && onRelatedClaimsSubFilterChange && relatedClaimsSubFilter !== item.subFilter) {
+          if (
+            item.section === "Related Claims" &&
+            onRelatedClaimsSubFilterChange &&
+            relatedClaimsSubFilter !== item.subFilter
+          ) {
             onRelatedClaimsSubFilterChange(item.subFilter);
           }
           break;
@@ -1406,7 +1711,7 @@ export default function ProjectWorkspace({
         return <GeographyTab />;
       case "Project Team":
         return <ProjectTeamTab project={project} onSave={onProjectSave} />;
-      case "Linked Products":
+      case "Related Products":
         return <LinkedProductsTab project={project} />;
       case "Related Claims - Global":
         return <RelatedClaimsTab subFilter="global" hideOuterHeader={true} />;
@@ -1415,8 +1720,10 @@ export default function ProjectWorkspace({
       case "Related Claims - Local":
         return <RelatedClaimsTab subFilter="local" hideOuterHeader={true} />;
       case "Related Claims - SKU":
-        return <RelatedClaimsTab subFilter="local_sku" hideOuterHeader={true} />;
-      case "Linked Assets":
+        return (
+          <RelatedClaimsTab subFilter="local_sku" hideOuterHeader={true} />
+        );
+      case "Related Assets":
         return <LinkedAssetsTab />;
       case "Project Documents":
         return <ProductDocumentsTab />;
@@ -1446,7 +1753,9 @@ export default function ProjectWorkspace({
               Projects
             </button>
             <span>/</span>
-            <span className="text-night truncate max-w-[300px]">{project.name}</span>
+            <span className="text-night truncate max-w-[300px]">
+              {project.name}
+            </span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -1474,10 +1783,11 @@ export default function ProjectWorkspace({
             {/* Collaborate */}
             <button
               onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-              className={`flex items-center gap-2 px-3 py-1.5 border rounded-lg text-sm transition-colors shadow-sm ${isDrawerOpen
-                ? "bg-sky text-white border-sky"
-                : "border-pebble text-night hover:bg-earth bg-white"
-                }`}
+              className={`flex items-center gap-2 px-3 py-1.5 border rounded-lg text-sm transition-colors shadow-sm ${
+                isDrawerOpen
+                  ? "bg-sky text-white border-sky"
+                  : "border-pebble text-night hover:bg-earth bg-white"
+              }`}
             >
               <MessageSquare className="w-4 h-4" />
               <span className="hidden lg:inline">Collaborate</span>
@@ -1494,7 +1804,10 @@ export default function ProjectWorkspace({
               </button>
               {actionsOpen && (
                 <>
-                  <div className="fixed inset-0 z-10" onClick={() => setActionsOpen(false)} />
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setActionsOpen(false)}
+                  />
                   <div className="absolute right-0 top-full mt-1 bg-white border border-pebble rounded-xl shadow-lg z-20 min-w-[180px] overflow-hidden">
                     <button
                       onClick={() => {
@@ -1523,7 +1836,6 @@ export default function ProjectWorkspace({
                             onClick={() => handleAction(action)}
                             className="w-full text-left px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors flex items-center gap-2"
                           >
-
                             {action === "Clone Project" && (
                               <Copy className="w-3.5 h-3.5 text-sky" />
                             )}
@@ -1546,7 +1858,8 @@ export default function ProjectWorkspace({
                                 pushToast({
                                   type: "success",
                                   title: "Project Restored",
-                                  message: "Project has been restored to Draft status successfully."
+                                  message:
+                                    "Project has been restored to Draft status successfully.",
                                 });
                               }}
                               className="w-full text-left px-4 py-2.5 text-sm hover:bg-amber-50 transition-colors flex items-center gap-2 text-amber-600 font-medium"
@@ -1557,38 +1870,41 @@ export default function ProjectWorkspace({
                           )
                         ) : (
                           <>
-                          {project.lifecycleStage === "Review & Risk Assessment" && canChangeStage && (
-                            <button
-                              onClick={() => {
-                                setActionsOpen(false);
-                                onProjectSave({
-                                  ...project,
-                                  lifecycleStage: "Draft",
-                                  status: "Draft",
-                                  lastUpdated: new Date().toISOString(),
-                                });
-                                pushToast({
-                                  type: "info",
-                                  title: "Project Reopened",
-                                  message: "Project has been moved back to Draft stage.",
-                                });
-                              }}
-                              className="w-full text-left px-4 py-2.5 text-sm hover:bg-amber-50 transition-colors flex items-center gap-2 text-amber-600 font-medium"
-                            >
-                              <RotateCcw className="w-3.5 h-3.5" />
-                              Reopen Project (Draft)
-                            </button>
-                          )}
-                          {canChangeStage && (
-                            <button
-                              onClick={() => handleAction("Cancel Project")}
-                              className="w-full text-left px-4 py-2.5 text-sm hover:bg-red-50 transition-colors flex items-center gap-2 text-red-600 font-medium"
-                            >
-                              <XCircle className="w-3.5 h-3.5" />
-                              Cancel Project
-                            </button>
-                          )}
-                        </>
+                            {project.lifecycleStage ===
+                              "Review & Risk Assessment" &&
+                              canChangeStage && (
+                                <button
+                                  onClick={() => {
+                                    setActionsOpen(false);
+                                    onProjectSave({
+                                      ...project,
+                                      lifecycleStage: "Draft",
+                                      status: "Draft",
+                                      lastUpdated: new Date().toISOString(),
+                                    });
+                                    pushToast({
+                                      type: "info",
+                                      title: "Project Reopened",
+                                      message:
+                                        "Project has been moved back to Draft stage.",
+                                    });
+                                  }}
+                                  className="w-full text-left px-4 py-2.5 text-sm hover:bg-amber-50 transition-colors flex items-center gap-2 text-amber-600 font-medium"
+                                >
+                                  <RotateCcw className="w-3.5 h-3.5" />
+                                  Reopen Project (Draft)
+                                </button>
+                              )}
+                            {canChangeStage && (
+                              <button
+                                onClick={() => handleAction("Cancel Project")}
+                                className="w-full text-left px-4 py-2.5 text-sm hover:bg-red-50 transition-colors flex items-center gap-2 text-red-600 font-medium"
+                              >
+                                <XCircle className="w-3.5 h-3.5" />
+                                Cancel Project
+                              </button>
+                            )}
+                          </>
                         )}
                         <div className="border-t border-pebble" />
                         <div className="px-4 py-2.5 bg-earth/30">
@@ -1597,10 +1913,30 @@ export default function ProjectWorkspace({
                           </div>
                           <div className="grid grid-cols-2 gap-2">
                             {[
-                              { label: "Excel", format: "excel", color: "text-green-600 hover:bg-green-50 hover:border-green-300" },
-                              { label: "CSV", format: "csv", color: "text-blue-600 hover:bg-blue-50 hover:border-blue-300" },
-                              { label: "PDF", format: "pdf", color: "text-red-600 hover:bg-red-50 hover:border-red-300" },
-                              { label: "Word", format: "word", color: "text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300" },
+                              {
+                                label: "Excel",
+                                format: "excel",
+                                color:
+                                  "text-green-600 hover:bg-green-50 hover:border-green-300",
+                              },
+                              {
+                                label: "CSV",
+                                format: "csv",
+                                color:
+                                  "text-blue-600 hover:bg-blue-50 hover:border-blue-300",
+                              },
+                              {
+                                label: "PDF",
+                                format: "pdf",
+                                color:
+                                  "text-red-600 hover:bg-red-50 hover:border-red-300",
+                              },
+                              {
+                                label: "Word",
+                                format: "word",
+                                color:
+                                  "text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300",
+                              },
                             ].map((item) => (
                               <button
                                 key={item.label}
@@ -1627,18 +1963,24 @@ export default function ProjectWorkspace({
 
         {/* Project Identity + Status + Lifecycle Dropdown */}
         <div className="flex items-start gap-3">
-          <button onClick={() => setIsFavorite(!isFavorite)} className="mt-0.5 flex-shrink-0">
+          <button
+            onClick={() => setIsFavorite(!isFavorite)}
+            className="mt-0.5 flex-shrink-0"
+          >
             <Star
-              className={`w-5 h-5 transition-all ${isFavorite
-                ? "fill-yellow-400 text-yellow-400"
-                : "text-gray-300 hover:text-yellow-400"
-                }`}
+              className={`w-5 h-5 transition-all ${
+                isFavorite
+                  ? "fill-yellow-400 text-yellow-400"
+                  : "text-gray-300 hover:text-yellow-400"
+              }`}
             />
           </button>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2.5 mb-2 flex-wrap">
-              <h2 className="text-night truncate font-semibold leading-tight">{project.name}</h2>
+              <h2 className="text-night truncate font-semibold leading-tight">
+                {project.name}
+              </h2>
 
               {isProjectArchived(project) && (
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-600 text-white tracking-wide flex-shrink-0 shadow-sm flex items-center gap-1">
@@ -1655,29 +1997,48 @@ export default function ProjectWorkspace({
               {highestRiskLevel && (
                 <button
                   onClick={() => setShowProjectRisk(!showProjectRisk)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border transition-all shadow-sm ${showProjectRisk
-                    ? highestRiskLevel === 'Low' ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' :
-                      highestRiskLevel === 'Medium' ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' :
-                        highestRiskLevel === 'High' ? 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100' :
-                          highestRiskLevel === 'Very High' ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100' :
-                            highestRiskLevel === 'Not Allowed' ? 'bg-red-100 text-red-800 border-red-300 hover:bg-red-200' :
-                              'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
-                    : 'bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100 hover:text-gray-500'
-                    }`}
-                  title={showProjectRisk ? "Click to hide risk level" : "Click to show risk level"}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border transition-all shadow-sm ${
+                    showProjectRisk
+                      ? highestRiskLevel === "Low"
+                        ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+                        : highestRiskLevel === "Medium"
+                          ? "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
+                          : highestRiskLevel === "High"
+                            ? "bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100"
+                            : highestRiskLevel === "Very High"
+                              ? "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
+                              : highestRiskLevel === "Not Allowed"
+                                ? "bg-red-100 text-red-800 border-red-300 hover:bg-red-200"
+                                : "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                      : "bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100 hover:text-gray-500"
+                  }`}
+                  title={
+                    showProjectRisk
+                      ? "Click to hide risk level"
+                      : "Click to show risk level"
+                  }
                 >
-                  <span className={`w-1.5 h-1.5 rounded-full transition-colors ${showProjectRisk
-                    ? highestRiskLevel === 'Low' ? 'bg-green-500' :
-                      highestRiskLevel === 'Medium' ? 'bg-amber-500' :
-                        highestRiskLevel === 'High' ? 'bg-orange-500' :
-                          highestRiskLevel === 'Very High' ? 'bg-red-600' :
-                            highestRiskLevel === 'Not Allowed' ? 'bg-red-700' :
-                              'bg-blue-500'
-                    : 'bg-gray-300'
-                    }`} />
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                      showProjectRisk
+                        ? highestRiskLevel === "Low"
+                          ? "bg-green-500"
+                          : highestRiskLevel === "Medium"
+                            ? "bg-amber-500"
+                            : highestRiskLevel === "High"
+                              ? "bg-orange-500"
+                              : highestRiskLevel === "Very High"
+                                ? "bg-red-600"
+                                : highestRiskLevel === "Not Allowed"
+                                  ? "bg-red-700"
+                                  : "bg-blue-500"
+                        : "bg-gray-300"
+                    }`}
+                  />
 
                   <span>
-                    Project Risk: {showProjectRisk ? highestRiskLevel : 'Hidden'}
+                    Project Risk:{" "}
+                    {showProjectRisk ? highestRiskLevel : "Hidden"}
                   </span>
 
                   {showProjectRisk ? (
@@ -1688,16 +2049,12 @@ export default function ProjectWorkspace({
                 </button>
               )}
 
-
-
               {project.clonedFrom && (
                 <span className="flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full text-xs font-semibold flex-shrink-0">
                   <Copy className="w-3 h-3" />
                   Cloned from {project.clonedFrom}
                 </span>
               )}
-
-
 
               {/* Read-only badge */}
               {isProjectReadOnly && (
@@ -1708,7 +2065,6 @@ export default function ProjectWorkspace({
               )}
 
               {/* Lifecycle Stage Dropdown */}
-
 
               <span className="text-xs text-gray-400 italic flex-shrink-0">
                 ({currentUserRole})
@@ -1771,21 +2127,24 @@ export default function ProjectWorkspace({
       <div className="flex-1 flex overflow-hidden">
         {/* Content Area */}
         <div className="flex-1 overflow-hidden flex flex-col">
-          <div 
+          <div
             className="flex-1 overflow-y-auto bg-transparent snap-y snap-proximity scroll-smooth no-scrollbar"
             onScroll={handleScroll}
           >
             {ORDERED_SECTIONS.map((item) => {
-              const isItemActive = activeSection === item.section && (
-                item.section !== "Related Claims" || 
-                relatedClaimsSubFilter === item.subFilter || 
-                (relatedClaimsSubFilter === "all" && item.subFilter === "global")
-              );
+              const isItemActive =
+                activeSection === item.section &&
+                (item.section !== "Related Claims" ||
+                  relatedClaimsSubFilter === item.subFilter ||
+                  (relatedClaimsSubFilter === "all" &&
+                    item.subFilter === "global"));
 
               return (
                 <div
                   key={item.id}
-                  ref={(el) => { sectionRefs.current[item.id] = el; }}
+                  ref={(el) => {
+                    sectionRefs.current[item.id] = el;
+                  }}
                   className={`w-full h-full flex-shrink-0 flex flex-col snap-start snap-always bg-transparent transition-opacity duration-300 border-b-2 border-amber-100/60 ${
                     isItemActive ? "opacity-100" : "opacity-80"
                   }`}
@@ -1801,7 +2160,10 @@ export default function ProjectWorkspace({
 
         {/* Collaboration Drawer */}
         {isDrawerOpen && (
-          <CollaborationDrawer onClose={() => setIsDrawerOpen(false)} projectName={project.name} />
+          <CollaborationDrawer
+            onClose={() => setIsDrawerOpen(false)}
+            projectName={project.name}
+          />
         )}
       </div>
 
@@ -1851,7 +2213,7 @@ export default function ProjectWorkspace({
             pushToast({
               type: "success",
               title: "Project Cancelled",
-              message: `"${project.name}" has been cancelled successfully.`
+              message: `"${project.name}" has been cancelled successfully.`,
             });
             setPendingAction(null);
           }}
@@ -1888,7 +2250,10 @@ export default function ProjectWorkspace({
       {/* Export Attributes Selection Pop-Up Modal */}
       {exportConfig && (
         <>
-          <div className="fixed inset-0 bg-black/40 z-50 animate-in fade-in duration-150" onClick={() => setExportConfig(null)} />
+          <div
+            className="fixed inset-0 bg-black/40 z-50 animate-in fade-in duration-150"
+            onClick={() => setExportConfig(null)}
+          />
           <div className="fixed inset-0 flex items-center justify-center z-50 p-4 pointer-events-none">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden pointer-events-auto animate-in fade-in zoom-in-95 duration-150 border border-pebble">
               <div className="px-6 py-4 border-b border-pebble flex items-center justify-between bg-earth/50">
@@ -1897,11 +2262,18 @@ export default function ProjectWorkspace({
                     <Download className="w-5 h-5 stroke-[2.5]" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-night">Select Attributes to Export</h2>
-                    <p className="text-xs text-gray-500">Format: {exportConfig.format.toUpperCase()}</p>
+                    <h2 className="text-lg font-bold text-night">
+                      Select Attributes to Export
+                    </h2>
+                    <p className="text-xs text-gray-500">
+                      Format: {exportConfig.format.toUpperCase()}
+                    </p>
                   </div>
                 </div>
-                <button onClick={() => setExportConfig(null)} className="p-1.5 hover:bg-pebble rounded-lg transition-colors text-gray-400 cursor-pointer">
+                <button
+                  onClick={() => setExportConfig(null)}
+                  className="p-1.5 hover:bg-pebble rounded-lg transition-colors text-gray-400 cursor-pointer"
+                >
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -1911,33 +2283,52 @@ export default function ProjectWorkspace({
                   <button
                     type="button"
                     onClick={() => {
-                      const isAllSelected = exportConfig.selectedAttributes.length === ALL_ATTRIBUTES.length;
-                      setExportConfig(prev => prev ? { ...prev, selectedAttributes: isAllSelected ? [] : ALL_ATTRIBUTES } : null);
+                      const isAllSelected =
+                        exportConfig.selectedAttributes.length ===
+                        ALL_ATTRIBUTES.length;
+                      setExportConfig((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              selectedAttributes: isAllSelected
+                                ? []
+                                : ALL_ATTRIBUTES,
+                            }
+                          : null,
+                      );
                     }}
                     className="text-sky hover:underline cursor-pointer lowercase font-semibold"
                   >
                     toggle all
                   </button>
                 </div>
-                {ALL_ATTRIBUTES.map(attr => {
-                  const isChecked = exportConfig.selectedAttributes.includes(attr);
+                {ALL_ATTRIBUTES.map((attr) => {
+                  const isChecked =
+                    exportConfig.selectedAttributes.includes(attr);
                   return (
-                    <label key={attr} className="flex items-center gap-3 p-2 rounded-lg hover:bg-earth cursor-pointer transition-colors border border-transparent hover:border-pebble">
+                    <label
+                      key={attr}
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-earth cursor-pointer transition-colors border border-transparent hover:border-pebble"
+                    >
                       <input
                         type="checkbox"
                         checked={isChecked}
                         onChange={() => {
-                          setExportConfig(prev => {
+                          setExportConfig((prev) => {
                             if (!prev) return prev;
                             const nextAttrs = isChecked
-                              ? prev.selectedAttributes.filter(a => a !== attr)
+                              ? prev.selectedAttributes.filter(
+                                  (a) => a !== attr,
+                                )
                               : [...prev.selectedAttributes, attr];
                             return { ...prev, selectedAttributes: nextAttrs };
                           });
                         }}
                         className="w-4 h-4 rounded border-gray-300 text-sky focus:ring-sky cursor-pointer"
                       />
-                      <span className="text-sm text-night font-medium">{attr}</span>
+                      <span className="text-sm text-night font-medium">
+                        {attr}
+                      </span>
                     </label>
                   );
                 })}
@@ -1954,7 +2345,10 @@ export default function ProjectWorkspace({
                   type="button"
                   disabled={exportConfig.selectedAttributes.length === 0}
                   onClick={() => {
-                    executeExport(exportConfig.format, exportConfig.selectedAttributes);
+                    executeExport(
+                      exportConfig.format,
+                      exportConfig.selectedAttributes,
+                    );
                     setExportConfig(null);
                   }}
                   className="px-4 py-2 text-sm font-bold bg-sky text-white hover:bg-dark rounded-lg transition-colors shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
