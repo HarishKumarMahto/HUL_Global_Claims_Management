@@ -361,7 +361,7 @@ export default function CreateProjectModal({
       setFormData(emptyForm);
       setErrors({});
       setIsDuplicateName(false);
-      setExternalRefType(null);
+      setExternalRefType('innoflex');
     } else {
       handleClose();
     }
@@ -371,7 +371,7 @@ export default function CreateProjectModal({
     setFormData(emptyForm);
     setErrors({});
     setIsDuplicateName(false);
-    setExternalRefType(null);
+    setExternalRefType('innoflex');
     onClose();
   };
 
@@ -434,7 +434,7 @@ export default function CreateProjectModal({
             {/* Section: External References */}
             <div className="space-y-4">
               <div className="text-xs text-gray-400 uppercase tracking-wide font-bold pb-2 border-b border-pebble">
-                External References
+                External References <span className="text-red-500">*</span>
               </div>
               
               {/* Radio Selector */}

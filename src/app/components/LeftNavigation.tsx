@@ -207,8 +207,13 @@ const ASSET_WORKSPACE_SECTIONS = [
     icon: <Shield className="w-4 h-4" />,
   },
   {
-    id: "Related Claims",
-    label: "Related Claims",
+    id: "Approval Workflow",
+    label: "Approval Workflow",
+    icon: <Users className="w-4 h-4" />,
+  },
+  {
+    id: "Linked Claims",
+    label: "Linked Claims",
     icon: <GitBranch className="w-4 h-4" />,
   },
   {
@@ -220,11 +225,6 @@ const ASSET_WORKSPACE_SECTIONS = [
     id: "Related Products",
     label: "Related Products",
     icon: <Package className="w-4 h-4" />,
-  },
-  {
-    id: "Approval Workflow",
-    label: "Approval Workflow",
-    icon: <Users className="w-4 h-4" />,
   },
 ];
 
