@@ -244,168 +244,167 @@ export default function AssetWorkspace({
     return `${Math.floor(diffDays / 365)}y ago`;
   };
 
+  const renderRenditionPanel = () => {
+    return (
+      <div className="space-y-4">
+        <h4 className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Rendition</h4>
+        {currentVersion && !asset.isPlaceholder ? (
+          <div className="border border-pebble rounded-xl overflow-hidden">
+            <div className="aspect-video bg-earth flex items-center justify-center">
+              {getFileIcon()}
+              <span className="ml-2 text-sm text-gray-500">Asset Rendition Preview</span>
+            </div>
+            <div className="p-3 bg-white border-t border-pebble">
+              <div className="flex items-center justify-between text-xs text-gray-500">
+                <span>{currentVersion.fileType.toUpperCase()} • {currentVersion.fileSize}</span>
+                <span>Version {asset.currentVersionNumber}</span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => {
+              const updated = {
+                ...asset,
+                isPlaceholder: false,
+                currentVersionNumber: 1,
+                versions: [
+                  {
+                    versionNumber: 1,
+                    fileType: 'pdf',
+                    fileSize: '2.4 MB',
+                    uploadDate: new Date().toISOString(),
+                    uploadedBy: 'Current User',
+                    riskRecords: [],
+                    finalRisk: {
+                      finalRiskLevel: null,
+                      marketingRiskSignoff: false,
+                    }
+                  }
+                ]
+              } as Asset;
+              onAssetSave(updated);
+            }}
+            className="w-full border-2 border-dashed border-pebble rounded-xl p-12 text-center hover:bg-earth transition-colors cursor-pointer"
+          >
+            <Upload className="w-10 h-10 text-gray-400 mx-auto mb-2" />
+            <p className="text-sm text-gray-600 font-medium mb-1">Upload Asset file</p>
+            <p className="text-xs text-gray-400">Click to upload your asset rendition</p>
+          </button>
+        )}
+
+        {/* Anchors */}
+        <div>
+          <h4 className="text-sm text-night font-medium mb-3">Anchors ({asset.anchors.length})</h4>
+          {asset.anchors.length > 0 ? (
+            <div className="space-y-2">
+              {asset.anchors.map(anchor => (
+                <div key={anchor.id} className="p-3 bg-earth rounded-lg border border-pebble">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-sky font-medium">Anchor #{anchor.anchorNumber}</span>
+                    <span className="text-xs text-gray-400">({anchor.x?.toFixed(0) || 0}, {anchor.y?.toFixed(0) || 0})</span>
+                  </div>
+                  {anchor.comments?.map(comment => (
+                    <div key={comment.id} className="text-sm text-gray-700 mb-1">
+                      <span className="font-medium">{comment.author}:</span> {comment.content}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400">No anchors yet.</p>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const renderSectionContent = (id: string) => {
     switch (id) {
       case 'Asset Details':
         return (
-          <div className="flex gap-6">
-            {/* LEFT: 40% - Asset Details + File Info */}
-            <div className="w-2/5 flex-shrink-0 space-y-5">
-              {/* Asset Details subsection */}
-              <div>
-                <h4 className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Details</h4>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Business Group</label>
-                    <div className="text-sm text-night font-medium">{asset.businessGroup}</div>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Category</label>
-                    <div className="text-sm text-night">{asset.category}</div>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Lifecycle Stage</label>
-                    <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs ${ASSET_LIFECYCLE_COLORS[asset.lifecycleStage]}`}>
-                      {asset.lifecycleStage}
-                    </span>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Subtype</label>
-                    <div className="text-sm text-night">{asset.subtype || <span className="text-gray-400">Unclassified</span>}</div>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Geography</label>
-                    <div className="flex flex-wrap gap-1.5 mt-1">
-                      {asset.geography.map(geo => (
-                        <span key={geo} className="px-2 py-0.5 rounded bg-earth text-night text-xs">{geo}</span>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Version</label>
-                    <div className="text-sm text-night font-medium">v{asset.currentVersionNumber}</div>
-                  </div>
+          <div className="space-y-5">
+            {/* Asset Details subsection */}
+            <div>
+              <h4 className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Details</h4>
+              <div className="grid grid-cols-2 gap-y-4 gap-x-6">
+                <div>
+                  <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Business Group</label>
+                  <div className="text-sm text-night font-medium">{asset.businessGroup}</div>
                 </div>
-              </div>
-
-              {/* File Info subsection (formerly Metadata) */}
-              <div className="border-t border-pebble pt-4">
-                <h4 className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">File Info</h4>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Total Versions</label>
-                    <div className="text-sm text-night">{asset.versions.length}</div>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Created By</label>
-                    <div className="text-sm text-night">{asset.createdBy}</div>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Created At</label>
-                    <div className="text-sm text-gray-600">{formatRelativeDate(asset.createdAt)}</div>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Last Modified</label>
-                    <div className="text-sm text-gray-600">{formatRelativeDate(asset.modifiedAt)}</div>
-                  </div>
-                  {currentVersion && (
-                    <div>
-                      <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">File Type</label>
-                      <div className="text-sm text-night capitalize">{currentVersion.fileType}</div>
-                    </div>
-                  )}
-                  {currentVersion && (
-                    <div>
-                      <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">File Size</label>
-                      <div className="text-sm text-night">{currentVersion.fileSize}</div>
-                    </div>
-                  )}
+                <div>
+                  <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Category</label>
+                  <div className="text-sm text-night">{asset.category}</div>
                 </div>
-              </div>
-
-              {asset.isPlaceholder && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
-                  <Upload className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <div className="text-xs text-amber-700">
-                    This is a placeholder asset. Upload the actual file to complete.
-                  </div>
+                <div>
+                  <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Lifecycle Stage</label>
+                  <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs ${ASSET_LIFECYCLE_COLORS[asset.lifecycleStage]}`}>
+                    {asset.lifecycleStage}
+                  </span>
                 </div>
-              )}
-            </div>
-
-            {/* RIGHT: 60% - Rendition */}
-            <div className="flex-1 space-y-4">
-              <h4 className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Rendition</h4>
-              {currentVersion && !asset.isPlaceholder ? (
-                <div className="border border-pebble rounded-xl overflow-hidden">
-                  <div className="aspect-video bg-earth flex items-center justify-center">
-                    {getFileIcon()}
-                    <span className="ml-2 text-sm text-gray-500">Asset Rendition Preview</span>
-                  </div>
-                  <div className="p-3 bg-white border-t border-pebble">
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span>{currentVersion.fileType.toUpperCase()} • {currentVersion.fileSize}</span>
-                      <span>Version {asset.currentVersionNumber}</span>
-                    </div>
-                  </div>
+                <div>
+                  <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Subtype</label>
+                  <div className="text-sm text-night">{asset.subtype || <span className="text-gray-400">Unclassified</span>}</div>
                 </div>
-              ) : (
-                // FILE 2: clickable upload button (not just static placeholder)
-                <button
-                  onClick={() => {
-                    const updated = {
-                      ...asset,
-                      isPlaceholder: false,
-                      currentVersionNumber: 1,
-                      versions: [
-                        {
-                          versionNumber: 1,
-                          fileType: 'pdf',
-                          fileSize: '2.4 MB',
-                          uploadDate: new Date().toISOString(),
-                          uploadedBy: 'Current User',
-                          riskRecords: [],
-                          finalRisk: {
-                            finalRiskLevel: null,
-                            marketingRiskSignoff: false,
-                          }
-                        }
-                      ]
-                    } as Asset;
-                    onAssetSave(updated);
-                  }}
-                  className="w-full border-2 border-dashed border-pebble rounded-xl p-12 text-center hover:bg-earth transition-colors cursor-pointer"
-                >
-                  <Upload className="w-10 h-10 text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-600 font-medium mb-1">Upload Asset file</p>
-                  <p className="text-xs text-gray-400">Click to upload your asset rendition</p>
-                </button>
-              )}
-
-              {/* Anchors */}
-              <div>
-                <h4 className="text-sm text-night font-medium mb-3">Anchors ({asset.anchors.length})</h4>
-                {asset.anchors.length > 0 ? (
-                  <div className="space-y-2">
-                    {asset.anchors.map(anchor => (
-                      <div key={anchor.id} className="p-3 bg-earth rounded-lg border border-pebble">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs text-sky font-medium">Anchor #{anchor.anchorNumber}</span>
-                          <span className="text-xs text-gray-400">({anchor.x?.toFixed(0) || 0}, {anchor.y?.toFixed(0) || 0})</span>
-                        </div>
-                        {anchor.comments?.map(comment => (
-                          <div key={comment.id} className="text-sm text-gray-700 mb-1">
-                            <span className="font-medium">{comment.author}:</span> {comment.content}
-                          </div>
-                        ))}
-                      </div>
+                <div>
+                  <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Geography</label>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {asset.geography.map(geo => (
+                      <span key={geo} className="px-2 py-0.5 rounded bg-earth text-night text-xs">{geo}</span>
                     ))}
                   </div>
-                ) : (
-                  <p className="text-sm text-gray-400">No anchors yet.</p>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Version</label>
+                  <div className="text-sm text-night font-medium">v{asset.currentVersionNumber}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* File Info subsection */}
+            <div className="border-t border-pebble pt-4">
+              <h4 className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">File Info</h4>
+              <div className="grid grid-cols-2 gap-y-4 gap-x-6">
+                <div>
+                  <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Total Versions</label>
+                  <div className="text-sm text-night">{asset.versions.length}</div>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Created By</label>
+                  <div className="text-sm text-night">{asset.createdBy}</div>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Created At</label>
+                  <div className="text-sm text-gray-600">{formatRelativeDate(asset.createdAt)}</div>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Last Modified</label>
+                  <div className="text-sm text-gray-600">{formatRelativeDate(asset.modifiedAt)}</div>
+                </div>
+                {currentVersion && (
+                  <div>
+                    <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">File Type</label>
+                    <div className="text-sm text-night capitalize">{currentVersion.fileType}</div>
+                  </div>
+                )}
+                {currentVersion && (
+                  <div>
+                    <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">File Size</label>
+                    <div className="text-sm text-night">{currentVersion.fileSize}</div>
+                  </div>
                 )}
               </div>
             </div>
+
+            {asset.isPlaceholder && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+                <Upload className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div className="text-xs text-amber-700">
+                  This is a placeholder asset. Upload the actual file to complete.
+                </div>
+              </div>
+            )}
           </div>
         );
 
@@ -1261,25 +1260,45 @@ export default function AssetWorkspace({
       {/* Content */}
       <div className="flex-1 overflow-hidden flex flex-col bg-transparent">
         <div 
-          className="flex-1 overflow-y-auto bg-transparent snap-y snap-proximity scroll-smooth no-scrollbar"
+          className="flex-1 overflow-y-auto bg-transparent scroll-smooth no-scrollbar p-6 relative"
           onScroll={handleScroll}
         >
-          {ORDERED_ASSET_SECTIONS.map((item) => {
-            const isItemActive = activeSection === item.id;
-            return (
-              <div
-                key={item.id}
-                ref={(el) => { sectionRefs.current[item.id] = el; }}
-                className={`w-full h-full flex-shrink-0 flex flex-col snap-start snap-always bg-transparent transition-opacity duration-300 border-b-2 border-amber-100/60 ${
-                  isItemActive ? "opacity-100" : "opacity-80"
-                }`}
-              >
-                <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
+          <div className="flex gap-8 items-start relative w-full">
+            {/* LEFT COLUMN: Scrollable Sections */}
+            <div className="w-[40%] flex-shrink-0 space-y-8 min-w-0">
+              {ORDERED_ASSET_SECTIONS.slice(0, 4).map((item) => {
+                return (
+                  <div
+                    key={item.id}
+                    ref={(el) => { sectionRefs.current[item.id] = el; }}
+                    className="w-full flex-shrink-0"
+                  >
+                    {renderWrappedSection(item.id)}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* RIGHT COLUMN: Sticky Rendition */}
+            <div className="flex-1 flex-shrink-0 sticky top-0 bg-white rounded-xl border border-pebble p-6 shadow-sm overflow-y-auto max-h-[calc(100vh-160px)] no-scrollbar hidden md:block">
+              {renderRenditionPanel()}
+            </div>
+          </div>
+
+          {/* FULL WIDTH SECTIONS */}
+          <div className="space-y-8 mt-8 w-full">
+            {ORDERED_ASSET_SECTIONS.slice(4).map((item) => {
+              return (
+                <div
+                  key={item.id}
+                  ref={(el) => { sectionRefs.current[item.id] = el; }}
+                  className="w-full flex-shrink-0"
+                >
                   {renderWrappedSection(item.id)}
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
 
