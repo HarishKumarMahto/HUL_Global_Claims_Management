@@ -170,35 +170,20 @@ export default function ProductsModule({
     // Extract local variants from the created products for SKU creation
     const localVariants = newItems
       .filter(item => item.type === 'Local Variant')
-      .map((item, idx) => ({
+      .map((item) => ({
         id: item.id,
         name: item.name,
         variant: item.parentName || '',
         geography: item.geographies?.[0] || 'Global'
       }));
-    setRecentLocalVariants(localVariants);
+    setRecentLocalVariants(prev => [...localVariants, ...prev]);
 
-    // Go back to landing
-    onViewChange('landing');
-  };
-
-  const handleCreateProduct = (newProduct: Omit<ProductItem, 'id' | 'productId' | 'lifecycleState' | 'childCount' | 'claimsCount' | 'projectsCount' | 'geographyCount' | 'lastModified'>) => {
-    const id = `prod-${Date.now()}`;
-    const productId = `PROD-${new Date().getFullYear()}-${String(products.length + 1).padStart(3, '0')}`;
-    const full: ProductItem = {
-      ...newProduct,
-      id,
-      productId,
-      lifecycleState: 'Created',
-      childCount: 0,
-      claimsCount: 0,
-      projectsCount: 0,
-      geographyCount: newProduct.geographies?.length || 0,
-      lastModified: new Date().toISOString().split('T')[0],
-    };
-    setProducts(prev => [full, ...prev]);
-    handleCloseCreate();
-    handleProductClick(full);
+    // Close modal or go back to landing based on context
+    if (activeProductView === 'productCreation') {
+      onViewChange('landing');
+    } else {
+      handleCloseCreate();
+    }
   };
 
   // Apply a saved view — push external state down into the landing page
@@ -257,7 +242,7 @@ export default function ProductsModule({
           initialEditMode={productEditMode}
         />
         {isCreateOpen && (
-          <CreateProductModal isOpen={isCreateOpen} onClose={handleCloseCreate} onCreate={handleCreateProduct} preselectedType={localCreateType} onNavigateToSKU={handleNavigateToSKU} />
+          <CreateProductModal isOpen={isCreateOpen} onClose={handleCloseCreate} onCreate={handleProductCreated} preselectedType={localCreateType} onNavigateToSKU={handleNavigateToSKU} />
         )}
         <ProductSavedViewsPanel
           isOpen={showSavedViewsPanel}
@@ -286,7 +271,7 @@ export default function ProductsModule({
           onCreateProduct={handleOpenCreate}
         />
         {isCreateOpen && (
-          <CreateProductModal isOpen={isCreateOpen} onClose={handleCloseCreate} onCreate={handleCreateProduct} preselectedType={localCreateType} onNavigateToSKU={handleNavigateToSKU} />
+          <CreateProductModal isOpen={isCreateOpen} onClose={handleCloseCreate} onCreate={handleProductCreated} preselectedType={localCreateType} onNavigateToSKU={handleNavigateToSKU} />
         )}
         <ProductSavedViewsPanel
           isOpen={showSavedViewsPanel}
@@ -325,7 +310,7 @@ export default function ProductsModule({
         externalSearchQuery={externalSearchQuery}
       />
       {isCreateOpen && (
-        <CreateProductModal isOpen={isCreateOpen} onClose={handleCloseCreate} onCreate={handleCreateProduct} preselectedType={localCreateType} onNavigateToSKU={handleNavigateToSKU} />
+        <CreateProductModal isOpen={isCreateOpen} onClose={handleCloseCreate} onCreate={handleProductCreated} preselectedType={localCreateType} onNavigateToSKU={handleNavigateToSKU} />
       )}
       <ProductSavedViewsPanel
         isOpen={showSavedViewsPanel}

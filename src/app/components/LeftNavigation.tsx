@@ -385,7 +385,7 @@ export default function LeftNavigation({
   const CollapseButton = () => (
     <button
       onClick={toggleSidebar}
-      className={`absolute top-6 -right-3 z-50 w-6 h-6 bg-white border border-pebble rounded-full flex items-center justify-center text-gray-400 hover:text-sky hover:border-sky shadow-sm transition-transform duration-300 ${isCollapsed ? "translate-x-3 rotate-180" : ""}`}
+      className={`absolute top-6 -right-3 z-35 w-6 h-6 bg-white border border-pebble rounded-full flex items-center justify-center text-gray-400 hover:text-sky hover:border-sky shadow-sm transition-transform duration-300 ${isCollapsed ? "translate-x-3 rotate-180" : ""}`}
       title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
     >
       <ChevronLeft className="w-4 h-4" />

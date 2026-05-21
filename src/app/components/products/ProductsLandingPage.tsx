@@ -844,16 +844,7 @@ export default function ProductsLandingPage({
                     }}
                     className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-earth transition-colors border-b border-pebble/40 last:border-0"
                   >
-                    Format
-                  </button>
-                  <button
-                    onClick={() => {
-                      onCreateProduct('Product');
-                      setIsCreateProductDropdownOpen(false);
-                    }}
-                    className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-earth transition-colors border-b border-pebble/40 last:border-0"
-                  >
-                    Product
+                    Bulk Product
                   </button>
                   <button
                     onClick={() => {
