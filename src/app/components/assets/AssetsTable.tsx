@@ -256,7 +256,22 @@ export default function AssetsTable({
       case 'version':
         return (
           <td key={colId} className="px-4 py-3" style={cellStyle}>
-            <span className="text-sm text-gray-600 block truncate">{asset.currentVersionNumber}</span>
+            <div className="flex flex-col gap-1 overflow-hidden items-start">
+              {asset.versions.length > 1 ? (
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleExpandVersion(asset.id);
+                  }}
+                  className="text-sky hover:underline flex items-center gap-1 font-medium text-left"
+                >
+                  v{asset.currentVersionNumber}
+                  {expandedVersionIds.has(asset.id) ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                </button>
+              ) : (
+                <span className="text-night block truncate font-medium">v{asset.currentVersionNumber}</span>
+              )}
+            </div>
           </td>
         );
       case 'businessGroup':
@@ -734,8 +749,66 @@ export default function AssetsTable({
                             return (
                               <td key={col.id} className="px-4 py-3" style={cellStyle}>
                                 <div className="flex items-center gap-2 overflow-hidden">
-                                  <span className="text-xs text-gray-500 italic">v{ver.versionNumber}</span>
+                                  <span className="text-xs text-gray-600 italic">{asset.name}</span>
+                                  <span className="text-xs text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded">v{ver.versionNumber}</span>
                                 </div>
+                              </td>
+                            );
+                          case 'assetId':
+                            return (
+                              <td key={col.id} className="px-4 py-3" style={cellStyle}>
+                                <span className="text-xs text-gray-600 font-mono block truncate">{asset.id}</span>
+                              </td>
+                            );
+                          case 'subtype':
+                            return (
+                              <td key={col.id} className="px-4 py-3" style={cellStyle}>
+                                <span className="text-xs text-gray-600 block truncate">
+                                  {ver.fileType || 'Unclassified'}
+                                </span>
+                              </td>
+                            );
+                          case 'lifecycle':
+                            return (
+                              <td key={col.id} className="px-4 py-3" style={cellStyle}>
+                                <span className="text-xs text-gray-600 block truncate">
+                                  {ver.lifecycleStage}
+                                </span>
+                              </td>
+                            );
+                          case 'version':
+                            return (
+                              <td key={col.id} className="px-4 py-3" style={cellStyle}>
+                                <span className="text-xs text-gray-600 font-medium block truncate">v{ver.versionNumber}</span>
+                              </td>
+                            );
+                          case 'businessGroup':
+                            return (
+                              <td key={col.id} className="px-4 py-3" style={cellStyle}>
+                                <span className="text-xs text-gray-600 block truncate">{asset.businessGroup}</span>
+                              </td>
+                            );
+                          case 'geography':
+                            return (
+                              <td key={col.id} className="px-4 py-3" style={cellStyle}>
+                                <span className="text-xs text-gray-600 block truncate">
+                                  {asset.geography.slice(0, 2).join(', ')}
+                                  {asset.geography.length > 2 && (
+                                    <span className="text-gray-400"> +{asset.geography.length - 2}</span>
+                                  )}
+                                </span>
+                              </td>
+                            );
+                          case 'createdBy':
+                            return (
+                              <td key={col.id} className="px-4 py-3" style={cellStyle}>
+                                <span className="text-xs text-gray-600 block truncate">{ver.uploadedBy}</span>
+                              </td>
+                            );
+                          case 'modifiedOn':
+                            return (
+                              <td key={col.id} className="px-4 py-3" style={cellStyle}>
+                                <span className="text-xs text-gray-500 block truncate">{formatRelativeDate(ver.uploadedAt)}</span>
                               </td>
                             );
                           default:
