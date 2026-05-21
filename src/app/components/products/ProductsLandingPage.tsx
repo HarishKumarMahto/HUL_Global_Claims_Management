@@ -40,7 +40,7 @@ interface ProductsLandingPageProps {
   recentIds: string[];
   onProductClick: (p: ProductItem) => void;
   onFavoriteToggle: (id: string) => void;
-  onCreateProduct: (type?: ProductType) => void;
+  onCreateProduct: (type?: ProductType | 'Product') => void;
   onViewHierarchy: () => void;
   // External state from saved views
   externalFilters?: ProductFilter[];
@@ -146,6 +146,7 @@ export default function ProductsLandingPage({
   const [isFrozen, setIsFrozen] = useState(false);
   const [isTableMenuOpen, setIsTableMenuOpen] = useState(false);
   const [activeHeaderDropdown, setActiveHeaderDropdown] = useState<string | null>(null);
+  const [isCreateProductDropdownOpen, setIsCreateProductDropdownOpen] = useState(false);
  
   const [typeFilter, setTypeFilter] = useState<ProductType | ''>('');
   const [lcFilter, setLcFilter] = useState<LifecycleState | ''>('');
@@ -824,13 +825,57 @@ export default function ProductsLandingPage({
               Hierarchy View
             </button>
  
-            <button
-              onClick={onCreateProduct}
-              className="flex items-center gap-2 px-4 py-2 bg-sky text-white rounded-lg text-sm hover:bg-dark transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Create Product
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setIsCreateProductDropdownOpen(!isCreateProductDropdownOpen)}
+                className="flex items-center gap-2 px-4 py-2 bg-sky text-white rounded-lg text-sm hover:bg-dark transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Create Product
+                <ChevronDown className="w-4 h-4" />
+              </button>
+              
+              {isCreateProductDropdownOpen && (
+                <div className="absolute right-0 mt-1 bg-white border border-pebble rounded-lg shadow-lg z-20 min-w-[200px] overflow-hidden">
+                  <button
+                    onClick={() => {
+                      onCreateProduct('Format');
+                      setIsCreateProductDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-earth transition-colors border-b border-pebble/40 last:border-0"
+                  >
+                    Format
+                  </button>
+                  <button
+                    onClick={() => {
+                      onCreateProduct('Product');
+                      setIsCreateProductDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-earth transition-colors border-b border-pebble/40 last:border-0"
+                  >
+                    Product
+                  </button>
+                  <button
+                    onClick={() => {
+                      onCreateProduct('Technology');
+                      setIsCreateProductDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-earth transition-colors border-b border-pebble/40 last:border-0"
+                  >
+                    Technology
+                  </button>
+                  <button
+                    onClick={() => {
+                      onCreateProduct('SKU');
+                      setIsCreateProductDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-earth transition-colors border-b border-pebble/40 last:border-0"
+                  >
+                    SKU
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
  

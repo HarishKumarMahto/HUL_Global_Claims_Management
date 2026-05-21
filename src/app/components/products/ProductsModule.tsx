@@ -1,12 +1,16 @@
 import { useState } from 'react';
 import { ProductItem, initialProducts, ProductType } from './productData';
 import ProductsLandingPage from './ProductsLandingPage';
+
+type ProductCreationAction = ProductType | 'Product';
 import ProductDetailsPage, { ProductSection } from './ProductDetailsPage';
 import ProductHierarchyPage from './ProductHierarchyPage';
 import CreateProductModal from './CreateProductModal';
 import ProductSavedViewsPanel, { ProductSavedView } from './ProductSavedViewsPanel';
+import ProductCreationScreen from './ProductCreationScreen';
+import SKUCreationScreen from './SKUCreationScreen';
 
-export type ProductModuleView = 'landing' | 'hierarchy' | 'detail';
+export type ProductModuleView = 'landing' | 'hierarchy' | 'detail' | 'productCreation' | 'skuCreation';
 
 interface Props {
   activeProductView: ProductModuleView;
@@ -55,6 +59,10 @@ export default function ProductsModule({
   // External state applied from a saved view
   const [localAppliedView, setLocalAppliedView] = useState<ProductSavedView | null>(null);
 
+  // Screen-based flow states
+  const [skuCreationSource, setSkuCreationSource] = useState<'products' | 'productCreation'>('products');
+  const [recentLocalVariants, setRecentLocalVariants] = useState<Array<{ id: string; name: string; variant: string; geography: string }>>([]);
+
   const savedViews = propsSavedViews !== undefined ? propsSavedViews : localSavedViews;
   const setSavedViews = propsOnSavedViewsChange !== undefined ? propsOnSavedViewsChange : setLocalSavedViews;
 
@@ -96,6 +104,79 @@ export default function ProductsModule({
     onViewChange('landing');
   };
 
+  // Screen-based flow handlers
+  const handleOpenProductCreation = (type?: ProductCreationAction) => {
+    if (type === 'Product') {
+      // Open the new screen-based product creation form
+      setSkuCreationSource('products');
+      onViewChange('productCreation');
+    } else if (type === 'SKU') {
+      // Open the SKU creation screen
+      handleOpenSKUCreation('products');
+    } else {
+      // For Format, Technology, etc. - use the old modal (can be updated later)
+      const actualType = typeof type === 'string' ? (type as ProductType) : undefined;
+      setLocalCreateType(actualType);
+      setLocalCreateModal(true);
+    }
+  };
+
+  const handleOpenSKUCreation = (source: 'products' | 'productCreation' = 'products') => {
+    setSkuCreationSource(source);
+    onViewChange('skuCreation');
+  };
+
+  const handleBackFromProductCreation = () => {
+    onViewChange('landing');
+  };
+
+  const handleBackFromSKUCreation = () => {
+    if (skuCreationSource === 'productCreation') {
+      onViewChange('productCreation');
+    } else {
+      onViewChange('landing');
+    }
+  };
+
+  const handleProductCreated = (products: any[]) => {
+    // Process and add products to state
+    const itemsToAdd = Array.isArray(products) ? products : [products];
+    const newItems: ProductItem[] = [];
+    
+    itemsToAdd.forEach((item, idx) => {
+      const id = item.id || `prod-${Date.now()}-${idx}-${Math.floor(Math.random() * 1000)}`;
+      const productId = item.productId || `PROD-${new Date().getFullYear()}-${String(newItems.length + 1).padStart(3, '0')}`;
+      const full: ProductItem = {
+        ...item,
+        id,
+        productId,
+        lifecycleState: 'Created',
+        childCount: 0,
+        claimsCount: 0,
+        projectsCount: 0,
+        geographyCount: item.geographies?.length || 0,
+        lastModified: new Date().toISOString().split('T')[0],
+      };
+      newItems.push(full);
+    });
+
+    setProducts(prev => [...newItems, ...prev]);
+
+    // Extract local variants from the created products for SKU creation
+    const localVariants = newItems
+      .filter(item => item.type === 'Local Variant')
+      .map((item, idx) => ({
+        id: item.id,
+        name: item.name,
+        variant: item.parentName || '',
+        geography: item.geographies?.[0] || 'Global'
+      }));
+    setRecentLocalVariants(localVariants);
+
+    // Go back to landing
+    onViewChange('landing');
+  };
+
   const handleCreateProduct = (newProduct: Omit<ProductItem, 'id' | 'productId' | 'lifecycleState' | 'childCount' | 'claimsCount' | 'projectsCount' | 'geographyCount' | 'lastModified'>) => {
     const id = `prod-${Date.now()}`;
     const productId = `PROD-${new Date().getFullYear()}-${String(products.length + 1).padStart(3, '0')}`;
@@ -126,6 +207,35 @@ export default function ProductsModule({
       onCloseSavedViewsPanel?.();
     }
   };
+
+  if (activeProductView === 'productCreation') {
+    return (
+      <ProductCreationScreen
+        onBack={handleBackFromProductCreation}
+        onCreate={handleProductCreated}
+        onCreateSKU={() => handleOpenSKUCreation('productCreation')}
+        onCreateClaim={() => {
+          // TODO: Navigate to ClaimCreationScreen
+          handleBackFromProductCreation();
+        }}
+      />
+    );
+  }
+
+  if (activeProductView === 'skuCreation') {
+    return (
+      <SKUCreationScreen
+        onBack={handleBackFromSKUCreation}
+        onCreate={(skus) => {
+          // TODO: Handle SKU creation
+          console.log('SKUs created:', skus);
+          handleBackFromSKUCreation();
+        }}
+        recentLocalVariants={recentLocalVariants}
+        sourceContext={skuCreationSource}
+      />
+    );
+  }
 
   if (activeProductView === 'detail' && selectedProduct) {
     return (
@@ -197,7 +307,7 @@ export default function ProductsModule({
         recentIds={recentIds}
         onProductClick={handleProductClick}
         onFavoriteToggle={handleFavoriteToggle}
-        onCreateProduct={handleOpenCreate}
+        onCreateProduct={handleOpenProductCreation}
         onViewHierarchy={() => onViewChange('hierarchy')}
         // expose table state up for saved views
         externalFilters={appliedView?.filters}
