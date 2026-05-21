@@ -1200,14 +1200,14 @@ export default function App() {
           />
         </div>
 
-        <div className="h-full px-5 flex items-center justify-between relative z-10">
+        <div className="h-full px-4 sm:px-5 flex items-center justify-between relative z-10">
           {/* Left: Logo + Nav */}
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-3 sm:gap-6 lg:gap-8">
             <div className="hover:scale-[1.03] transition-transform duration-300">
-              <Logo size={48} lightBg={false} />
+              <Logo size={44} smSize={48} lightBg={false} />
             </div>
 
-            <nav className="flex items-center gap-2 h-full">
+            <nav className="flex items-center gap-1 sm:gap-1.5 lg:gap-2 h-full">
               {NAV_ITEMS.map((item) => {
                 const isActive = activeModule === item.id;
                 const navyBlue = "#001F5C"; // Unilever Navy Blue
@@ -1218,7 +1218,7 @@ export default function App() {
                   <button
                     key={item.id}
                     onClick={() => handleModuleChange(item.id)}
-                    className={`relative flex items-center gap-3 px-6 py-1 h-[38px] transition-all duration-300 hover:scale-[1.02] active:scale-95 group overflow-hidden ${
+                    className={`relative flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 lg:px-4 py-1 h-[38px] transition-all duration-300 hover:scale-[1.02] active:scale-95 group overflow-hidden ${
                       isActive ? "bg-white shadow-sm" : "hover:bg-white/10"
                     }`}
                     style={{

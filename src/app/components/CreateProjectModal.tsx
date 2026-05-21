@@ -261,6 +261,13 @@ export default function CreateProjectModal({
       if (field === 'businessGroup') {
         updated.category = [];
       }
+      // Auto-calculate evaluation date as +5 days from start date
+      if (field === 'startDate' && value) {
+        const startDate = new Date(value);
+        const evaluationDate = new Date(startDate);
+        evaluationDate.setDate(evaluationDate.getDate() + 5);
+        updated.evaluationDate = evaluationDate.toISOString().split('T')[0];
+      }
       return updated;
     });
     setErrors(prev => {
@@ -604,13 +611,13 @@ export default function CreateProjectModal({
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1 uppercase tracking-wide font-semibold">
-                  Evaluation date
+                  Evaluation date <span className="text-gray-400 text-xs">(Auto)</span>
                 </label>
                 <input
                   type="date"
                   value={formData.evaluationDate}
-                  onChange={e => handleChange('evaluationDate', e.target.value)}
-                  className="w-full px-3 py-1.5 border border-pebble rounded-lg text-sm text-night focus:outline-none focus:ring-2 focus:ring-sky"
+                  readOnly
+                  className="w-full px-3 py-1.5 border border-pebble rounded-lg text-sm text-night bg-gray-50 cursor-not-allowed"
                 />
               </div>
               <div>
