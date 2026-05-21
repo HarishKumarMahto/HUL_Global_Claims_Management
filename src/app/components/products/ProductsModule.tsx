@@ -126,6 +126,11 @@ export default function ProductsModule({
     onViewChange('skuCreation');
   };
 
+  const handleNavigateToSKU = () => {
+    handleCloseCreate();
+    handleOpenSKUCreation('products');
+  };
+
   const handleBackFromProductCreation = () => {
     onViewChange('landing');
   };
@@ -252,7 +257,7 @@ export default function ProductsModule({
           initialEditMode={productEditMode}
         />
         {isCreateOpen && (
-          <CreateProductModal isOpen={isCreateOpen} onClose={handleCloseCreate} onCreate={handleCreateProduct} preselectedType={localCreateType} />
+          <CreateProductModal isOpen={isCreateOpen} onClose={handleCloseCreate} onCreate={handleCreateProduct} preselectedType={localCreateType} onNavigateToSKU={handleNavigateToSKU} />
         )}
         <ProductSavedViewsPanel
           isOpen={showSavedViewsPanel}
@@ -281,7 +286,7 @@ export default function ProductsModule({
           onCreateProduct={handleOpenCreate}
         />
         {isCreateOpen && (
-          <CreateProductModal isOpen={isCreateOpen} onClose={handleCloseCreate} onCreate={handleCreateProduct} preselectedType={localCreateType} />
+          <CreateProductModal isOpen={isCreateOpen} onClose={handleCloseCreate} onCreate={handleCreateProduct} preselectedType={localCreateType} onNavigateToSKU={handleNavigateToSKU} />
         )}
         <ProductSavedViewsPanel
           isOpen={showSavedViewsPanel}
@@ -320,7 +325,7 @@ export default function ProductsModule({
         externalSearchQuery={externalSearchQuery}
       />
       {isCreateOpen && (
-        <CreateProductModal isOpen={isCreateOpen} onClose={handleCloseCreate} onCreate={handleCreateProduct} preselectedType={localCreateType} />
+        <CreateProductModal isOpen={isCreateOpen} onClose={handleCloseCreate} onCreate={handleCreateProduct} preselectedType={localCreateType} onNavigateToSKU={handleNavigateToSKU} />
       )}
       <ProductSavedViewsPanel
         isOpen={showSavedViewsPanel}
