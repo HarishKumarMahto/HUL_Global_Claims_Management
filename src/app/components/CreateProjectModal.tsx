@@ -611,7 +611,7 @@ export default function CreateProjectModal({
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1 uppercase tracking-wide font-semibold">
-                  Evaluation date <span className="text-gray-400 text-xs">(Auto)</span>
+                  Evaluation date
                 </label>
                 <input
                   type="date"
