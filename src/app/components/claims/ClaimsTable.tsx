@@ -1000,29 +1000,29 @@ export default function ClaimsTable({
                                 )}
                               </div>
 
-                              {/* Section 2: Final Risk */}
+                              {/* Section 2: Risk Level Assessments */}
                               <div className="bg-white rounded-lg border border-pebble overflow-hidden shadow-sm">
                                 <button
                                   type="button"
-                                  onClick={() => toggleSection(claim.id, 'final')}
+                                  onClick={() => toggleSection(claim.id, 'risk')}
                                   className="w-full px-4 py-3 flex items-center justify-between hover:bg-earth transition-colors"
                                 >
                                   <div className="flex items-center gap-3">
                                     <Shield className="w-4 h-4 text-gray-400" />
-                                    <span className="text-sm text-night font-medium">Final Risk Summary</span>
+                                    <span className="text-sm text-night font-medium">Risk Level Assessments</span>
                                     {claim.finalRiskLevel && (
                                       <span className="text-[10px] font-semibold text-night bg-white px-2 py-0.5 rounded-full border border-pebble">
                                         {claim.finalRiskLevel}
                                       </span>
                                     )}
                                   </div>
-                                  {expandedSection === 'final' ? (
+                                  {expandedSection === 'risk' ? (
                                     <ChevronDown className="w-4 h-4 text-gray-400" />
                                   ) : (
                                     <ChevronRight className="w-4 h-4 text-gray-400" />
                                   )}
                                 </button>
-                                {expandedSection === 'final' && (
+                                {expandedSection === 'risk' && (
                                   <div className="px-6 py-5 border-t border-pebble bg-pale/5">
                                     {claim.finalRiskSummary.inheritanceTrace && (
                                       <div className="mb-4 bg-pale/60 text-sky text-xs px-3 py-2 rounded-lg border border-sky/20">

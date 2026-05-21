@@ -61,7 +61,8 @@ export default function AssetsTable({
   const [columnOrder, setColumnOrder] = useState(BASE_COLUMNS);
   const [draggedCol, setDraggedCol] = useState<number | null>(null);
   const [expandedAssetId, setExpandedAssetId] = useState<string | null>(null);
-  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [expandedVersionIds, setExpandedVersionIds] = useState<Set<string>>(new Set());
+  const [expandedSections, setExpandedSections] = useState<Record<string, 'support' | 'risk' | 'comments' | null>>({});
 
   // Search, Sorting & Table Settings
   const [sortCol, setSortCol] = useState<string | null>(null);
@@ -171,15 +172,27 @@ export default function AssetsTable({
   const toggleExpand = (assetId: string) => {
     if (expandedAssetId === assetId) {
       setExpandedAssetId(null);
-      setExpandedSection(null);
+      setExpandedSections({});
     } else {
       setExpandedAssetId(assetId);
-      setExpandedSection(null);
+      setExpandedSections({});
     }
   };
 
-  const toggleSection = (sectionId: string) => {
-    setExpandedSection(expandedSection === sectionId ? null : sectionId);
+  const toggleExpandVersion = (id: string) => {
+    setExpandedVersionIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleSection = (id: string, section: 'support' | 'risk' | 'comments') => {
+    setExpandedSections(prev => ({ ...prev, [id]: prev[id] === section ? null : section }));
   };
 
   const renderCell = (asset: Asset, colId: string, isSelected: boolean) => {
@@ -564,183 +577,177 @@ export default function AssetsTable({
                 {expandedAssetId === asset.id && (
                   <tr>
                     <td colSpan={columnOrder.length + 4} className="px-0 py-0">
-                      <div className="bg-pale/10 border-l-4 border-sky">
-                        {/* Context Header */}
-                        <div className="px-6 py-3 bg-white border-b border-pebble sticky top-0 flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <span className="text-sm text-night font-medium">{asset.name}</span>
-                            <span className={`px-2 py-0.5 rounded-full ${ASSET_LIFECYCLE_COLORS[asset.lifecycleStage]}`} style={{ fontSize: '11px', fontWeight: 600 }}>
-                              {asset.lifecycleStage}
-                            </span>
-                            <span className="text-xs text-gray-500">{asset.subtype || 'Unclassified'}</span>
-                          </div>
-                          <button
-                            onClick={() => onAssetClick(asset)}
-                            className="text-sm text-sky hover:underline"
-                          >
-                            Open full view →
-                          </button>
-                        </div>
-
-                        {/* Accordion Sections */}
+                      <div className="border-b-2 border-sky/20" style={{ background: '#EEF4FB' }}>
                         <div className="p-4 space-y-2">
-                          {/* Section 1: Claims & Adaptations */}
-                          <div className="bg-white rounded-lg border border-pebble overflow-hidden">
-                            <button
-                              onClick={() => toggleSection('claims')}
-                              className="w-full px-4 py-3 flex items-center justify-between hover:bg-earth transition-colors"
-                            >
-                              <div className="flex items-center gap-3">
-                                <Link2 className="w-4 h-4 text-gray-400" />
-                                <span className="text-sm text-night font-medium">Related Claims & Adaptations</span>
-                                <span className="text-xs text-gray-500">
-                                  {asset.linkedClaimIds.length} claims linked
-                                </span>
-                              </div>
-                              {expandedSection === 'claims' ? (
-                                <ChevronDown className="w-4 h-4 text-gray-400" />
-                              ) : (
-                                <ChevronRight className="w-4 h-4 text-gray-400" />
-                              )}
-                            </button>
-                            {expandedSection === 'claims' && (
-                              <div className="px-4 pb-4 border-t border-pebble">
-                                <div className="mt-3 space-y-2">
-                                  {asset.linkedClaimIds.length === 0 ? (
-                                    <p className="text-sm text-gray-400">No linked claims</p>
-                                  ) : (
-                                    asset.linkedClaimIds.map(claimId => (
-                                      <div key={claimId} className="flex items-center justify-between p-2 bg-earth rounded">
-                                        <span className="text-sm text-night">{claimId}</span>
-                                        <button className="text-gray-400 hover:text-red-500">
-                                          <X className="w-3.5 h-3.5" />
-                                        </button>
-                                      </div>
-                                    ))
-                                  )}
-                                  <button className="text-sm text-sky hover:underline flex items-center gap-1 mt-2">
-                                    <Plus className="w-3.5 h-3.5" />
-                                    Link Claim
-                                  </button>
-                                </div>
-                              </div>
+                        {/* Section 1: Substantiations */}
+                        <div className="bg-white rounded-lg border border-pebble overflow-hidden shadow-sm">
+                          <button
+                            type="button"
+                            onClick={() => toggleSection(asset.id, 'support')}
+                            className="w-full px-4 py-3 flex items-center justify-between hover:bg-earth transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <FileText className="w-4 h-4 text-gray-400" />
+                              <span className="text-sm text-night font-medium">Substantiations</span>
+                            </div>
+                            {expandedSections[asset.id] === 'support' ? (
+                              <ChevronDown className="w-4 h-4 text-gray-400" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-gray-400" />
                             )}
-                          </div>
-
-                          {/* Section 2: Risk */}
-                          <div className="bg-white rounded-lg border border-pebble overflow-hidden">
-                            <button
-                              onClick={() => toggleSection('risk')}
-                              className="w-full px-4 py-3 flex items-center justify-between hover:bg-earth transition-colors"
-                            >
-                              <div className="flex items-center gap-3">
-                                <Shield className="w-4 h-4 text-gray-400" />
-                                <span className="text-sm text-night font-medium">Risk Level Assessments</span>
-                                {asset.versions.find(v => v.versionNumber === asset.currentVersionNumber)?.finalRisk.finalRiskLevel && (
-                                  <span className="text-xs px-2 py-0.5 rounded bg-green-50 text-green-700">
-                                    {asset.versions.find(v => v.versionNumber === asset.currentVersionNumber)?.finalRisk.finalRiskLevel}
-                                  </span>
+                          </button>
+                          {expandedSections[asset.id] === 'support' && (
+                            <div className="px-6 py-5 border-t border-pebble bg-pale/5">
+                              <div className="text-sm text-gray-600">
+                                {asset.linkedClaimIds.length > 0 ? (
+                                  <div className="space-y-2">
+                                    {asset.linkedClaimIds.map(claimId => (
+                                      <div key={claimId} className="flex items-center gap-2 p-2 bg-earth rounded">
+                                        <span className="text-sm text-night">{claimId}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-gray-400 italic">No substantiation data</p>
                                 )}
                               </div>
-                              {expandedSection === 'risk' ? (
-                                <ChevronDown className="w-4 h-4 text-gray-400" />
-                              ) : (
-                                <ChevronRight className="w-4 h-4 text-gray-400" />
-                              )}
-                            </button>
-                            {expandedSection === 'risk' && (
-                              <div className="px-4 pb-4 border-t border-pebble">
-                                <div className="mt-3">
-                                  {asset.versions.find(v => v.versionNumber === asset.currentVersionNumber)?.riskRecords.map(record => (
-                                    <div key={record.id} className="mb-2 p-2 bg-earth rounded">
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-sm font-medium text-night">{record.department}</span>
-                                        <span className="text-xs px-2 py-0.5 rounded bg-green-50 text-green-700">
-                                          {record.riskLevel}
-                                        </span>
-                                      </div>
-                                      <p className="text-xs text-gray-600 mt-1">{record.comments}</p>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
+                            </div>
+                          )}
+                        </div>
 
-                          {/* Section 3: Comments */}
-                          <div className="bg-white rounded-lg border border-pebble overflow-hidden">
-                            <button
-                              onClick={() => toggleSection('comments')}
-                              className="w-full px-4 py-3 flex items-center justify-between hover:bg-earth transition-colors"
-                            >
-                              <div className="flex items-center gap-3">
-                                <MessageSquare className="w-4 h-4 text-gray-400" />
-                                <span className="text-sm text-night font-medium">Comments</span>
-                                <span className="text-xs text-gray-500">
-                                  {asset.assetLevelComments.length} comments, {asset.anchors.length} anchors
+                        {/* Section 2: Risk Level Assessments */}
+                        <div className="bg-white rounded-lg border border-pebble overflow-hidden shadow-sm">
+                          <button
+                            type="button"
+                            onClick={() => toggleSection(asset.id, 'risk')}
+                            className="w-full px-4 py-3 flex items-center justify-between hover:bg-earth transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <Shield className="w-4 h-4 text-gray-400" />
+                              <span className="text-sm text-night font-medium">Risk Level Assessments</span>
+                              {asset.versions.find(v => v.versionNumber === asset.currentVersionNumber)?.finalRisk.finalRiskLevel && (
+                                <span className="text-xs px-2 py-0.5 rounded bg-green-50 text-green-700">
+                                  {asset.versions.find(v => v.versionNumber === asset.currentVersionNumber)?.finalRisk.finalRiskLevel}
                                 </span>
-                              </div>
-                              {expandedSection === 'comments' ? (
-                                <ChevronDown className="w-4 h-4 text-gray-400" />
-                              ) : (
-                                <ChevronRight className="w-4 h-4 text-gray-400" />
                               )}
-                            </button>
-                            {expandedSection === 'comments' && (
-                              <div className="px-4 pb-4 border-t border-pebble">
-                                <div className="mt-3 space-y-2">
-                                  {asset.assetLevelComments.map(comment => (
-                                    <div key={comment.id} className="p-2 bg-earth rounded">
-                                      <div className="flex items-center gap-2 mb-1">
+                            </div>
+                            {expandedSections[asset.id] === 'risk' ? (
+                              <ChevronDown className="w-4 h-4 text-gray-400" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-gray-400" />
+                            )}
+                          </button>
+                          {expandedSections[asset.id] === 'risk' && (
+                            <div className="px-6 py-5 border-t border-pebble bg-pale/5">
+                              <div className="space-y-3">
+                                {asset.versions.find(v => v.versionNumber === asset.currentVersionNumber)?.riskRecords.map(record => (
+                                  <div key={record.id} className="p-3 bg-white border border-pebble rounded">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className="text-sm font-medium text-night">{record.department}</span>
+                                      <span className="text-xs px-2 py-0.5 rounded bg-green-50 text-green-700 font-semibold">
+                                        {record.riskLevel}
+                                      </span>
+                                    </div>
+                                    <p className="text-xs text-gray-600">{record.comments}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Section 3: Comments */}
+                        <div className="bg-white rounded-lg border border-pebble overflow-hidden shadow-sm">
+                          <button
+                            type="button"
+                            onClick={() => toggleSection(asset.id, 'comments')}
+                            className="w-full px-4 py-3 flex items-center justify-between hover:bg-earth transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <MessageSquare className="w-4 h-4 text-gray-400" />
+                              <span className="text-sm text-night font-medium">Comments</span>
+                              <span className="text-xs text-gray-500">
+                                {asset.assetLevelComments.length} comments
+                              </span>
+                            </div>
+                            {expandedSections[asset.id] === 'comments' ? (
+                              <ChevronDown className="w-4 h-4 text-gray-400" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-gray-400" />
+                            )}
+                          </button>
+                          {expandedSections[asset.id] === 'comments' && (
+                            <div className="px-6 py-5 border-t border-pebble bg-pale/5">
+                              <div className="space-y-3">
+                                {asset.assetLevelComments.length > 0 ? (
+                                  asset.assetLevelComments.map(comment => (
+                                    <div key={comment.id} className="p-3 bg-white border border-pebble rounded">
+                                      <div className="flex items-center gap-2 mb-2">
                                         <span className="text-sm font-medium text-night">{comment.author}</span>
                                         <span className="text-xs text-gray-400">{formatRelativeDate(comment.createdAt)}</span>
                                       </div>
                                       <p className="text-sm text-gray-600">{comment.content}</p>
                                     </div>
-                                  ))}
-                                </div>
+                                  ))
+                                ) : (
+                                  <p className="text-sm text-gray-400 italic">No comments yet</p>
+                                )}
                               </div>
-                            )}
-                          </div>
-
-                          {/* Section 4: History */}
-                          <div className="bg-white rounded-lg border border-pebble overflow-hidden">
-                            <button
-                              onClick={() => toggleSection('history')}
-                              className="w-full px-4 py-3 flex items-center justify-between hover:bg-earth transition-colors"
-                            >
-                              <div className="flex items-center gap-3">
-                                <History className="w-4 h-4 text-gray-400" />
-                                <span className="text-sm text-night font-medium">Audit Log</span>
-                                <span className="text-xs text-gray-500">{asset.auditLog.length} entries</span>
-                              </div>
-                              {expandedSection === 'history' ? (
-                                <ChevronDown className="w-4 h-4 text-gray-400" />
-                              ) : (
-                                <ChevronRight className="w-4 h-4 text-gray-400" />
-                              )}
-                            </button>
-                            {expandedSection === 'history' && (
-                              <div className="px-4 pb-4 border-t border-pebble">
-                                <div className="mt-3 space-y-1">
-                                  {asset.auditLog.map(entry => (
-                                    <div key={entry.id} className="flex items-center justify-between py-1.5 border-b border-pebble last:border-0">
-                                      <div className="flex-1">
-                                        <span className="text-sm text-night">{entry.action}</span>
-                                        <span className="text-xs text-gray-500 ml-2">by {entry.actor}</span>
-                                      </div>
-                                      <span className="text-xs text-gray-400">{formatRelativeDate(entry.timestamp)}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
+                            </div>
+                          )}
+                        </div>
                         </div>
                       </div>
                     </td>
                   </tr>
                 )}
+
+                {/* Version History Expansion */}
+                {expandedVersionIds.has(asset.id) && asset.versions.map((ver, idx) => {
+                  if (ver.versionNumber === asset.currentVersionNumber) return null; // Skip current version
+                  return (
+                    <tr
+                      key={`${asset.id}-v${ver.versionNumber}`}
+                      className="border-b border-gray-200 bg-gray-50 opacity-80 hover:opacity-100 transition-opacity"
+                      style={{ height: 48 }}
+                    >
+                      {/* Checkbox */}
+                      <td className={`px-3 py-3 ${isFrozen ? "sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`} style={{ width: "40px", minWidth: "40px", maxWidth: "40px", ...(isFrozen ? { backgroundColor: "#f9fafb" } : {}) }}></td>
+                      
+                      {/* Favorite */}
+                      <td className={`px-3 py-3 ${isFrozen ? "sticky left-[40px] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`} style={{ width: "40px", minWidth: "40px", maxWidth: "40px", ...(isFrozen ? { backgroundColor: "#f9fafb" } : {}) }}></td>
+
+                      {/* Expand chevron */}
+                      <td className={`px-3 py-3 ${isFrozen ? "sticky left-[88px] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`} style={{ width: "40px", minWidth: "40px", maxWidth: "40px", ...(isFrozen ? { backgroundColor: "#f9fafb" } : {}) }}>
+                        <span className="text-gray-400 flex justify-center text-lg">↳</span>
+                      </td>
+
+                      {/* Draggable data cells */}
+                      {columnOrder.map(col => {
+                        const cellStyle = {
+                          width: col.width,
+                          minWidth: col.width,
+                          maxWidth: col.width,
+                        };
+                        switch (col.id) {
+                          case 'name':
+                            return (
+                              <td key={col.id} className="px-4 py-3" style={cellStyle}>
+                                <div className="flex items-center gap-2 overflow-hidden">
+                                  <span className="text-xs text-gray-500 italic">v{ver.versionNumber}</span>
+                                </div>
+                              </td>
+                            );
+                          default:
+                            return <td key={col.id} className="px-4 py-3" style={cellStyle}></td>;
+                        }
+                      })}
+
+                      {/* Actions column cell */}
+                      <td className="px-3 py-3 w-10"></td>
+                    </tr>
+                  );
+                })}
               </Fragment>
             )})}
           </tbody>
