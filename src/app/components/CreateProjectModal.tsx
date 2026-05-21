@@ -435,7 +435,7 @@ export default function CreateProjectModal({
               {/* Radio Selector */}
               <div className="flex flex-col gap-2">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-2 bg-earth rounded-lg border border-pebble text-xs">
-                  <span className="text-xs text-gray-500 font-bold uppercase tracking-wide">Select Reference Type: <span className="text-red-500">*</span></span>
+                  <span className="text-xs text-gray-500 font-bold uppercase tracking-wide">Select Project Reference: <span className="text-red-500">*</span></span>
                   <div className="flex items-center gap-6">
                     <label className="flex items-center gap-2 cursor-pointer text-sm text-night font-medium">
                       <input
