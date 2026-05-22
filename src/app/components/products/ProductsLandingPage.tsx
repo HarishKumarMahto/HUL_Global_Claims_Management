@@ -817,13 +817,13 @@ export default function ProductsLandingPage({
           </div>
  
           <div className="flex items-center gap-2">
-            <button
+            {/* <button
               onClick={onViewHierarchy}
               className="flex items-center gap-2 px-3 py-2 border border-pebble rounded-lg text-sm text-gray-600 hover:bg-earth hover:border-sky transition-colors"
             >
               <Grid3X3 className="w-4 h-4" />
               Hierarchy View
-            </button>
+            </button> */}
  
             <div className="relative">
               <button
