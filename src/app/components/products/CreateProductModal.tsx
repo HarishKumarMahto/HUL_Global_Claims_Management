@@ -579,7 +579,7 @@ export default function CreateProductModal({
                   selectedFormat ? "border-slate-700 bg-white text-slate-955 font-bold" : "border-dashed border-slate-700 text-slate-900 font-bold hover:border-slate-900"
                 }`}>
                 <Layers className="w-3.5 h-3.5 text-slate-800 flex-shrink-0" />
-                <span className="truncate flex-1 text-left">{selectedFormat ? selectedFormat.name : "Select Bulk Product"}</span>
+                <span className="truncate flex-1 text-left">{selectedFormat ? selectedFormat.name : "Select Format"}</span>
                 <ChevronDown className={`w-3.5 h-3.5 text-slate-800 flex-shrink-0 transition-transform ${formatDropOpen ? "rotate-180" : ""}`} />
               </button>
               {formatDropOpen && (
