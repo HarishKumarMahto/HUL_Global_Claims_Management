@@ -573,7 +573,7 @@ export default function CreateProductModal({
 
             {/* Bulk Product selector */}
             <div ref={formatDropRef} className="relative flex items-center gap-2">
-              <span className="text-[10px] text-slate-950 font-extrabold uppercase tracking-wider whitespace-nowrap min-w-[80px] text-left">Bulk Product</span>
+              <span className="text-[10px] text-slate-950 font-extrabold uppercase tracking-wider whitespace-nowrap min-w-[80px] text-left">Format</span>
               <button type="button" onClick={() => setFormatDropOpen((o) => !o)}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-md border text-xs transition-all min-w-[180px] ${
                   selectedFormat ? "border-slate-700 bg-white text-slate-955 font-bold" : "border-dashed border-slate-700 text-slate-900 font-bold hover:border-slate-900"
@@ -974,9 +974,6 @@ export default function CreateProductModal({
 
         {/* ── Footer ────────────────────────────────────────────────────── */}
         <div className="flex-shrink-0 border-t border-slate-700 bg-white px-4 py-2 flex items-center justify-between gap-3 shadow-inner">
-          <button onClick={handleClose} className="px-4 py-2 border border-slate-700 rounded-md text-xs font-semibold text-slate-955 hover:bg-slate-100 transition-colors">
-            Cancel
-          </button>
           <div className="flex items-center gap-2 ml-auto">
             <button type="button" onClick={onNavigateToSKU}
               className="flex items-center gap-1.5 px-4 py-2 border border-slate-700 text-slate-955 bg-white hover:bg-slate-100 rounded-md text-xs font-semibold transition-colors">
@@ -1002,8 +999,8 @@ export default function CreateProductModal({
             </div>
             <p className="text-xs text-slate-900 mb-4 leading-relaxed">You have unsaved product details. Are you sure you want to close without saving?</p>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setShowCancelConfirm(false)} className="px-3.5 py-1.5 border border-slate-700 text-slate-955 rounded-md text-xs font-semibold hover:bg-slate-100 transition-colors">Keep Editing</button>
-              <button onClick={resetAndClose} className="px-3.5 py-1.5 bg-red-650 text-white rounded-md text-xs font-semibold hover:bg-red-700 bg-red-650 transition-colors">Discard</button>
+              <button onClick={() => setShowCancelConfirm(false)} className="px-3.5 py-1.5 border border-slate-700 text-slate-955 rounded-md text-xs font-semibold hover:bg-slate-100 transition-colors">No, Keep Editing</button>
+              <button onClick={resetAndClose} className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-md text-xs font-semibold transition-colors">Yes, Discard</button>
             </div>
           </div>
         </div>

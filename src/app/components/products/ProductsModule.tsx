@@ -9,8 +9,11 @@ import CreateProductModal from './CreateProductModal';
 import ProductSavedViewsPanel, { ProductSavedView } from './ProductSavedViewsPanel';
 import ProductCreationScreen from './ProductCreationScreen';
 import SKUCreationScreen from './SKUCreationScreen';
+import FormatCreationScreen from './FormatCreationScreen';
+import TechnologyCreationScreen from './TechnologyCreationScreen';
+import type { DocumentRecord } from '../documents/documentsData';
 
-export type ProductModuleView = 'landing' | 'hierarchy' | 'detail' | 'productCreation' | 'skuCreation';
+export type ProductModuleView = 'landing' | 'hierarchy' | 'detail' | 'productCreation' | 'skuCreation' | 'formatCreation' | 'technologyCreation';
 
 interface Props {
   activeProductView: ProductModuleView;
@@ -34,6 +37,8 @@ interface Props {
   appliedView?: ProductSavedView | null;
   onApplyView?: (view: ProductSavedView) => void;
   externalSearchQuery?: string;
+  documents?: DocumentRecord[];
+  onDocumentsChange?: (docs: DocumentRecord[]) => void;
 }
 
 export default function ProductsModule({
@@ -47,6 +52,8 @@ export default function ProductsModule({
   appliedView: propsAppliedView,
   onApplyView: propsOnApplyView,
   externalSearchQuery,
+  documents = [],
+  onDocumentsChange,
 }: Props) {
   const [products, setProducts] = useState<ProductItem[]>(initialProducts);
   const [favorites, setFavorites] = useState<Set<string>>(new Set(['fmt-1', 'var-1', 'tech-1', 'fmt-3']));
@@ -113,6 +120,10 @@ export default function ProductsModule({
     } else if (type === 'SKU') {
       // Open the SKU creation screen
       handleOpenSKUCreation('products');
+    } else if (type === 'Format') {
+      onViewChange('formatCreation');
+    } else if (type === 'Technology') {
+      onViewChange('technologyCreation');
     } else {
       // For Format, Technology, etc. - use the old modal (can be updated later)
       const actualType = typeof type === 'string' ? (type as ProductType) : undefined;
@@ -179,7 +190,7 @@ export default function ProductsModule({
     setRecentLocalVariants(prev => [...localVariants, ...prev]);
 
     // Close modal or go back to landing based on context
-    if (activeProductView === 'productCreation') {
+    if (activeProductView === 'productCreation' || activeProductView === 'formatCreation' || activeProductView === 'technologyCreation') {
       onViewChange('landing');
     } else {
       handleCloseCreate();
@@ -197,6 +208,26 @@ export default function ProductsModule({
       onCloseSavedViewsPanel?.();
     }
   };
+
+  if (activeProductView === 'formatCreation') {
+    return (
+      <FormatCreationScreen
+        onBack={() => onViewChange('landing')}
+        onCreate={handleProductCreated}
+      />
+    );
+  }
+
+  if (activeProductView === 'technologyCreation') {
+    return (
+      <TechnologyCreationScreen
+        onBack={() => onViewChange('landing')}
+        onCreate={handleProductCreated}
+        documents={documents}
+        onDocumentsChange={onDocumentsChange}
+      />
+    );
+  }
 
   if (activeProductView === 'productCreation') {
     return (

@@ -839,12 +839,21 @@ export default function ProductsLandingPage({
                 <div className="absolute right-0 mt-1 bg-white border border-pebble rounded-lg shadow-lg z-20 min-w-[200px] overflow-hidden">
                   <button
                     onClick={() => {
-                      onCreateProduct('Format');
+                      onCreateProduct('Bulk Product');
                       setIsCreateProductDropdownOpen(false);
                     }}
                     className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-earth transition-colors border-b border-pebble/40 last:border-0"
                   >
                     Bulk Product
+                  </button>
+                  <button
+                    onClick={() => {
+                      onCreateProduct('Format');
+                      setIsCreateProductDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-earth transition-colors border-b border-pebble/40 last:border-0"
+                  >
+                    Format
                   </button>
                   <button
                     onClick={() => {

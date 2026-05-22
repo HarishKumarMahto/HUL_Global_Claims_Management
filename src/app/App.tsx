@@ -1546,77 +1546,79 @@ export default function App() {
       {/* Body */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar */}
-        <LeftNavigation
-          activeModule={activeModule}
-          activeView={activeView}
-          onViewChange={handleViewChange}
-          isInWorkspace={!!selectedProject}
-          activeWorkspaceSection={activeWorkspaceSection}
-          onWorkspaceSectionChange={setActiveWorkspaceSection}
-          relatedClaimsSubFilter={relatedClaimsSubFilter}
-          onRelatedClaimsSubFilterChange={setRelatedClaimsSubFilter}
-          activeProductView={activeProductView}
-          onProductViewChange={setActiveProductView}
-          activeProductListView={activeProductListView}
-          onProductListViewChange={(view) => {
-            if (view === "Saved Views") {
-              setActiveProductView("landing");
-              const defaultView = productSavedViews.find((v) => v.isDefault);
-              if (defaultView) {
-                setActiveProductListView(`Saved: ${defaultView.name}`);
-                setAppliedProductView(defaultView);
-              } else if (productSavedViews.length > 0) {
-                setActiveProductListView(`Saved: ${productSavedViews[0].name}`);
-                setAppliedProductView(productSavedViews[0]);
+        {!(activeModule === "Products" && (activeProductView === "formatCreation" || activeProductView === "technologyCreation")) && (
+          <LeftNavigation
+            activeModule={activeModule}
+            activeView={activeView}
+            onViewChange={handleViewChange}
+            isInWorkspace={!!selectedProject}
+            activeWorkspaceSection={activeWorkspaceSection}
+            onWorkspaceSectionChange={setActiveWorkspaceSection}
+            relatedClaimsSubFilter={relatedClaimsSubFilter}
+            onRelatedClaimsSubFilterChange={setRelatedClaimsSubFilter}
+            activeProductView={activeProductView}
+            onProductViewChange={setActiveProductView}
+            activeProductListView={activeProductListView}
+            onProductListViewChange={(view) => {
+              if (view === "Saved Views") {
+                setActiveProductView("landing");
+                const defaultView = productSavedViews.find((v) => v.isDefault);
+                if (defaultView) {
+                  setActiveProductListView(`Saved: ${defaultView.name}`);
+                  setAppliedProductView(defaultView);
+                } else if (productSavedViews.length > 0) {
+                  setActiveProductListView(`Saved: ${productSavedViews[0].name}`);
+                  setAppliedProductView(productSavedViews[0]);
+                }
+                setIsProductSavedViewsPanelOpen(true);
+              } else {
+                setActiveProductListView(view);
+                setActiveProductView("landing");
               }
-              setIsProductSavedViewsPanelOpen(true);
-            } else {
-              setActiveProductListView(view);
-              setActiveProductView("landing");
+            }}
+            isInProductDetail={
+              activeModule === "Products" && activeProductView === "detail"
             }
-          }}
-          isInProductDetail={
-            activeModule === "Products" && activeProductView === "detail"
-          }
-          activeProductSection={activeProductSection}
-          onProductSectionChange={setActiveProductSection}
-          activeClaimsBaseView={activeClaimsBaseView}
-          onClaimsBaseViewChange={setActiveClaimsBaseView}
-          activeClaimsWorkView={activeClaimsWorkView}
-          onClaimsWorkViewChange={setActiveClaimsWorkView}
-          isInClaimsWorkspace={activeModule === "Claims" && !!selectedClaim}
-          activeClaimsWorkspaceSection={activeClaimsWorkspaceSection}
-          onClaimsWorkspaceSectionChange={setActiveClaimsWorkspaceSection}
-          claims={claims}
-          onClaimClick={(claim) => {
-            setSelectedClaim(claim);
-            setClaimsModuleView("workspace");
-            if (activeClaimsWorkView) {
-              setActiveClaimsWorkspaceSection(activeClaimsWorkView);
+            activeProductSection={activeProductSection}
+            onProductSectionChange={setActiveProductSection}
+            activeClaimsBaseView={activeClaimsBaseView}
+            onClaimsBaseViewChange={setActiveClaimsBaseView}
+            activeClaimsWorkView={activeClaimsWorkView}
+            onClaimsWorkViewChange={setActiveClaimsWorkView}
+            isInClaimsWorkspace={activeModule === "Claims" && !!selectedClaim}
+            activeClaimsWorkspaceSection={activeClaimsWorkspaceSection}
+            onClaimsWorkspaceSectionChange={setActiveClaimsWorkspaceSection}
+            claims={claims}
+            onClaimClick={(claim) => {
+              setSelectedClaim(claim);
+              setClaimsModuleView("workspace");
+              if (activeClaimsWorkView) {
+                setActiveClaimsWorkspaceSection(activeClaimsWorkView);
+              }
+            }}
+            onModuleChange={(module, view) => {
+              handleModuleChange(module);
+              if (view) setActiveView(view);
+            }}
+            activeAssetsLibraryView={activeAssetsLibraryView}
+            onAssetsLibraryViewChange={setActiveAssetsLibraryView}
+            isInAssetWorkspace={activeModule === "Assets" && !!selectedAsset}
+            activeAssetSection={activeAssetSection}
+            onAssetSectionChange={setActiveAssetSection}
+            projectSavedViews={projectSavedViews}
+            onSelectProjectSavedView={handleSelectSavedView}
+            productSavedViews={productSavedViews}
+            onSelectProductSavedView={handleSelectProductSavedView}
+            activeDocumentsLibraryView={activeDocumentsView}
+            onDocumentsLibraryViewChange={setActiveDocumentsView}
+            isInDocumentWorkspace={
+              activeModule === "Documents" && !!selectedDocument
             }
-          }}
-          onModuleChange={(module, view) => {
-            handleModuleChange(module);
-            if (view) setActiveView(view);
-          }}
-          activeAssetsLibraryView={activeAssetsLibraryView}
-          onAssetsLibraryViewChange={setActiveAssetsLibraryView}
-          isInAssetWorkspace={activeModule === "Assets" && !!selectedAsset}
-          activeAssetSection={activeAssetSection}
-          onAssetSectionChange={setActiveAssetSection}
-          projectSavedViews={projectSavedViews}
-          onSelectProjectSavedView={handleSelectSavedView}
-          productSavedViews={productSavedViews}
-          onSelectProductSavedView={handleSelectProductSavedView}
-          activeDocumentsLibraryView={activeDocumentsView}
-          onDocumentsLibraryViewChange={setActiveDocumentsView}
-          isInDocumentWorkspace={
-            activeModule === "Documents" && !!selectedDocument
-          }
-          activeDocumentSection={activeDocumentSection}
-          onDocumentSectionChange={setActiveDocumentSection}
-          selectedDocument={selectedDocument}
-        />
+            activeDocumentSection={activeDocumentSection}
+            onDocumentSectionChange={setActiveDocumentSection}
+            selectedDocument={selectedDocument}
+          />
+        )}
 
         {/* Main Content */}
         <main className="flex-1 flex flex-col overflow-hidden">
@@ -2098,6 +2100,8 @@ export default function App() {
               appliedView={appliedProductView}
               onApplyView={handleSelectProductSavedView}
               externalSearchQuery={productSearchQuery}
+              documents={documents}
+              onDocumentsChange={setDocuments}
             />
           ) : activeModule === "Assets" ? (
             selectedAsset && assetsModuleView === "workspace" ? (
