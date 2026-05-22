@@ -224,7 +224,7 @@ export default function ProjectDetailsTab({
   const [innoflexBLG, setInnoflexBLG] = useState<'Innoflex' | 'BLG' | ''>('');
 
   return (
-    <div className="p-6 flex-1 overflow-y-auto no-scrollbar">
+    <div className="p-0 flex-1 overflow-y-auto no-scrollbar">
       <div className="w-full">
 
         {/* Clone badge */}
@@ -261,7 +261,7 @@ export default function ProjectDetailsTab({
         )}
 
         {/* Page header — title + edit controls */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-night">Project Details</h2>
             <p className="text-sm text-gray-500 mt-0.5">Core metadata and configuration for this project</p>

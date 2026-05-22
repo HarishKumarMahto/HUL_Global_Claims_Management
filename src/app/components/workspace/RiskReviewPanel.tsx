@@ -217,9 +217,9 @@ export default function RiskReviewPanel() {
   const highRiskMarkets = marketRisks.filter(m => m.overallRisk === 'High' || m.overallRisk === 'Very High').length;
 
   return (
-   <div className="p-6 h-full flex flex-col overflow-hidden">
+   <div className="p-0 h-full flex flex-col overflow-hidden">
       <div className="flex-shrink-0">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-night">Risk & Review</h2>
             <p className="text-sm text-gray-500 mt-0.5">Claim risk assessment and regulatory review status</p>
@@ -238,7 +238,7 @@ export default function RiskReviewPanel() {
           </div>
         </div>
         {/* Summary tiles row (US-M1-117) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           {[
             { icon: <Shield className="w-5 h-5" />, label: 'Overall Risk Score', value: `${totalRiskScore}/5`, sub: overallLevel, color: overallConfig },
             { icon: <Eye className="w-5 h-5 text-sky" />, label: 'Reviews Complete', value: `${completedReviews}/${reviewItems.length}`, sub: `${reviewProgress}%`, color: { bg: '#DBEAFE', text: '#1D4ED8', dot: '#3B82F6' } },

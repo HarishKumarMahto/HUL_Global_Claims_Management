@@ -173,8 +173,8 @@ export default function GeographyTab() {
   const pagedGeos = filtered.slice(startIndex, startIndex + PAGE_SIZE);
 
   return (
-    <div className="p-6 flex flex-col h-full overflow-hidden no-scrollbar">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-0 flex flex-col h-full overflow-hidden no-scrollbar">
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-night">Geography</h2>
           <p className="text-sm text-gray-500 mt-0.5">Markets and regulatory jurisdictions for this project</p>
@@ -189,7 +189,7 @@ export default function GeographyTab() {
       </div>
 
       {/* Summary chips */}
-      <div className="flex flex-wrap gap-2 mb-6">
+      <div className="flex flex-wrap gap-2 mb-4">
         {Object.entries(
           addedGeographies.reduce<Record<string, number>>((acc, g) => {
             acc[g.region] = (acc[g.region] || 0) + 1;

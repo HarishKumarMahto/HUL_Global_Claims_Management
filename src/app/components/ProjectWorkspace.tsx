@@ -1733,7 +1733,7 @@ export default function ProjectWorkspace({
   };
 
   return (
-    <div className="p-6 flex flex-col h-full overflow-hidden no-scrollbar">
+    <div className="flex flex-col h-full overflow-hidden no-scrollbar">
       {/* Toast notifications */}
       <ToastContainer
         toasts={toasts}
@@ -2149,7 +2149,7 @@ export default function ProjectWorkspace({
                     isItemActive ? "opacity-100" : "opacity-80"
                   }`}
                 >
-                  <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
+                  <div className="flex-1 overflow-y-auto p-5 space-y-5 no-scrollbar">
                     {renderSectionContent(item.id)}
                   </div>
                 </div>
