@@ -187,24 +187,23 @@ export default function TechnologyCreationScreen({
   );
 
   const selectedDoc = formulationDocs.find((d) => d.id === selectedDocId);
-
   return (
-    <div className="w-full h-full flex flex-col bg-white overflow-hidden text-slate-900">
+    <div className="w-full h-full flex flex-col bg-white overflow-hidden text-night">
       {/* Top Header bar */}
-      <div className="px-6 py-4 border-b border-pebble flex items-center justify-between bg-earth/40 flex-shrink-0">
-        <div className="flex items-center gap-3">
+      <div className="px-6 py-4 border-b border-pebble flex items-center justify-between bg-white flex-shrink-0 z-10">
+        <div className="flex items-center gap-4">
           <button
             onClick={handleBackAttempt}
-            className="p-1.5 hover:bg-earth rounded-xl text-brand-night transition-all cursor-pointer border border-pebble/40 bg-white"
+            className="p-2 text-gray-400 hover:text-night hover:bg-earth rounded-xl transition-all"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <div className="p-2 bg-sky rounded-xl text-white">
+          <div className="w-10 h-10 rounded-full bg-sky/10 flex items-center justify-center text-sky">
             <Beaker className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-night leading-tight">Technology Creation</h1>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <h1 className="text-xl font-bold text-night leading-none">Technology Creation</h1>
+            <p className="text-sm text-gray-500 mt-1">
               Create a new top-level product technology
             </p>
           </div>
@@ -218,7 +217,7 @@ export default function TechnologyCreationScreen({
           
           {/* Section 1: Basic Info */}
           <div className="bg-white rounded-2xl border border-pebble/50 shadow-sm p-6 space-y-6 max-w-3xl">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-brand-night border-b border-pebble pb-2 flex items-center gap-2">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-night border-b border-pebble pb-2 flex items-center gap-2">
               <Beaker className="w-4 h-4 text-sky" />
               Technology Information
             </h2>
@@ -226,7 +225,7 @@ export default function TechnologyCreationScreen({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Brand Field */}
               <div className="space-y-1.5 relative">
-                <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">
                   Brand <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -238,10 +237,10 @@ export default function TechnologyCreationScreen({
                   }}
                   onFocus={() => setBrandDropdownOpen(true)}
                   placeholder="e.g. Dove, TRESemmé, Persil..."
-                  className="w-full px-3.5 py-2.5 bg-white border border-pebble rounded-xl text-sm font-semibold focus:ring-2 focus:ring-sky focus:border-sky outline-none transition-all placeholder:text-gray-400"
+                  className="w-full px-3.5 py-2.5 bg-earth/50 border border-pebble rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky/50 focus:border-sky transition-all placeholder:font-normal"
                 />
                 {brandDropdownOpen && filteredBrands.length > 0 && (
-                  <div className="absolute z-55 left-0 right-0 mt-1 bg-white border border-pebble rounded-xl shadow-lg max-h-48 overflow-y-auto py-1">
+                  <div className="absolute z-55 left-0 right-0 mt-1 bg-white border border-pebble rounded-xl shadow-xl max-h-48 overflow-y-auto py-1">
                     {filteredBrands.map((b) => (
                       <button
                         key={b}
@@ -250,7 +249,7 @@ export default function TechnologyCreationScreen({
                           setBrand(b);
                           setBrandDropdownOpen(false);
                         }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-earth transition-colors font-semibold"
+                        className="w-full text-left px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors font-semibold"
                       >
                         {b}
                       </button>
@@ -259,7 +258,7 @@ export default function TechnologyCreationScreen({
                 )}
                 {brandDropdownOpen && (
                   <div
-                    className="fixed inset-0 z-40"
+                    className="fixed inset-0 z-45"
                     onClick={() => setBrandDropdownOpen(false)}
                   />
                 )}
@@ -267,7 +266,7 @@ export default function TechnologyCreationScreen({
 
               {/* Technology Name Field */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">
                   Technology Name <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -275,7 +274,7 @@ export default function TechnologyCreationScreen({
                   value={techName}
                   onChange={(e) => setTechName(e.target.value)}
                   placeholder="Enter technology name only..."
-                  className="w-full px-3.5 py-2.5 bg-white border border-pebble rounded-xl text-sm font-semibold focus:ring-2 focus:ring-sky focus:border-sky outline-none transition-all placeholder:text-gray-400"
+                  className="w-full px-3.5 py-2.5 bg-earth/50 border border-pebble rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky/50 focus:border-sky transition-all placeholder:font-normal"
                 />
               </div>
             </div>
@@ -283,7 +282,7 @@ export default function TechnologyCreationScreen({
 
           {/* Section 2: Technology Classification */}
           <div className="bg-white rounded-2xl border border-pebble/50 shadow-sm p-6 space-y-6 max-w-3xl">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-brand-night border-b border-pebble pb-2 flex items-center gap-2">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-night border-b border-pebble pb-2 flex items-center gap-2">
               <Layers className="w-4 h-4 text-sky" />
               Technology Classification (Required)
             </h2>
@@ -291,7 +290,7 @@ export default function TechnologyCreationScreen({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Business Groups Dropdown */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">
                   Business Groups <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -300,7 +299,7 @@ export default function TechnologyCreationScreen({
                     setBusinessGroup(e.target.value);
                     setCategory(""); // Reset category on BG change
                   }}
-                  className="w-full px-3.5 py-2.5 bg-white border border-pebble rounded-xl text-sm font-semibold focus:ring-2 focus:ring-sky outline-none transition-all"
+                  className="w-full px-3.5 py-2.5 bg-earth/50 border border-pebble rounded-xl text-sm font-medium text-night focus:outline-none focus:ring-2 focus:ring-sky/50 focus:border-sky transition-all cursor-pointer"
                 >
                   <option value="">Select Business Groups...</option>
                   {BUSINESS_GROUPS.map((bg) => (
@@ -313,14 +312,14 @@ export default function TechnologyCreationScreen({
 
               {/* Categories Dropdown */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">
                   Categories <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   disabled={!businessGroup}
-                  className="w-full px-3.5 py-2.5 bg-white border border-pebble rounded-xl text-sm font-semibold focus:ring-2 focus:ring-sky outline-none transition-all disabled:bg-gray-50 disabled:text-gray-400 disabled:border-pebble/50"
+                  className="w-full px-3.5 py-2.5 bg-earth/50 border border-pebble rounded-xl text-sm font-medium text-night focus:outline-none focus:ring-2 focus:ring-sky/50 focus:border-sky transition-all disabled:bg-gray-50 disabled:text-gray-400 disabled:border-pebble/50 cursor-pointer"
                 >
                   {!businessGroup ? (
                     <option value="">Select a Business Group first to view categories</option>
@@ -341,7 +340,7 @@ export default function TechnologyCreationScreen({
 
           {/* Section 3: Formulation Document */}
           <div className="bg-white rounded-2xl border border-pebble/50 shadow-sm p-6 space-y-6 max-w-3xl">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-brand-night border-b border-pebble pb-2 flex items-center gap-2">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-night border-b border-pebble pb-2 flex items-center gap-2">
               <FileText className="w-4 h-4 text-sky" />
               Formulation Document
             </h2>
@@ -351,10 +350,10 @@ export default function TechnologyCreationScreen({
               <button
                 type="button"
                 onClick={() => setDocSource("upload")}
-                className={`px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 -mb-[2px] transition-colors ${
+                className={`px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 -mb-[2px] transition-colors ${
                   docSource === "upload"
                     ? "border-sky text-sky"
-                    : "border-transparent text-gray-400 hover:text-slate-800"
+                    : "border-transparent text-gray-400 hover:text-night"
                 }`}
               >
                 Upload New Spec Document
@@ -362,10 +361,10 @@ export default function TechnologyCreationScreen({
               <button
                 type="button"
                 onClick={() => setDocSource("library")}
-                className={`px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 -mb-[2px] transition-colors ${
+                className={`px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 -mb-[2px] transition-colors ${
                   docSource === "library"
                     ? "border-sky text-sky"
-                    : "border-transparent text-gray-400 hover:text-slate-800"
+                    : "border-transparent text-gray-400 hover:text-night"
                 }`}
               >
                 Select from Document Library
@@ -384,10 +383,10 @@ export default function TechnologyCreationScreen({
                 {!uploadedFile ? (
                   <div
                     onClick={() => fileInputRef.current?.click()}
-                    className="border-2 border-dashed border-pebble/80 hover:border-sky/50 rounded-2xl p-8 text-center cursor-pointer hover:bg-earth/20 transition-all space-y-2 group"
+                    className="border-2 border-dashed border-pebble hover:border-sky/50 rounded-2xl p-8 text-center cursor-pointer hover:bg-earth/20 transition-all space-y-2 group bg-white"
                   >
                     <Upload className="w-8 h-8 mx-auto text-gray-450 group-hover:text-sky transition-colors" />
-                    <p className="text-xs font-bold text-slate-850">
+                    <p className="text-xs font-bold text-night">
                       Drag & drop formulation spec, or <span className="text-sky group-hover:underline">browse files</span>
                     </p>
                     <p className="text-[10px] text-gray-400">
@@ -398,17 +397,17 @@ export default function TechnologyCreationScreen({
                   <div className="flex items-center gap-3 p-4 border border-pebble rounded-xl bg-sky/5 animate-fadeIn">
                     <FileText className="w-8 h-8 text-sky flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs font-bold text-slate-900 truncate">
+                      <div className="text-xs font-bold text-night truncate">
                         {uploadedFile.name}
                       </div>
-                      <div className="text-[10px] text-gray-400">
+                      <div className="text-[10px] text-gray-450 mt-0.5">
                         {(uploadedFile.size / (1024 * 1024)).toFixed(2)} MB · Formulation Document
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => setUploadedFile(null)}
-                      className="text-xs font-bold text-red-500 hover:underline px-2.5 py-1 rounded hover:bg-red-50"
+                      className="text-xs font-bold text-red-500 hover:text-red-650 hover:bg-red-50 px-2.5 py-1 rounded-xl transition-all cursor-pointer"
                     >
                       Remove
                     </button>
@@ -425,12 +424,12 @@ export default function TechnologyCreationScreen({
                     value={docSearch}
                     onChange={(e) => setDocSearch(e.target.value)}
                     placeholder="Search documents by name or document number..."
-                    className="w-full pl-9 pr-4 py-2 border border-pebble rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-sky bg-white"
+                    className="w-full pl-9 pr-4 py-2.5 bg-earth/50 border border-pebble rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-sky/50 focus:border-sky transition-all placeholder:font-normal"
                   />
                 </div>
 
                 {/* Library list */}
-                <div className="max-h-60 overflow-y-auto border border-pebble rounded-xl divide-y divide-pebble bg-white">
+                <div className="max-h-60 overflow-y-auto border border-pebble rounded-xl divide-y divide-pebble/50 bg-white shadow-inner">
                   {filteredDocs.length === 0 ? (
                     <div className="p-4 text-center text-xs text-gray-400 italic">
                       No matching formulation documents found in library.
@@ -439,7 +438,7 @@ export default function TechnologyCreationScreen({
                     filteredDocs.map((doc) => (
                       <label
                         key={doc.id}
-                        className={`flex items-center gap-3 p-3 text-xs cursor-pointer hover:bg-earth/30 transition-colors select-none ${
+                        className={`flex items-center gap-3 p-3.5 text-xs cursor-pointer hover:bg-earth/30 transition-colors select-none ${
                           selectedDocId === doc.id ? "bg-sky/5" : ""
                         }`}
                       >
@@ -448,16 +447,16 @@ export default function TechnologyCreationScreen({
                           name="selectedDocRadio"
                           checked={selectedDocId === doc.id}
                           onChange={() => setSelectedDocId(doc.id)}
-                          className="h-4 w-4 text-sky focus:ring-sky accent-sky"
+                          className="h-4 w-4 text-sky focus:ring-sky/50 accent-sky cursor-pointer"
                         />
                         <FileText className="w-5 h-5 text-gray-400 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-bold text-slate-800 truncate">{doc.name}</div>
-                          <div className="text-[10px] text-gray-450 mt-0.5">
+                          <div className="font-bold text-night truncate">{doc.name}</div>
+                          <div className="text-[10px] text-gray-500 mt-0.5">
                             {doc.documentNumber || "No doc number"} · {doc.brand || "No brand"} · {doc.businessGroup}
                           </div>
                         </div>
-                        <span className="text-[9px] uppercase font-bold text-gray-400 bg-earth px-2 py-0.5 rounded border border-pebble/40">
+                        <span className="text-[9px] uppercase font-bold text-gray-500 bg-earth px-2 py-0.5 rounded-lg border border-pebble/40">
                           {doc.currentVersion}
                         </span>
                       </label>
@@ -490,7 +489,7 @@ export default function TechnologyCreationScreen({
                   <div className="text-[10px] font-bold text-gray-400 uppercase">
                     Technology Name
                   </div>
-                  <div className="text-sm font-bold text-slate-900 truncate">
+                  <div className="text-sm font-bold text-night truncate">
                     {techName.trim() || "Technology Name"}
                   </div>
                 </div>
@@ -500,7 +499,7 @@ export default function TechnologyCreationScreen({
                     <div className="text-[10px] font-bold text-gray-400 uppercase">
                       Brand
                     </div>
-                    <div className="text-xs font-semibold text-slate-800">
+                    <div className="text-xs font-semibold text-night">
                       {brand.trim() || <span className="italic text-gray-300">Dove...</span>}
                     </div>
                   </div>
@@ -508,7 +507,7 @@ export default function TechnologyCreationScreen({
                     <div className="text-[10px] font-bold text-gray-400 uppercase">
                       Business Group
                     </div>
-                    <div className="text-xs font-semibold text-slate-800">
+                    <div className="text-xs font-semibold text-night">
                       {businessGroup || <span className="italic text-gray-300">BG...</span>}
                     </div>
                   </div>
@@ -518,7 +517,7 @@ export default function TechnologyCreationScreen({
                   <div className="text-[10px] font-bold text-gray-400 uppercase">
                     Category
                   </div>
-                  <div className="text-xs font-semibold text-slate-805">
+                  <div className="text-xs font-semibold text-night">
                     {category || <span className="italic text-gray-300">Category...</span>}
                   </div>
                 </div>
@@ -529,12 +528,12 @@ export default function TechnologyCreationScreen({
                     Linked Specification
                   </div>
                   {docSource === "upload" && uploadedFile ? (
-                    <div className="flex items-center gap-1.5 text-xs text-slate-800 bg-earth/40 p-2 rounded-lg border border-pebble">
+                    <div className="flex items-center gap-1.5 text-xs text-night bg-earth/40 p-2 rounded-lg border border-pebble">
                       <FileText className="w-4 h-4 text-sky flex-shrink-0" />
                       <span className="truncate flex-1 font-semibold">{uploadedFile.name}</span>
                     </div>
                   ) : docSource === "library" && selectedDoc ? (
-                    <div className="flex items-center gap-1.5 text-xs text-slate-800 bg-earth/40 p-2 rounded-lg border border-pebble">
+                    <div className="flex items-center gap-1.5 text-xs text-night bg-earth/40 p-2 rounded-lg border border-pebble">
                       <FileText className="w-4 h-4 text-violet-500 flex-shrink-0" />
                       <span className="truncate flex-1 font-semibold">{selectedDoc.name}</span>
                     </div>
@@ -546,13 +545,13 @@ export default function TechnologyCreationScreen({
                 <div className="p-3 bg-earth/30 rounded-xl space-y-2 text-xs">
                   <div className="flex items-center justify-between text-gray-600">
                     <span>Lifecycle state</span>
-                    <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 uppercase text-[9px]">
+                    <span className="font-bold text-emerald-650 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 uppercase text-[9px]">
                       In-use
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-gray-600">
                     <span>Geographies</span>
-                    <span className="font-semibold text-slate-700">Inherited</span>
+                    <span className="font-semibold text-night">Inherited</span>
                   </div>
                 </div>
               </div>
@@ -569,10 +568,10 @@ export default function TechnologyCreationScreen({
       </div>
 
       {/* Action Footer */}
-      <div className="px-6 py-4 border-t border-pebble bg-earth flex items-center justify-between flex-shrink-0">
+      <div className="px-6 py-4 border-t border-pebble bg-white flex items-center justify-between flex-shrink-0 z-20">
         <button
           onClick={handleBackAttempt}
-          className="px-5 py-2.5 border border-pebble rounded-xl text-sm font-semibold text-brand-night bg-white hover:bg-gray-50 transition-all cursor-pointer"
+          className="px-6 py-2.5 border border-pebble rounded-xl text-sm font-bold text-gray-650 hover:bg-earth hover:text-night transition-all cursor-pointer bg-white"
         >
           Cancel
         </button>
@@ -580,7 +579,7 @@ export default function TechnologyCreationScreen({
           <button
             onClick={handleSave}
             disabled={!isValid}
-            className="px-6 py-2.5 bg-sky text-white rounded-xl text-sm font-bold shadow-lg shadow-sky/15 hover:bg-sky-dark transition-all disabled:opacity-40 disabled:shadow-none disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5"
+            className="flex items-center gap-2 px-6 py-2.5 bg-sky text-white rounded-xl text-sm font-bold hover:bg-dark disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md shadow-sky/20 active:scale-95 cursor-pointer"
           >
             <Check className="w-4 h-4" />
             Create Technology
@@ -590,7 +589,7 @@ export default function TechnologyCreationScreen({
 
       {/* Cancel Confirmation Popup */}
       {showCancelConfirm && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[100] p-4">
           <div className="bg-white border border-pebble rounded-2xl shadow-2xl p-6 max-w-sm w-full">
             <div className="flex items-center gap-3 mb-3">
               <div className="p-2 bg-red-50 text-red-500 rounded-xl">
@@ -606,13 +605,13 @@ export default function TechnologyCreationScreen({
             <div className="flex gap-2 justify-end mt-6">
               <button
                 onClick={() => setShowCancelConfirm(false)}
-                className="px-4 py-2 border border-pebble text-brand-night font-bold rounded-lg text-xs hover:bg-earth transition-colors cursor-pointer"
+                className="px-4 py-2 border border-pebble text-gray-650 hover:text-night hover:bg-earth font-bold rounded-xl text-xs transition-colors cursor-pointer bg-white"
               >
                 Keep Editing
               </button>
               <button
                 onClick={onBack}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg text-xs transition-colors cursor-pointer"
+                className="px-4 py-2 bg-red-650 hover:bg-red-750 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer"
               >
                 Discard
               </button>
@@ -623,3 +622,4 @@ export default function TechnologyCreationScreen({
     </div>
   );
 }
+

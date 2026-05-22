@@ -96,24 +96,23 @@ export default function FormatCreationScreen({
   const filteredBrands = BRAND_SUGGESTIONS.filter((b) =>
     b.toLowerCase().includes(brand.toLowerCase())
   );
-
   return (
-    <div className="w-full h-full flex flex-col bg-white overflow-hidden text-slate-900">
+    <div className="w-full h-full flex flex-col bg-white overflow-hidden text-night">
       {/* Top Header bar */}
-      <div className="px-6 py-4 border-b border-pebble flex items-center justify-between bg-earth/40 flex-shrink-0">
-        <div className="flex items-center gap-3">
+      <div className="px-6 py-4 border-b border-pebble flex items-center justify-between bg-white flex-shrink-0 z-10">
+        <div className="flex items-center gap-4">
           <button
             onClick={handleBackAttempt}
-            className="p-1.5 hover:bg-earth rounded-xl text-brand-night transition-all cursor-pointer border border-pebble/40 bg-white"
+            className="p-2 text-gray-400 hover:text-night hover:bg-earth rounded-xl transition-all"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <div className="p-2 bg-sky rounded-xl text-white">
+          <div className="w-10 h-10 rounded-full bg-sky/10 flex items-center justify-center text-sky">
             <Layers className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-night leading-tight">Format Creation</h1>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <h1 className="text-xl font-bold text-night leading-none">Format Creation</h1>
+            <p className="text-sm text-gray-500 mt-1">
               Create a new top-level product format
             </p>
           </div>
@@ -125,14 +124,14 @@ export default function FormatCreationScreen({
         {/* Left: Input Form (70%) */}
         <div className="w-[70%] flex flex-col p-6 overflow-y-auto border-r border-pebble/65">
           <div className="bg-white rounded-2xl border border-pebble/50 shadow-sm p-6 space-y-6 max-w-2xl">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-brand-night border-b border-pebble pb-2 flex items-center gap-2">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-night border-b border-pebble pb-2 flex items-center gap-2">
               <Layers className="w-4 h-4 text-sky" />
               Format Details
             </h2>
 
             {/* Brand Field */}
             <div className="space-y-1.5 relative">
-              <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">
                 Brand <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -145,11 +144,11 @@ export default function FormatCreationScreen({
                   }}
                   onFocus={() => setBrandDropdownOpen(true)}
                   placeholder="e.g. Dove, TRESemmé, Persil..."
-                  className="w-full px-3.5 py-2.5 bg-white border border-pebble rounded-xl text-sm font-semibold focus:ring-2 focus:ring-sky focus:border-sky outline-none transition-all placeholder:text-gray-400"
+                  className="w-full px-3.5 py-2.5 bg-earth/50 border border-pebble rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky/50 focus:border-sky transition-all placeholder:font-normal"
                 />
               </div>
               {brandDropdownOpen && filteredBrands.length > 0 && (
-                <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-pebble rounded-xl shadow-lg max-h-48 overflow-y-auto py-1">
+                <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-pebble rounded-xl shadow-xl max-h-48 overflow-y-auto py-1">
                   {filteredBrands.map((b) => (
                     <button
                       key={b}
@@ -158,7 +157,7 @@ export default function FormatCreationScreen({
                         setBrand(b);
                         setBrandDropdownOpen(false);
                       }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-earth transition-colors font-semibold"
+                      className="w-full text-left px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors font-semibold"
                     >
                       {b}
                     </button>
@@ -175,7 +174,7 @@ export default function FormatCreationScreen({
 
             {/* Format Name Field */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">
                 Format Name <span className="text-red-500">*</span>
               </label>
               <input
@@ -183,7 +182,7 @@ export default function FormatCreationScreen({
                 value={formatName}
                 onChange={(e) => setFormatName(e.target.value)}
                 placeholder="Enter format name only..."
-                className="w-full px-3.5 py-2.5 bg-white border border-pebble rounded-xl text-sm font-semibold focus:ring-2 focus:ring-sky focus:border-sky outline-none transition-all placeholder:text-gray-400"
+                className="w-full px-3.5 py-2.5 bg-earth/50 border border-pebble rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky/50 focus:border-sky transition-all placeholder:font-normal"
               />
             </div>
           </div>
@@ -210,7 +209,7 @@ export default function FormatCreationScreen({
                   <div className="text-[10px] font-bold text-gray-400 uppercase">
                     Full Product Name
                   </div>
-                  <div className="text-sm font-bold text-slate-900 truncate">
+                  <div className="text-sm font-bold text-night truncate">
                     {brand.trim() || "Brand"} {formatName.trim() || "Format Name"}
                   </div>
                 </div>
@@ -220,7 +219,7 @@ export default function FormatCreationScreen({
                     <div className="text-[10px] font-bold text-gray-400 uppercase">
                       Brand
                     </div>
-                    <div className="text-xs font-semibold text-slate-800">
+                    <div className="text-xs font-semibold text-night">
                       {brand.trim() || <span className="italic text-gray-300">Dove...</span>}
                     </div>
                   </div>
@@ -228,7 +227,7 @@ export default function FormatCreationScreen({
                     <div className="text-[10px] font-bold text-gray-400 uppercase">
                       Format Level Name
                     </div>
-                    <div className="text-xs font-semibold text-slate-800">
+                    <div className="text-xs font-semibold text-night">
                       {formatName.trim() || <span className="italic text-gray-300">Body Wash...</span>}
                     </div>
                   </div>
@@ -237,13 +236,13 @@ export default function FormatCreationScreen({
                 <div className="p-3 bg-earth/30 rounded-xl space-y-2 text-xs">
                   <div className="flex items-center justify-between text-gray-600">
                     <span>Lifecycle state</span>
-                    <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 uppercase text-[9px]">
+                    <span className="font-bold text-emerald-650 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 uppercase text-[9px]">
                       In-use
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-gray-600">
                     <span>Geographies</span>
-                    <span className="font-semibold text-slate-700">Global</span>
+                    <span className="font-semibold text-night">Global</span>
                   </div>
                 </div>
               </div>
@@ -260,10 +259,10 @@ export default function FormatCreationScreen({
       </div>
 
       {/* Action Footer */}
-      <div className="px-6 py-4 border-t border-pebble bg-earth flex items-center justify-between flex-shrink-0">
+      <div className="px-6 py-4 border-t border-pebble bg-white flex items-center justify-between flex-shrink-0 z-20">
         <button
           onClick={handleBackAttempt}
-          className="px-5 py-2.5 border border-pebble rounded-xl text-sm font-semibold text-brand-night bg-white hover:bg-gray-50 transition-all cursor-pointer"
+          className="px-6 py-2.5 border border-pebble rounded-xl text-sm font-bold text-gray-650 hover:bg-earth hover:text-night transition-all cursor-pointer bg-white"
         >
           Cancel
         </button>
@@ -271,7 +270,7 @@ export default function FormatCreationScreen({
           <button
             onClick={handleSave}
             disabled={!isValid}
-            className="px-6 py-2.5 bg-sky text-white rounded-xl text-sm font-bold shadow-lg shadow-sky/15 hover:bg-sky-dark transition-all disabled:opacity-40 disabled:shadow-none disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5"
+            className="flex items-center gap-2 px-6 py-2.5 bg-sky text-white rounded-xl text-sm font-bold hover:bg-dark disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md shadow-sky/20 active:scale-95 cursor-pointer"
           >
             <Check className="w-4 h-4" />
             Create Format
@@ -281,7 +280,7 @@ export default function FormatCreationScreen({
 
       {/* Cancel Confirmation Popup */}
       {showCancelConfirm && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[100] p-4">
           <div className="bg-white border border-pebble rounded-2xl shadow-2xl p-6 max-w-sm w-full">
             <div className="flex items-center gap-3 mb-3">
               <div className="p-2 bg-red-50 text-red-500 rounded-xl">
@@ -297,13 +296,13 @@ export default function FormatCreationScreen({
             <div className="flex gap-2 justify-end mt-6">
               <button
                 onClick={() => setShowCancelConfirm(false)}
-                className="px-4 py-2 border border-pebble text-brand-night font-bold rounded-lg text-xs hover:bg-earth transition-colors cursor-pointer"
+                className="px-4 py-2 border border-pebble text-gray-600 hover:text-night hover:bg-earth font-bold rounded-xl text-xs transition-colors cursor-pointer bg-white"
               >
                 Keep Editing
               </button>
               <button
                 onClick={onBack}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg text-xs transition-colors cursor-pointer"
+                className="px-4 py-2 bg-red-650 hover:bg-red-750 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer"
               >
                 Discard
               </button>
