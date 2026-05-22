@@ -225,7 +225,7 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
   const [language, setLanguage] = useState('English');
 
   // Tabs State
-  const [activeTab, setActiveTab] = useState<'Create' | 'Available Product Claims' | 'Copy Claims' | 'Localize'>('Create');
+  const [activeTab, setActiveTab] = useState<'Create' | 'Available Product Claims' | 'Copy Claims' | 'Inherit'>('Create');
 
   // Workspace Data (Step 1)
   const [createdText, setCreatedText] = useState('');
@@ -558,7 +558,7 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
     { id: 'Create', icon: Edit3, label: 'Create' },
     { id: 'Available Product Claims', icon: Layers, label: 'Available Product Claims' },
     { id: 'Copy Claims', icon: Copy, label: 'Copy' },
-    { id: 'Localize', icon: Globe, label: 'Localize' }
+    { id: 'Inherit', icon: Globe, label: 'Inherit' }
   ];
 
   return (
@@ -573,131 +573,64 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
       )}
 
       {/* Header */}
-      <div className="px-6 py-4 border-b border-pebble flex items-center justify-between flex-shrink-0 bg-white z-10">
+      <div className="px-6 py-3 border-b border-pebble flex items-center justify-between flex-shrink-0 bg-white z-40 relative">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-sky/10 flex items-center justify-center text-sky">
-            <FileText className="w-5 h-5" />
+          <div className="w-9 h-9 rounded-full bg-sky/10 flex items-center justify-center text-sky flex-shrink-0">
+            <FileText className="w-4 h-4" />
           </div>
-          <div>
-            <h2 className="text-xl font-bold text-night">
-              {step === 1 ? 'Start Claim Creation' : 'Review & Finalize Claims'}
-            </h2>
-            <p className="text-sm text-gray-500">
-              {step === 1 ? 'Step 1 of 2: Gather statements from various sources' : 'Step 2 of 2: Assign channels and finalize details'}
-            </p>
-          </div>
+          <h2 className="text-base font-bold text-night whitespace-nowrap">
+            {step === 1 ? 'Create Claim' : 'Review & Finalize Claims'}
+          </h2>
+
+          {/* Product & Geographies inline in header — step 1 only */}
+          {step === 1 && (
+            <div className="flex items-center gap-4 ml-4">
+              {/* Product */}
+              <div className="relative">
+                <input
+                  type="text"
+                  value={productSearch}
+                  onChange={(e) => { setProductSearch(e.target.value); setShowProductDropdown(true); setSelectedProduct(null); }}
+                  onFocus={() => setShowProductDropdown(true)}
+                  placeholder="Search product..."
+                  className="w-56 px-3 py-2 bg-earth/50 border border-pebble rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-sky/50 focus:border-sky transition-all placeholder:font-normal"
+                />
+                {showProductDropdown && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-pebble rounded-xl shadow-xl z-50 max-h-56 overflow-y-auto animate-in fade-in slide-in-from-top-1">
+                    {MOCK_PRODUCTS.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).map(p => (
+                      <button key={p.id} onClick={() => handleProductSelect(p)}
+                        className="w-full text-left px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors flex items-center justify-between border-b border-pebble/50 last:border-0">
+                        <span className="font-medium truncate">{p.name}</span>
+                        <span className="text-xs text-sky bg-sky/10 px-2 py-0.5 rounded-full ml-2 flex-shrink-0">{p.type}</span>
+                      </button>
+                    ))}
+                    {MOCK_PRODUCTS.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).length === 0 && (
+                      <div className="px-4 py-3 text-sm text-gray-400 text-center">No products found</div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Geographies */}
+              <div className="flex items-center bg-earth/30 border border-pebble rounded-xl px-3 py-2 min-w-[140px]">
+                {selectedProduct?.geography ? (
+                  <span className="px-2 py-0.5 bg-sky/10 text-sky text-[10px] font-bold uppercase tracking-wider rounded">
+                    {selectedProduct.geography}
+                  </span>
+                ) : (
+                  <span className="text-xs text-gray-400 font-medium">Geography</span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
-        <button
-          onClick={onClose}
-          className="p-2 text-gray-400 hover:text-night hover:bg-earth rounded-xl transition-all"
-        >
+        <button onClick={onClose} className="p-2 text-gray-400 hover:text-night hover:bg-earth rounded-xl transition-all">
           <X className="w-5 h-5" />
         </button>
       </div>
 
       {/* --- STEP 1 --- */}
       <div className={`flex flex-col flex-1 overflow-hidden bg-earth/20 transition-opacity duration-300 ${step === 1 ? 'opacity-100 flex' : 'opacity-0 hidden'} ${isAnimating ? 'opacity-0' : 'opacity-100'}`}>
-        {/* Top Context Bar */}
-        <div className="px-6 py-4 bg-white border-b border-pebble grid grid-cols-2 gap-6 flex-shrink-0 shadow-sm z-20">
-          <div className="relative">
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Product</label>
-            <div className="relative">
-              <input
-                type="text"
-                value={productSearch}
-                onChange={(e) => {
-                  setProductSearch(e.target.value);
-                  setShowProductDropdown(true);
-                  setSelectedProduct(null);
-                }}
-                onFocus={() => setShowProductDropdown(true)}
-                placeholder="Search and select product..."
-                className="w-full px-3 py-2.5 bg-earth/50 border border-pebble rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky/50 focus:border-sky transition-all placeholder:font-normal"
-              />
-              {showProductDropdown && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-pebble rounded-xl shadow-xl z-20 max-h-64 overflow-y-auto overflow-hidden animate-in fade-in slide-in-from-top-1">
-                  {MOCK_PRODUCTS.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).map(p => (
-                    <button
-                      key={p.id}
-                      onClick={() => handleProductSelect(p)}
-                      className="w-full text-left px-4 py-3 text-sm text-night hover:bg-earth transition-colors flex items-center justify-between border-b border-pebble/50 last:border-0"
-                    >
-                      <span className="font-medium">{p.name}</span>
-                      <span className="text-xs text-sky bg-sky/10 px-2 py-0.5 rounded-full">{p.type}</span>
-                    </button>
-                  ))}
-                  {MOCK_PRODUCTS.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).length === 0 && (
-                    <div className="px-4 py-3 text-sm text-gray-500 text-center">No products found</div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="relative" ref={geoDropdownRef}>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Geographies</label>
-            <button
-              type="button"
-              onClick={() => setShowGeoDropdown(!showGeoDropdown)}
-              className="flex items-center justify-between gap-3 px-3 py-2.5 bg-earth/50 border border-pebble rounded-xl text-sm font-medium text-night hover:bg-pebble/25 focus:outline-none transition-all cursor-pointer w-full text-left"
-            >
-              <div className="flex flex-wrap gap-1 max-w-[90%]">
-                {selectedGeographies.length === 0 ? (
-                  <span className="text-gray-400 font-normal">Select geographies...</span>
-                ) : (
-                  selectedGeographies.map(geo => (
-                    <span key={geo} className="px-2 py-0.5 bg-sky text-white text-xs font-semibold rounded-md flex items-center gap-1 shadow-sm">
-                      {geo}
-                    </span>
-                  ))
-                )}
-              </div>
-              <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${showGeoDropdown ? 'rotate-180' : ''}`} />
-            </button>
-
-            {showGeoDropdown && (
-              <div className="absolute left-0 right-0 mt-2 bg-white border border-pebble rounded-xl shadow-xl z-30 p-2 overflow-hidden animate-in fade-in slide-in-from-top-1">
-                <div className="text-[10px] uppercase tracking-wider font-bold text-gray-400 px-3 py-1.5 border-b border-pebble mb-1">Available Geographies</div>
-                <div className="max-h-60 overflow-y-auto space-y-0.5 animate-in fade-in duration-200">
-                  {GEOGRAPHIES.map(geo => {
-                    const isChecked = selectedGeographies.includes(geo);
-                    const isInherited = selectedProduct && selectedProduct.geography === geo;
-                    return (
-                      <button
-                        key={geo}
-                        type="button"
-                        onClick={() => {
-                          let updated;
-                          if (isChecked) {
-                            updated = selectedGeographies.filter(g => g !== geo);
-                          } else {
-                            updated = [...selectedGeographies, geo];
-                          }
-                          setSelectedGeographies(updated);
-                        }}
-                        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold transition-all ${isChecked
-                            ? 'bg-sky/10 text-sky'
-                            : 'text-gray-600 hover:bg-earth hover:text-night'
-                          }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span>{geo}</span>
-                          {isInherited && (
-                            <span className="text-[9px] uppercase tracking-wider font-extrabold text-sky-600 bg-sky/20 px-1.5 py-0.5 rounded-md">Inherited</span>
-                          )}
-                        </div>
-                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${isChecked ? 'bg-sky border-sky' : 'border-gray-300 bg-white'
-                          }`}>
-                          {isChecked && <Check className="w-2.5 h-2.5 text-white" strokeWidth={4} />}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
 
         {/* 60/40 Split: Left = Tabs+Content, Right = Saved Changes */}
         <div className="flex flex-1 overflow-hidden">
@@ -732,71 +665,29 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
               {/* 1. CREATE TAB */}
               {activeTab === 'Create' && (
                 <div className="flex flex-col h-full w-full animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className="text-base font-bold text-night">Type or paste claim statements with a line break</h3>
-                    </div>
 
-                    <div>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        className="hidden"
-                        accept=".pdf,.doc,.docx,.txt"
-                        onChange={handleFileUpload}
-                      />
-                      <button
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={isUploading}
-                        className="flex items-center gap-2 px-4 py-2 bg-white border border-pebble text-night font-semibold rounded-xl text-sm hover:bg-earth hover:border-sky/40 transition-all shadow-sm active:scale-95 disabled:opacity-70"
-                      >
-                        {isUploading ? (
-                          <span className="w-4 h-4 border-2 border-sky border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <Upload className="w-4 h-4 text-sky" />
-                        )}
-                        {isUploading ? 'Extracting...' : 'Upload Document'}
-                      </button>
-                    </div>
-                  </div>
-
-                  <textarea
-                    value={createdText}
-                    onChange={(e) => setCreatedText(e.target.value)}
-                    placeholder="e.g. Clinically proven to hydrate for 24 hours&#10;Dermatologist tested..."
-                    className="flex-1 min-h-[140px] w-full p-4 border border-pebble rounded-2xl text-sm focus:outline-none focus:ring-4 focus:ring-sky/10 focus:border-sky transition-all resize-none bg-white shadow-inner"
-                  />
-
-                  {/* Marketing Channel Multi-Select Dropdown */}
-                  <div ref={dropdownRef} className="mt-4 flex flex-col items-start relative z-30">
-                    <div className="w-full max-w-sm relative">
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 text-left">
-                        Marketing Channels <span className="text-red-500">*</span>
-                      </label>
-
+                  {/* Top toolbar: Marketing Channels | Keep Selection | Upload Document */}
+                  <div ref={dropdownRef} className="flex items-center gap-3 mb-4 relative z-30">
+                    {/* Marketing Channels dropdown */}
+                    <div className="relative flex-1 max-w-xs">
                       <button
                         type="button"
                         onClick={() => setShowCreatedChannelsDropdown(!showCreatedChannelsDropdown)}
-                        className="w-full flex items-center justify-between px-4 py-2.5 bg-white border border-pebble rounded-xl text-sm font-medium text-night hover:border-gray-300 focus:outline-none focus:ring-4 focus:ring-sky/10 transition-all cursor-pointer shadow-sm"
+                        className="w-full flex items-center justify-between px-3 py-2 bg-white border border-pebble rounded-xl text-sm font-medium text-night hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-sky/20 transition-all cursor-pointer shadow-sm"
                       >
-                        <span className={`truncate mr-2 ${createdChannels.length === 0 ? "text-gray-400" : "text-night font-semibold"}`}>
-                          {createdChannels.length === 0
-                            ? 'Select marketing channels...'
-                            : createdChannels.join(', ')}
+                        <span className={`truncate mr-2 text-xs ${createdChannels.length === 0 ? 'text-gray-400 font-normal' : 'text-night font-semibold'}`}>
+                          {createdChannels.length === 0 ? 'Marketing Channels...' : createdChannels.join(', ')}
                         </span>
-                        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 flex-shrink-0 ${showCreatedChannelsDropdown ? 'rotate-180' : ''}`} />
+                        <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform flex-shrink-0 ${showCreatedChannelsDropdown ? 'rotate-180' : ''}`} />
                       </button>
 
                       {showCreatedChannelsDropdown && (
-                        <div className="absolute left-0 top-full mt-1.5 bg-white border border-pebble rounded-2xl shadow-xl z-50 p-4 w-72 max-h-48 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
-                          <div className="flex flex-col gap-2">
+                        <div className="absolute left-0 top-full mt-1.5 bg-white border border-pebble rounded-2xl shadow-xl z-50 p-3 w-64 max-h-48 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
+                          <div className="flex flex-col gap-1.5">
                             {MARKETING_CHANNELS.map(channel => {
                               const isSelected = createdChannels.includes(channel);
                               return (
-                                <label
-                                  key={channel}
-                                  className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-earth cursor-pointer transition-colors"
-                                >
+                                <label key={channel} className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-earth cursor-pointer transition-colors">
                                   <input
                                     type="checkbox"
                                     checked={isSelected}
@@ -817,17 +708,59 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
                         </div>
                       )}
                     </div>
-                  </div>
 
-                  <div className="flex justify-end mt-4">
+                    {/* Upload Document */}
+                    <div className="flex-shrink-0">
+                      <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.doc,.docx,.txt" onChange={handleFileUpload} />
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading}
+                        className="flex items-center gap-2 px-3 py-2 bg-white border border-pebble text-night font-semibold rounded-xl text-sm hover:bg-earth hover:border-sky/40 transition-all shadow-sm active:scale-95 disabled:opacity-70"
+                      >
+                        {isUploading
+                          ? <span className="w-3.5 h-3.5 border-2 border-sky border-t-transparent rounded-full animate-spin" />
+                          : <Upload className="w-3.5 h-3.5 text-sky" />
+                        }
+                        {isUploading ? 'Extracting...' : 'Upload & Extract'}
+                      </button>
+                    </div>
+
+                    {/* Keep Selection */}
                     <button
                       onClick={handleSaveCreate}
-                      disabled={!createdText.trim()}
-                      className="flex items-center gap-2 px-6 py-2.5 bg-sky text-white rounded-xl text-sm font-bold hover:bg-dark disabled:opacity-50 transition-all active:scale-95 shadow-sm shadow-sky/20"
+                      disabled={!createdText.trim() && createdChannels.length === 0}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-sky text-white rounded-xl text-sm font-bold hover:bg-dark disabled:opacity-40 transition-all active:scale-95 shadow-sm shadow-sky/20 flex-shrink-0"
                     >
-                      <Check className="w-4 h-4" /> Keep Selection
+                      <Check className="w-3.5 h-3.5" /> Keep Selection
                     </button>
                   </div>
+
+                  {/* Text boxes: one per selected channel if multiple, else single */}
+                  {createdChannels.length <= 1 ? (
+                    <textarea
+                      value={createdText}
+                      onChange={(e) => setCreatedText(e.target.value)}
+                      placeholder="Type or paste claim statements with a line break"
+                      className="flex-1 min-h-[160px] w-full p-4 border border-pebble rounded-2xl text-sm focus:outline-none focus:ring-4 focus:ring-sky/10 focus:border-sky transition-all resize-none bg-white shadow-inner"
+                    />
+                  ) : (
+                    <div className="flex-1 overflow-y-auto no-scrollbar space-y-3" style={{ maxHeight: 'calc(100% - 60px)' }}>
+                      {createdChannels.map((ch) => (
+                        <div key={ch} className="space-y-1">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <span className="px-2 py-0.5 bg-sky/10 text-sky rounded-md">{ch}</span>
+                          </label>
+                          <textarea
+                            value={createdText}
+                            onChange={(e) => setCreatedText(e.target.value)}
+                            placeholder="Type or paste claim statements with a line break"
+                            rows={4}
+                            className="w-full p-3 border border-pebble rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-sky/10 focus:border-sky transition-all resize-none bg-white shadow-inner"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -996,8 +929,8 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
                 </div>
               )}
 
-              {/* 4. LOCALIZE TAB */}
-              {activeTab === 'Localize' && (
+              {/* 4. INHERIT TAB */}
+              {activeTab === 'Inherit' && (
                 <div className="flex flex-col h-full w-full animate-in fade-in slide-in-from-bottom-2 duration-300">
                   <div className="flex items-center gap-3 mb-4">
                     <span className="text-xs font-bold text-gray-400 uppercase tracking-wider shrink-0">Parent Product:</span>
@@ -1207,12 +1140,24 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
                           {sourceClaims.map((claim: any) => (
                             <div key={claim._idx} className="flex items-start gap-2 px-3 py-2.5 group hover:bg-earth/30 transition-colors animate-in fade-in duration-200">
                               <span className="flex-1 text-xs font-medium text-night leading-relaxed line-clamp-3">{claim.statement}</span>
-                              <button
-                                onClick={() => removeStep2Row(claim._idx)}
-                                className="flex-shrink-0 mt-0.5 p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
+                              <div className="flex-shrink-0 flex items-center gap-1 mt-0.5">
+                                {/* Upload doc button */}
+                                <button
+                                  type="button"
+                                  title="Upload document"
+                                  className="p-1 text-gray-300 hover:text-sky hover:bg-sky/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                  onClick={() => fileInputRef.current?.click()}
+                                >
+                                  <Upload className="w-3 h-3" />
+                                </button>
+                                {/* Remove button */}
+                                <button
+                                  onClick={() => removeStep2Row(claim._idx)}
+                                  className="p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -1229,7 +1174,7 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
         {/* END 60/40 Split */}
 
         {/* Step 1 Footer */}
-        <div className="px-6 py-4 bg-white border-t border-pebble flex items-center justify-between flex-shrink-0 z-20">
+        <div className="px-6 py-2.5 bg-white border-t border-pebble flex items-center justify-between flex-shrink-0 z-20">
           {/* Left: staged count */}
           <div className="text-sm font-medium text-gray-500">
             {step2Claims.length > 0 ? (
@@ -1246,7 +1191,7 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
             {/* Secondary: go to Qualifiers & Translation (Step 2) */}
             <button
               onClick={goToStep2}
-              className="flex items-center gap-2 px-6 py-2.5 bg-white border border-pebble text-night rounded-xl text-sm font-bold hover:bg-earth hover:border-sky/30 transition-all shadow-sm active:scale-95 group"
+              className="flex items-center gap-2 px-6 py-2 bg-white border border-pebble text-night rounded-xl text-sm font-bold hover:bg-earth hover:border-sky/30 transition-all shadow-sm active:scale-95 group"
             >
               <Languages className="w-4 h-4 text-sky" />
               Qualifiers &amp; Translation
@@ -1257,7 +1202,7 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
             <button
               onClick={handleFinalSubmit}
               disabled={step2Claims.length === 0}
-              className="flex items-center gap-2 px-6 py-2.5 bg-sky text-white rounded-xl text-sm font-bold hover:bg-dark disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md shadow-sky/20 active:scale-95"
+              className="flex items-center gap-2 px-6 py-2 bg-sky text-white rounded-xl text-sm font-bold hover:bg-dark disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md shadow-sky/20 active:scale-95"
             >
               <CheckCircle2 className="w-4 h-4" />
               Add Claim
