@@ -73,24 +73,15 @@ let _eid = 0;
 const newId = () => `eid-${++_eid}`;
 
 const makeDefaultLV = (geography: string): LocalVariantRow => ({
-  id: newId(),
-  geography,
-  cucCode: "",
-  formulationDoc: null,
+  id: newId(), geography, cucCode: "", formulationDoc: null,
 });
 
 const makeDefaultVariant = (): VariantEntry => ({
-  id: newId(),
-  name: "",
-  localVariants: [],
-  showAddLVPanel: false,
-  pendingGeos: [],
+  id: newId(), name: "", localVariants: [], showAddLVPanel: false, pendingGeos: [],
 });
 
 const makeDefaultSubrange = (): SubrangeEntry => ({
-  id: newId(),
-  name: "",
-  variants: [],
+  id: newId(), name: "", variants: [],
 });
 
 // ─── AutocompleteInput ────────────────────────────────────────────────────────
@@ -107,21 +98,20 @@ function AutocompleteInput({
   }, []);
   return (
     <div ref={ref} className={`relative ${className}`}>
-      <div className="relative flex items-center">
-        <Search className="absolute left-3 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-        <input type="text" value={value}
-          onChange={(e) => { onChange(e.target.value); setOpen(true); }}
-          onFocus={() => setOpen(true)}
-          placeholder={placeholder}
-          className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-sky focus:ring-2 focus:ring-sky/20 text-night placeholder:text-gray-400 placeholder:font-normal transition-all"
-        />
-      </div>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => { onChange(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        placeholder={placeholder}
+        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium focus:outline-none focus:border-sky focus:ring-2 focus:ring-sky/15 text-night placeholder:text-gray-400 placeholder:font-normal transition-all"
+      />
       {open && filtered.length > 0 && (
-        <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-40 overflow-y-auto py-1">
+        <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-36 overflow-y-auto py-1">
           {filtered.map((s) => (
             <button key={s} type="button" onMouseDown={(e) => e.preventDefault()}
               onClick={() => { onChange(s); setOpen(false); }}
-              className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors text-night font-medium truncate cursor-pointer">
+              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors text-night font-medium truncate cursor-pointer">
               {s}
             </button>
           ))}
@@ -133,116 +123,63 @@ function AutocompleteInput({
 
 // ─── MultiGeoSelector ─────────────────────────────────────────────────────────
 function MultiGeoSelector({
-  selected,
-  onChange,
-  usedGeos,
-}: {
-  selected: string[];
-  onChange: (geos: string[]) => void;
-  usedGeos: string[];
-}) {
+  selected, onChange, usedGeos,
+}: { selected: string[]; onChange: (geos: string[]) => void; usedGeos: string[] }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
-    const h = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
   }, []);
-
-  const available = ALL_GEOGRAPHIES.filter(
-    (g) => !usedGeos.includes(g) && g.toLowerCase().includes(query.toLowerCase())
-  );
-
-  const toggle = (geo: string) => {
-    if (selected.includes(geo)) {
-      onChange(selected.filter((g) => g !== geo));
-    } else {
-      onChange([...selected, geo]);
-    }
-  };
-
+  const available = ALL_GEOGRAPHIES.filter((g) => !usedGeos.includes(g) && g.toLowerCase().includes(query.toLowerCase()));
+  const toggle = (geo: string) => onChange(selected.includes(geo) ? selected.filter((g) => g !== geo) : [...selected, geo]);
   return (
     <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center gap-2 px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-left transition-all hover:border-sky/50 focus:outline-none focus:border-sky focus:ring-2 focus:ring-sky/20"
-      >
+      <button type="button" onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-left transition-all hover:border-sky/50 focus:outline-none focus:border-sky focus:ring-2 focus:ring-sky/15">
         <Globe2 className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-        <span className={`flex-1 truncate ${selected.length > 0 ? "text-night font-medium" : "text-gray-400 font-normal"}`}>
+        <span className={`flex-1 truncate text-sm ${selected.length > 0 ? "text-night font-medium" : "text-gray-400 font-normal"}`}>
           {selected.length > 0 ? selected.join(", ") : "Select geographies..."}
         </span>
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {selected.length > 0 && (
-            <span className="text-[10px] bg-sky/10 text-sky font-bold px-1.5 py-0.5 rounded-md">
-              {selected.length}
-            </span>
+            <span className="text-[10px] bg-sky/10 text-sky font-bold px-1.5 py-0.5 rounded">{selected.length}</span>
           )}
           <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} />
         </div>
       </button>
-
       {open && (
-        <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl py-2" style={{ minWidth: "100%" }}>
-          {/* Search */}
+        <div className="absolute z-[200] left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl py-2">
           <div className="px-3 pb-2 border-b border-gray-100">
             <div className="relative flex items-center">
               <Search className="absolute left-2.5 w-3 h-3 text-gray-400 pointer-events-none" />
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search geographies..."
-                className="w-full pl-7 pr-3 py-1.5 bg-gray-50 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-sky/30 text-night placeholder:text-gray-400"
-              />
+              <input type="text" value={query} onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search..." className="w-full pl-7 pr-3 py-1.5 bg-gray-50 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-sky/30 text-night placeholder:text-gray-400" />
             </div>
           </div>
-
-          {/* Options */}
-          <div className="max-h-44 overflow-y-auto py-1">
+          <div className="py-1 overflow-y-scroll" style={{ maxHeight: "160px", scrollbarWidth: "thin", scrollbarColor: "#e5e7eb transparent" }}>
             {available.length === 0 ? (
               <div className="px-4 py-3 text-xs text-gray-400 italic text-center">No geographies available</div>
             ) : (
               available.map((g) => (
-                <button
-                  key={g}
-                  type="button"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => toggle(g)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors text-night cursor-pointer"
-                >
-                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                    selected.includes(g)
-                      ? "bg-sky border-sky"
-                      : "border-gray-300 bg-white"
-                  }`}>
-                    {selected.includes(g) && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
+                <button key={g} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => toggle(g)}
+                  className="w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-50 transition-colors text-night cursor-pointer">
+                  <div className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${selected.includes(g) ? "bg-sky border-sky" : "border-gray-300 bg-white"}`}>
+                    {selected.includes(g) && <Check className="w-2 h-2 text-white" strokeWidth={3} />}
                   </div>
                   <span className="font-medium">{g}</span>
                 </button>
               ))
             )}
           </div>
-
-          {/* Footer actions */}
           {selected.length > 0 && (
             <div className="px-3 pt-2 border-t border-gray-100 flex justify-between items-center">
-              <button
-                type="button"
-                onClick={() => onChange([])}
-                className="text-xs text-gray-400 hover:text-red-500 transition-colors cursor-pointer font-medium"
-              >
-                Clear all
-              </button>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="text-xs text-white bg-sky hover:bg-dark px-3 py-1.5 rounded-lg font-bold transition-colors cursor-pointer"
-              >
+              <button type="button" onClick={() => onChange([])}
+                className="text-xs text-gray-400 hover:text-red-500 transition-colors cursor-pointer font-medium">Clear all</button>
+              <button type="button" onClick={() => setOpen(false)}
+                className="text-xs text-white bg-sky hover:bg-dark px-3 py-1.5 rounded-lg font-bold transition-colors cursor-pointer">
                 Confirm ({selected.length})
               </button>
             </div>
@@ -253,15 +190,9 @@ function MultiGeoSelector({
   );
 }
 
-// ─── Hierarchy Tree View ──────────────────────────────────────────────────────
-function HierarchyView({
-  formatName,
-  addSubrangeOpted,
-  subranges,
-}: {
-  formatName: string;
-  addSubrangeOpted: boolean;
-  subranges: SubrangeEntry[];
+// ─── HierarchyView ────────────────────────────────────────────────────────────
+function HierarchyView({ formatName, addSubrangeOpted, subranges }: {
+  formatName: string; addSubrangeOpted: boolean; subranges: SubrangeEntry[];
 }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const toggle = (key: string) => setExpanded((p) => ({ ...p, [key]: !p[key] }));
@@ -274,80 +205,89 @@ function HierarchyView({
 
   if (!hasContent) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-center gap-3 py-8 text-gray-400 px-3">
-        <Layers className="w-10 h-10 text-gray-300" />
-        <p className="text-xs leading-relaxed font-medium text-gray-400">Hierarchy preview will appear here as you fill in subranges, variants and local variants</p>
+      <div className="flex-1 flex flex-col items-center justify-center gap-3 py-8 px-4 text-center">
+        <div className="w-10 h-10 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center">
+          <Layers className="w-5 h-5 text-gray-300" />
+        </div>
+        <p className="text-xs leading-relaxed text-gray-400">Preview appears as you fill in the hierarchy</p>
       </div>
     );
   }
 
+  const renderLVs = (localVariants: LocalVariantRow[]) => (
+    <div className="ml-5 pl-2.5 border-l border-gray-100 space-y-0.5 mt-0.5">
+      {localVariants.map((lv) => (
+        <div key={lv.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-emerald-50/50 transition-colors">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
+          <Globe2 className="w-2.5 h-2.5 text-emerald-500 flex-shrink-0" />
+          <span className="text-[10px] font-medium text-night truncate flex-1">{lv.geography}</span>
+          {lv.cucCode && (
+            <span className="text-[8px] bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded font-bold border border-emerald-100 flex-shrink-0">{lv.cucCode}</span>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+
   const renderVariants = (variants: VariantEntry[], keyPrefix: string) =>
     variants.map((vt, vi) => {
+      if (!vt.name && vt.localVariants.length === 0) return null;
       const vtKey = `${keyPrefix}-vt-${vi}`;
       const vtExp = expanded[vtKey] !== false;
-      if (!vt.name && vt.localVariants.length === 0) return null;
       return (
-        <div key={vt.id} className="mt-1">
-          <button type="button" onClick={() => toggle(vtKey)} className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-gray-50 transition-colors text-left text-night cursor-pointer">
-            <ChevronRight className={`w-3 h-3 text-gray-400 transition-transform flex-shrink-0 ${vtExp ? "rotate-90" : ""}`} />
-            <Beaker className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-            <span className="text-night truncate flex-1 font-semibold text-xs">{vt.name || <span className="text-gray-400 italic">Unnamed Variant</span>}</span>
-            <span className="text-[9px] bg-sky/10 text-sky px-1.5 py-0.5 rounded font-bold uppercase">Var</span>
+        <div key={vt.id} className="ml-5 pl-2.5 border-l border-sky/20 mt-0.5">
+          <button type="button" onClick={() => toggle(vtKey)}
+            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-sky/5 transition-colors text-left cursor-pointer">
+            <div className="w-1.5 h-1.5 rounded-full bg-sky flex-shrink-0" />
+            <Beaker className="w-3 h-3 text-sky flex-shrink-0" />
+            <span className="text-[10px] font-semibold text-night truncate flex-1">
+              {vt.name || <span className="text-gray-400 italic">Unnamed</span>}
+            </span>
+            <span className="text-[7px] text-sky bg-sky/10 px-1 py-0.5 rounded font-bold flex-shrink-0">VAR</span>
+            {vt.localVariants.length > 0 && (
+              <ChevronRight className={`w-2.5 h-2.5 text-gray-300 transition-transform flex-shrink-0 ${vtExp ? "rotate-90" : ""}`} />
+            )}
           </button>
-          {vtExp && vt.localVariants.length > 0 && (
-            <div className="ml-5 space-y-0.5 border-l border-gray-100 pl-2 mt-0.5">
-              {vt.localVariants.map((lv) => (
-                <div key={lv.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 text-night">
-                  <Globe2 className="w-3 h-3 text-gray-400 flex-shrink-0" />
-                  <span className="truncate flex-1 text-[11px] font-medium">{lv.geography}</span>
-                  {lv.cucCode && <span className="text-[9px] bg-green-50 text-green-600 px-1.5 py-0.5 rounded font-bold border border-green-100">{lv.cucCode}</span>}
-                  <span className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-bold uppercase">LV</span>
-                </div>
-              ))}
-            </div>
-          )}
+          {vtExp && vt.localVariants.length > 0 && renderLVs(vt.localVariants)}
         </div>
       );
     });
 
   return (
-    <div className="flex-1 overflow-y-auto text-xs space-y-1 py-1">
-      {formatName && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-night font-bold">
-          <Layers className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
-          <span className="truncate flex-1 text-xs">{formatName}</span>
-          <span className="text-[9px] bg-sky/10 text-sky px-1.5 py-0.5 rounded font-bold uppercase">Bulk</span>
-        </div>
-      )}
+    <div className="flex-1 overflow-y-auto no-scrollbar space-y-0.5 py-1">
+      {/* Format node */}
+      <div className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-night/5 border border-night/10">
+        <Layers className="w-3 h-3 text-night flex-shrink-0" />
+        <span className="text-[11px] font-bold text-night truncate flex-1">{formatName}</span>
+        <span className="text-[7px] text-night/50 bg-night/10 px-1.5 py-0.5 rounded font-bold flex-shrink-0">FMT</span>
+      </div>
 
       {addSubrangeOpted ? (
-        <div className="ml-2 space-y-1 mt-1">
-          {subranges.map((sr, sri) => {
+        subranges
+          .filter((sr) => sr.name || sr.variants.some((v) => v.name || v.localVariants.length > 0))
+          .map((sr, sri) => {
             const srKey = `sr-${sri}`;
             const srExp = expanded[srKey] !== false;
-            const hasSrContent = sr.name || sr.variants.some((v) => v.name || v.localVariants.length > 0);
-            if (!hasSrContent) return null;
             return (
-              <div key={sr.id} className="space-y-0.5">
-                <button type="button" onClick={() => toggle(srKey)} className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-gray-50 transition-colors text-left text-night cursor-pointer">
-                  <ChevronRight className={`w-3 h-3 text-gray-400 transition-transform flex-shrink-0 ${srExp ? "rotate-90" : ""}`} />
-                  <Blocks className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                  <span className="font-semibold truncate flex-1 text-xs">{sr.name || <span className="text-gray-400 italic">Sub Range {sri + 1}</span>}</span>
-                  <span className="text-[9px] bg-violet-50 text-violet-600 px-1.5 py-0.5 rounded border border-violet-100 font-bold uppercase">SR</span>
+              <div key={sr.id} className="ml-4 pl-2.5 border-l-2 border-violet-200 mt-1">
+                <button type="button" onClick={() => toggle(srKey)}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-violet-50/60 transition-colors text-left cursor-pointer">
+                  <div className="w-1.5 h-1.5 rounded-full bg-violet-500 flex-shrink-0" />
+                  <Blocks className="w-3 h-3 text-violet-500 flex-shrink-0" />
+                  <span className="text-[10px] font-semibold text-night truncate flex-1">
+                    {sr.name || <span className="text-gray-400 italic">Sub Range {sri + 1}</span>}
+                  </span>
+                  <span className="text-[7px] text-violet-600 bg-violet-50 px-1 py-0.5 rounded font-bold border border-violet-100 flex-shrink-0">SR</span>
+                  {sr.variants.length > 0 && (
+                    <ChevronRight className={`w-2.5 h-2.5 text-gray-300 transition-transform flex-shrink-0 ${srExp ? "rotate-90" : ""}`} />
+                  )}
                 </button>
-                {srExp && (
-                  <div className="ml-5 space-y-0.5 border-l border-gray-100 pl-2">
-                    {renderVariants(sr.variants, srKey)}
-                  </div>
-                )}
+                {srExp && renderVariants(sr.variants, srKey)}
               </div>
             );
-          })}
-        </div>
+          })
       ) : (
-        <div className="ml-2 mt-1">
-          {renderVariants(subranges[0]?.variants ?? [], "root")}
-        </div>
+        renderVariants(subranges[0]?.variants ?? [], "root")
       )}
     </div>
   );
@@ -378,100 +318,67 @@ export default function CreateProductModal({
   }, []);
 
   // ── Subrange ops ──────────────────────────────────────────────────────────
-  const addSubrange = useCallback(() => {
-    setSubranges((prev) => [...prev, makeDefaultSubrange()]);
-  }, []);
-
-  const removeSubrange = useCallback((sri: number) => {
-    setSubranges((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== sri) : prev));
-  }, []);
-
-  const updateSubrangeName = useCallback((sri: number, val: string) => {
-    setSubranges((prev) => prev.map((sr, i) => (i === sri ? { ...sr, name: val } : sr)));
-  }, []);
+  const addSubrange = useCallback(() => setSubranges((prev) => [...prev, makeDefaultSubrange()]), []);
+  const removeSubrange = useCallback((sri: number) => setSubranges((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== sri) : prev)), []);
+  const updateSubrangeName = useCallback((sri: number, val: string) => setSubranges((prev) => prev.map((sr, i) => (i === sri ? { ...sr, name: val } : sr))), []);
 
   // ── Variant ops ──────────────────────────────────────────────────────────
   const addVariant = useCallback((sri: number) => {
-    setSubranges((prev) => prev.map((sr, i) => {
-      if (i !== sri) return sr;
-      return { ...sr, variants: [...sr.variants, makeDefaultVariant()] };
-    }));
+    setSubranges((prev) => prev.map((sr, i) => i !== sri ? sr : { ...sr, variants: [...sr.variants, makeDefaultVariant()] }));
   }, []);
 
   const removeVariant = useCallback((sri: number, vi: number) => {
-    setSubranges((prev) => prev.map((sr, i) => {
-      if (i !== sri) return sr;
-      return { ...sr, variants: sr.variants.filter((_, j) => j !== vi) };
-    }));
+    setSubranges((prev) => prev.map((sr, i) => i !== sri ? sr : { ...sr, variants: sr.variants.filter((_, j) => j !== vi) }));
   }, []);
 
   const updateVariantName = useCallback((sri: number, vi: number, name: string) => {
-    setSubranges((prev) => prev.map((sr, i) => {
-      if (i !== sri) return sr;
-      return { ...sr, variants: sr.variants.map((v, j) => (j === vi ? { ...v, name } : v)) };
-    }));
+    setSubranges((prev) => prev.map((sr, i) => i !== sri ? sr : { ...sr, variants: sr.variants.map((v, j) => j === vi ? { ...v, name } : v) }));
   }, []);
 
   const setShowAddLVPanel = useCallback((sri: number, vi: number, show: boolean) => {
-    setSubranges((prev) => prev.map((sr, i) => {
-      if (i !== sri) return sr;
-      return { ...sr, variants: sr.variants.map((v, j) => (j === vi ? { ...v, showAddLVPanel: show, pendingGeos: show ? v.pendingGeos : [] } : v)) };
+    setSubranges((prev) => prev.map((sr, i) => i !== sri ? sr : {
+      ...sr,
+      variants: sr.variants.map((v, j) => j === vi ? { ...v, showAddLVPanel: show, pendingGeos: show ? v.pendingGeos : [] } : v),
     }));
   }, []);
 
   const setPendingGeos = useCallback((sri: number, vi: number, geos: string[]) => {
-    setSubranges((prev) => prev.map((sr, i) => {
-      if (i !== sri) return sr;
-      return { ...sr, variants: sr.variants.map((v, j) => (j === vi ? { ...v, pendingGeos: geos } : v)) };
+    setSubranges((prev) => prev.map((sr, i) => i !== sri ? sr : {
+      ...sr,
+      variants: sr.variants.map((v, j) => j === vi ? { ...v, pendingGeos: geos } : v),
     }));
   }, []);
 
   const confirmAddLocalVariants = useCallback((sri: number, vi: number) => {
-    setSubranges((prev) => prev.map((sr, i) => {
-      if (i !== sri) return sr;
-      return {
-        ...sr,
-        variants: sr.variants.map((v, j) => {
-          if (j !== vi) return v;
-          const existingGeos = v.localVariants.map((lv) => lv.geography);
-          const newLVs = v.pendingGeos
-            .filter((g) => !existingGeos.includes(g))
-            .map((g) => makeDefaultLV(g));
-          return {
-            ...v,
-            localVariants: [...v.localVariants, ...newLVs],
-            pendingGeos: [],
-            showAddLVPanel: false,
-          };
-        }),
-      };
+    setSubranges((prev) => prev.map((sr, i) => i !== sri ? sr : {
+      ...sr,
+      variants: sr.variants.map((v, j) => {
+        if (j !== vi) return v;
+        const existingGeos = v.localVariants.map((lv) => lv.geography);
+        const newLVs = v.pendingGeos.filter((g) => !existingGeos.includes(g)).map((g) => makeDefaultLV(g));
+        return { ...v, localVariants: [...v.localVariants, ...newLVs], pendingGeos: [], showAddLVPanel: false };
+      }),
     }));
   }, []);
 
   // ── Local Variant ops ────────────────────────────────────────────────────
   const updateLV = useCallback((sri: number, vi: number, lvId: string, patch: Partial<LocalVariantRow>) => {
-    setSubranges((prev) => prev.map((sr, i) => {
-      if (i !== sri) return sr;
-      return {
-        ...sr,
-        variants: sr.variants.map((v, j) => {
-          if (j !== vi) return v;
-          return { ...v, localVariants: v.localVariants.map((lv) => (lv.id === lvId ? { ...lv, ...patch } : lv)) };
-        }),
-      };
+    setSubranges((prev) => prev.map((sr, i) => i !== sri ? sr : {
+      ...sr,
+      variants: sr.variants.map((v, j) => j !== vi ? v : {
+        ...v,
+        localVariants: v.localVariants.map((lv) => lv.id === lvId ? { ...lv, ...patch } : lv),
+      }),
     }));
   }, []);
 
   const removeLV = useCallback((sri: number, vi: number, lvId: string) => {
-    setSubranges((prev) => prev.map((sr, i) => {
-      if (i !== sri) return sr;
-      return {
-        ...sr,
-        variants: sr.variants.map((v, j) => {
-          if (j !== vi) return v;
-          return { ...v, localVariants: v.localVariants.filter((lv) => lv.id !== lvId) };
-        }),
-      };
+    setSubranges((prev) => prev.map((sr, i) => i !== sri ? sr : {
+      ...sr,
+      variants: sr.variants.map((v, j) => j !== vi ? v : {
+        ...v,
+        localVariants: v.localVariants.filter((lv) => lv.id !== lvId),
+      }),
     }));
   }, []);
 
@@ -502,8 +409,7 @@ export default function CreateProductModal({
         const vName = getCompoundName(parentName, v.name.trim());
         listToCreate.push({
           id: vId, name: vName, levelName: v.name.trim(), type: "Variant",
-          parentId, parentName,
-          geographies: v.localVariants.map((lv) => lv.geography).filter(Boolean),
+          parentId, parentName, geographies: v.localVariants.map((lv) => lv.geography).filter(Boolean),
           category: selectedFormat.category, businessGroup: selectedFormat.businessGroup,
           brand: selectedFormat.brand, createdBy: "Sarah Johnson", createdDate: nowStr, isFavorite: false,
         });
@@ -512,8 +418,7 @@ export default function CreateProductModal({
           listToCreate.push({
             id: lvId, name: getCompoundName(vName, lv.geography.substring(0, 2).toUpperCase()),
             levelName: lv.geography.substring(0, 2).toUpperCase(), type: "Local Variant",
-            parentId: vId, parentName: vName,
-            geographies: [lv.geography], cucSpecNumber: lv.cucCode,
+            parentId: vId, parentName: vName, geographies: [lv.geography], cucSpecNumber: lv.cucCode,
             category: selectedFormat.category, businessGroup: selectedFormat.businessGroup,
             brand: selectedFormat.brand, createdBy: "Sarah Johnson", createdDate: nowStr, isFavorite: false,
           });
@@ -548,12 +453,9 @@ export default function CreateProductModal({
   const existingSubranges = selectedFormatId ? getExistingSubranges(selectedFormatId) : [];
   const existingVariants = selectedFormatId ? getExistingVariants(selectedFormatId) : [];
 
-  // ── Render helper for variants section ─────────────────────────────────────
-  // Variants are laid out HORIZONTALLY (flex row, overflow-x-auto).
-  // Local variants are stacked VERTICALLY inside each variant column.
+  // ── Render helper: Variant columns with compact LV rows ────────────────
   const renderVariantsSection = (sri: number, variants: VariantEntry[], useSri: number) => (
-    <div className="flex items-stretch gap-4 overflow-x-auto pb-2 no-scrollbar">
-      {/* Existing Variant Columns */}
+    <div className="flex items-start gap-3 overflow-x-auto pb-2 no-scrollbar">
       {variants.map((vt, vi) => {
         const allUsedGeos = vt.localVariants.map((lv) => lv.geography);
         const availableForPending = ALL_GEOGRAPHIES.filter((g) => !allUsedGeos.includes(g));
@@ -561,246 +463,238 @@ export default function CreateProductModal({
         return (
           <div
             key={vt.id}
-            className="flex-shrink-0 w-[280px] flex flex-col border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-sm animate-fadeInUp"
+            className="flex-shrink-0 w-[256px] flex flex-col rounded-xl border border-gray-200 bg-white animate-fadeInUp"
+            style={{ boxShadow: "0 1px 4px 0 rgba(0,0,0,0.05)" }}
           >
-            {/* Variant Column Header */}
-            <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200 flex-shrink-0">
-              <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-sky/10 text-sky text-[10px] font-black flex items-center justify-center flex-shrink-0">
-                  V{vi + 1}
-                </span>
-                <span className="text-xs font-bold text-night uppercase tracking-wider">Variant {vi + 1}</span>
+            {/* ── Variant Header (no heavy band — just a clean top row) ── */}
+            <div className="flex items-center gap-2 px-3 py-2.5 border-b border-gray-100">
+              <span className="w-5 h-5 rounded-md bg-sky/10 text-sky text-[9px] font-black flex items-center justify-center flex-shrink-0 leading-none">
+                V{vi + 1}
+              </span>
+              <div className="flex-1 min-w-0">
+                <AutocompleteInput
+                  value={vt.name}
+                  onChange={(val) => updateVariantName(useSri, vi, val)}
+                  suggestions={existingVariants}
+                  placeholder="Variant name..."
+                />
               </div>
               <button
                 type="button"
                 onClick={() => removeVariant(useSri, vi)}
-                className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 transition-colors cursor-pointer flex-shrink-0"
+                className="p-1 hover:bg-red-50 rounded-md text-gray-300 hover:text-red-400 transition-colors cursor-pointer flex-shrink-0"
                 title="Remove Variant"
               >
                 <Trash2 className="w-3 h-3" />
               </button>
             </div>
 
-            {/* Variant Column Body — scrollable vertically */}
-            <div className="flex-1 overflow-y-auto no-scrollbar px-4 py-4 space-y-4">
-              {/* Variant Name */}
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Variant Name *</label>
-                <AutocompleteInput
-                  value={vt.name}
-                  onChange={(val) => updateVariantName(useSri, vi, val)}
-                  suggestions={existingVariants}
-                  placeholder="Enter variant name..."
-                />
-              </div>
+            {/* ── Local Variants: compact table rows ── */}
+            {vt.localVariants.length > 0 && (
+              <div>
+                {/* LV section label */}
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50/60 border-b border-emerald-100/80">
+                  <Globe2 className="w-2.5 h-2.5 text-emerald-500 flex-shrink-0" />
+                  <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider flex-1">Local Variants</span>
+                  <span className="text-[9px] font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded">
+                    {vt.localVariants.length}
+                  </span>
+                </div>
 
-              {/* Local Variants — stacked vertically with internal scroll (1 LV visible) */}
-              {vt.localVariants.length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1.5 pt-1">
-                    <Globe2 className="w-3 h-3 text-gray-400" />
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Local Variants</span>
-                    <span className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-bold ml-auto">{vt.localVariants.length}</span>
-                  </div>
-
-                  {/* Scrollable container — ~1 LV visible, rest scroll with hidden bar */}
-                  <div className="overflow-y-auto no-scrollbar space-y-2" style={{ maxHeight: "148px" }}>
+                {/* Scrollable LV rows */}
+                <div className="overflow-y-scroll" style={{ maxHeight: "176px", scrollbarWidth: "thin", scrollbarColor: "#e5e7eb transparent" }}>
                   {vt.localVariants.map((lv, lvi) => (
-                    <div key={lv.id} className="border border-gray-100 rounded-xl overflow-hidden bg-gray-50/50">
-                      {/* LV Geography Header */}
-                      <div className="flex items-center justify-between px-3 py-2 bg-white border-b border-gray-100">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="w-4 h-4 rounded bg-gray-100 text-gray-500 text-[8px] font-black flex items-center justify-center flex-shrink-0">
-                            {lvi + 1}
-                          </span>
-                          <Globe2 className="w-3 h-3 text-gray-400 flex-shrink-0" />
-                          <span className="text-xs font-semibold text-night truncate">{lv.geography}</span>
-                        </div>
+                    <div
+                      key={lv.id}
+                      className="group flex items-center gap-1.5 px-3 py-2 border-b border-gray-50 last:border-b-0 hover:bg-gray-50/70 transition-colors"
+                    >
+                      {/* Row number */}
+                      <span className="text-[9px] font-bold text-gray-300 w-3 flex-shrink-0 text-right">{lvi + 1}</span>
+
+                      {/* Geography */}
+                      <span className="text-[11px] font-semibold text-night flex-1 truncate min-w-0">{lv.geography}</span>
+
+                      {/* CUC input */}
+                      <div className="relative flex-shrink-0">
+                        <input
+                          type="text"
+                          value={lv.cucCode}
+                          onChange={(e) => updateLV(useSri, vi, lv.id, { cucCode: e.target.value })}
+                          placeholder="CUC"
+                          className={`w-[72px] text-[10px] px-2 py-1 border rounded-md font-medium focus:outline-none focus:ring-1 text-night placeholder:text-gray-300 transition-all ${
+                            lv.cucCode
+                              ? "border-emerald-300 bg-emerald-50/50 focus:border-emerald-400 focus:ring-emerald-400/20"
+                              : "border-gray-200 bg-white focus:border-sky focus:ring-sky/20"
+                          }`}
+                        />
+                        {lv.cucCode && (
+                          <Check className="absolute right-1.5 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-emerald-500 pointer-events-none" />
+                        )}
+                      </div>
+
+                      {/* Doc action: icon shows attached/not */}
+                      {lv.formulationDoc ? (
                         <button
                           type="button"
-                          onClick={() => removeLV(useSri, vi, lv.id)}
-                          className="p-1 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 transition-colors cursor-pointer flex-shrink-0 ml-1"
+                          onClick={() => updateLV(useSri, vi, lv.id, { formulationDoc: null })}
+                          title={lv.formulationDoc}
+                          className="p-1 bg-blue-50 hover:bg-red-50 border border-blue-100 hover:border-red-100 rounded-md text-blue-400 hover:text-red-400 transition-all cursor-pointer flex-shrink-0"
                         >
-                          <X className="w-2.5 h-2.5" />
+                          <FileText className="w-3 h-3" />
                         </button>
-                      </div>
-
-                      {/* LV Fields */}
-                      <div className="px-3 py-2.5 space-y-2.5">
-                        {/* CUC Code */}
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">CUC / Composition Code</label>
-                          <div className="relative flex items-center">
-                            <input
-                              type="text"
-                              value={lv.cucCode}
-                              onChange={(e) => updateLV(useSri, vi, lv.id, { cucCode: e.target.value })}
-                              placeholder="e.g. CUC-DOVE-IN-001"
-                              className={`w-full pl-2.5 pr-8 py-1.5 border rounded-lg text-[11px] font-medium focus:outline-none focus:ring-1 text-night placeholder:text-gray-400 placeholder:font-normal transition-all ${
-                                lv.cucCode
-                                  ? "border-green-400 bg-green-50/30 focus:border-green-500 focus:ring-green-400/20"
-                                  : "border-gray-200 bg-white focus:border-sky focus:ring-sky/20"
-                              }`}
-                            />
-                            {lv.cucCode && (
-                              <Check className="absolute right-2 w-3 h-3 text-green-500 pointer-events-none" />
-                            )}
-                          </div>
+                      ) : (
+                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => updateLV(useSri, vi, lv.id, { formulationDoc: `Formulation_${lv.geography.replace(/\s+/g, "_")}_Spec_v1.pdf` })}
+                            title="Upload document"
+                            className="p-1 hover:bg-gray-100 rounded-md text-gray-300 hover:text-sky transition-colors cursor-pointer"
+                          >
+                            <Upload className="w-2.5 h-2.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateLV(useSri, vi, lv.id, { formulationDoc: `Library_Doc_${lv.geography.replace(/\s+/g, "_")}.pdf` })}
+                            title="Link from library"
+                            className="p-1 hover:bg-gray-100 rounded-md text-gray-300 hover:text-sky transition-colors cursor-pointer"
+                          >
+                            <Link2 className="w-2.5 h-2.5" />
+                          </button>
                         </div>
+                      )}
 
-                        {/* Formulation Document */}
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Formulation Document</label>
-                          {lv.formulationDoc ? (
-                            <div className="flex items-center gap-1.5 p-2 bg-blue-50/50 border border-blue-200 rounded-lg">
-                              <FileText className="w-3 h-3 text-blue-500 flex-shrink-0" />
-                              <span className="text-[10px] font-medium text-blue-700 flex-1 truncate">{lv.formulationDoc}</span>
-                              <button
-                                type="button"
-                                onClick={() => updateLV(useSri, vi, lv.id, { formulationDoc: null })}
-                                className="text-blue-400 hover:text-red-500 transition-colors cursor-pointer flex-shrink-0"
-                              >
-                                <X className="w-2.5 h-2.5" />
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="flex gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const mockDoc = `Formulation_${lv.geography.replace(/\s+/g, "_")}_Spec_v1.pdf`;
-                                  updateLV(useSri, vi, lv.id, { formulationDoc: mockDoc });
-                                }}
-                                className="flex-1 flex items-center justify-center gap-1 py-1.5 border border-dashed border-gray-300 hover:border-sky/60 rounded-lg text-[9px] font-bold text-gray-500 hover:text-sky hover:bg-sky/5 transition-all bg-white cursor-pointer"
-                              >
-                                <Upload className="w-2.5 h-2.5" />
-                                Upload
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const mockDoc = `Library_Doc_${lv.geography.replace(/\s+/g, "_")}.pdf`;
-                                  updateLV(useSri, vi, lv.id, { formulationDoc: mockDoc });
-                                }}
-                                className="flex-1 flex items-center justify-center gap-1 py-1.5 border border-dashed border-gray-300 hover:border-sky/60 rounded-lg text-[9px] font-bold text-gray-500 hover:text-sky hover:bg-sky/5 transition-all bg-white cursor-pointer"
-                              >
-                                <Link2 className="w-2.5 h-2.5" />
-                                Library
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                      {/* Remove */}
+                      <button
+                        type="button"
+                        onClick={() => removeLV(useSri, vi, lv.id)}
+                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded-md text-gray-300 hover:text-red-400 transition-all cursor-pointer flex-shrink-0"
+                      >
+                        <X className="w-2.5 h-2.5" />
+                      </button>
                     </div>
                   ))}
-                  </div>{/* end scroll wrapper */}
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Add Local Variant Panel */}
-              {vt.showAddLVPanel ? (
-                <div className="border border-sky/30 rounded-xl bg-sky/5 p-3 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-sky uppercase tracking-wider">Select Geographies</span>
-                    <button
-                      type="button"
-                      onClick={() => setShowAddLVPanel(useSri, vi, false)}
-                      className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                  <MultiGeoSelector
-                    selected={vt.pendingGeos}
-                    onChange={(geos) => setPendingGeos(useSri, vi, geos)}
-                    usedGeos={allUsedGeos}
-                  />
-                  <div className="flex gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setShowAddLVPanel(useSri, vi, false)}
-                      className="flex-1 py-1.5 border border-gray-200 rounded-lg text-[10px] font-bold text-gray-500 hover:bg-gray-50 transition-all cursor-pointer bg-white"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      disabled={vt.pendingGeos.length === 0}
-                      onClick={() => confirmAddLocalVariants(useSri, vi)}
-                      className="flex-1 py-1.5 bg-sky text-white rounded-lg text-[10px] font-bold hover:bg-dark disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
-                    >
-                      Add {vt.pendingGeos.length > 0 ? `${vt.pendingGeos.length} ` : ""}LV{vt.pendingGeos.length !== 1 ? "s" : ""}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                availableForPending.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setShowAddLVPanel(useSri, vi, true)}
-                    className="w-full flex items-center justify-center gap-1.5 py-2 border border-dashed border-gray-200 hover:border-sky/50 rounded-xl text-[10px] font-bold text-gray-400 hover:text-sky hover:bg-sky/5 transition-all bg-white cursor-pointer"
-                  >
-                    <Plus className="w-3 h-3" />
-                    Add Local Variant
+            {/* ── Add LV Panel or Button ── */}
+            {vt.showAddLVPanel ? (
+              <div className="border-t border-gray-100 p-3 space-y-2.5 bg-sky/5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-sky uppercase tracking-wider">Select Geographies</span>
+                  <button type="button" onClick={() => setShowAddLVPanel(useSri, vi, false)}
+                    className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
+                    <X className="w-3 h-3" />
                   </button>
-                )
-              )}
-            </div>
+                </div>
+                <MultiGeoSelector
+                  selected={vt.pendingGeos}
+                  onChange={(geos) => setPendingGeos(useSri, vi, geos)}
+                  usedGeos={allUsedGeos}
+                />
+                <div className="flex gap-1.5">
+                  <button type="button" onClick={() => setShowAddLVPanel(useSri, vi, false)}
+                    className="flex-1 py-1.5 border border-gray-200 rounded-lg text-[10px] font-bold text-gray-500 hover:bg-gray-50 transition-all cursor-pointer bg-white">
+                    Cancel
+                  </button>
+                  <button type="button" disabled={vt.pendingGeos.length === 0}
+                    onClick={() => confirmAddLocalVariants(useSri, vi)}
+                    className="flex-1 py-1.5 bg-sky text-white rounded-lg text-[10px] font-bold hover:bg-dark disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer">
+                    Add {vt.pendingGeos.length > 0 ? `${vt.pendingGeos.length} ` : ""}LV{vt.pendingGeos.length !== 1 ? "s" : ""}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              availableForPending.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAddLVPanel(useSri, vi, true)}
+                  className="w-full flex items-center justify-center gap-1.5 py-2.5 border-t border-gray-100 text-[10px] font-bold text-gray-400 hover:text-emerald-600 hover:bg-emerald-50/40 transition-all bg-transparent cursor-pointer"
+                >
+                  <Plus className="w-3 h-3" />
+                  Add Local Variant
+                </button>
+              )
+            )}
           </div>
         );
       })}
 
-      {/* Add Variant — as a column card at the end */}
+      {/* ── Add Variant card ── */}
       <button
         type="button"
         onClick={() => addVariant(useSri)}
-        className="flex-shrink-0 w-[200px] self-stretch min-h-[180px] border-2 border-dashed border-gray-200 hover:border-sky/40 rounded-2xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-sky hover:bg-sky/5 transition-all bg-white cursor-pointer"
+        className="flex-shrink-0 w-[180px] self-stretch min-h-[120px] border-2 border-dashed border-gray-200 hover:border-sky/40 rounded-xl flex flex-col items-center justify-center gap-2 text-gray-300 hover:text-sky hover:bg-sky/5 transition-all bg-white cursor-pointer"
       >
         <Plus className="w-5 h-5" />
-        <span className="text-xs font-bold uppercase tracking-wider">Add Variant</span>
+        <span className="text-[11px] font-bold uppercase tracking-wider">Add Variant</span>
       </button>
     </div>
   );
 
+  // ─── Level breadcrumb strip ─────────────────────────────────────────────
+  const LEVELS = [
+    { label: "Format",        bg: "bg-night/10",       text: "text-night",      dot: "bg-night"        },
+    { label: "Subrange",      bg: "bg-violet-100",     text: "text-violet-700", dot: "bg-violet-500"   },
+    { label: "Variant",       bg: "bg-sky/10",         text: "text-sky",        dot: "bg-sky"          },
+    { label: "Local Variant", bg: "bg-emerald-100",    text: "text-emerald-700",dot: "bg-emerald-500"  },
+  ];
+
   return (
     <>
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&display=swap');
+        .cpmodal * { font-family: 'DM Sans', sans-serif !important; }
         .no-scrollbar::-webkit-scrollbar { display: none !important; }
         .no-scrollbar { -ms-overflow-style: none !important; scrollbar-width: none !important; }
         @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(8px); }
-          to { opacity: 1; transform: translateY(0); }
+          from { opacity: 0; transform: translateY(6px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
-        .animate-fadeInUp { animation: fadeInUp 0.2s ease-out; }
+        .animate-fadeInUp { animation: fadeInUp 0.18s ease-out; }
       `}</style>
-      <div className="fixed inset-0 top-[56px] z-45 flex flex-col bg-white overflow-hidden text-night">
 
-        {/* ── Header ────────────────────────────────────────────────────── */}
-        <div className="flex-shrink-0 border-b border-gray-200 bg-white">
-          <div className="px-6 py-4 flex items-center justify-between gap-6">
+      <div className="cpmodal fixed inset-0 top-[56px] z-45 flex flex-col bg-[#F7F8FA] overflow-hidden text-night">
+
+        {/* ── Header ─────────────────────────────────────────────────────── */}
+        <div className="flex-shrink-0 bg-white border-b border-gray-200">
+          {/* Top row */}
+          <div className="px-6 py-3.5 flex items-center gap-4">
+            {/* Title */}
             <div className="flex items-center gap-2.5 flex-shrink-0">
-              <Layers className="w-4 h-4 text-sky" />
+              <div className="w-7 h-7 rounded-lg bg-sky/10 flex items-center justify-center flex-shrink-0">
+                <Layers className="w-4 h-4 text-sky" />
+              </div>
               <div>
-                <h2 className="text-night text-sm font-extrabold whitespace-nowrap">Create New Product</h2>
-                <p className="text-[10px] text-gray-400 font-medium">Define sub-ranges, variants &amp; local variants</p>
+                <h2 className="text-sm font-extrabold text-night leading-none">Create Product</h2>
+                <p className="text-[10px] text-gray-400 mt-0.5 font-medium">Bulk hierarchy builder</p>
               </div>
             </div>
 
+            <div className="w-px h-8 bg-gray-200 flex-shrink-0" />
+
             {/* Format selector */}
-            <div ref={formatDropRef} className="relative flex items-center gap-2.5">
-              <span className="text-[10px] text-gray-500 font-extrabold uppercase tracking-wider whitespace-nowrap">Format</span>
-              <button type="button" onClick={() => setFormatDropOpen((o) => !o)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm transition-all min-w-[200px] ${
-                  selectedFormat ? "border-gray-300 bg-white text-night font-semibold" : "border-dashed border-gray-300 text-gray-400 font-medium hover:border-gray-400"
-                }`}>
+            <div ref={formatDropRef} className="relative flex items-center gap-2 flex-shrink-0">
+              <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider whitespace-nowrap">Format</span>
+              <button
+                type="button"
+                onClick={() => setFormatDropOpen((o) => !o)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-all ${
+                  selectedFormat
+                    ? "border-gray-200 bg-white text-night font-semibold shadow-sm"
+                    : "border-dashed border-gray-300 text-gray-400 font-medium hover:border-gray-400 bg-white"
+                }`}
+                style={{ minWidth: "190px" }}
+              >
                 <Layers className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
                 <span className="truncate flex-1 text-left text-sm">{selectedFormat ? selectedFormat.name : "Select Format"}</span>
                 <ChevronDown className={`w-3.5 h-3.5 text-gray-400 flex-shrink-0 transition-transform ${formatDropOpen ? "rotate-180" : ""}`} />
               </button>
               {formatDropOpen && (
-                <div className="absolute left-[80px] top-full mt-1.5 bg-white border border-gray-200 rounded-xl shadow-xl z-50 w-72 max-h-52 overflow-y-auto py-1.5">
+                <div className="absolute left-[90px] top-full mt-1.5 bg-white border border-gray-200 rounded-xl shadow-xl z-50 w-72 max-h-52 overflow-y-auto py-1.5">
                   {FORMAT_OPTIONS.map((f) => (
-                    <button key={f.id} type="button" onClick={() => { setSelectedFormatId(f.id); setFormatDropOpen(false); }}
+                    <button key={f.id} type="button"
+                      onClick={() => { setSelectedFormatId(f.id); setFormatDropOpen(false); }}
                       className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors flex flex-col gap-0.5 ${selectedFormatId === f.id ? "bg-sky/5 text-sky font-semibold" : "text-night font-medium"}`}>
                       <span className="truncate">{f.name}</span>
                       <span className="text-[10px] text-gray-400">{f.brand} · {f.levelName}</span>
@@ -811,112 +705,132 @@ export default function CreateProductModal({
             </div>
 
             {/* Business Group */}
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider whitespace-nowrap">Business Group</span>
-              <span className={`text-xs font-semibold px-3 py-1.5 rounded-xl border ${selectedFormat ? "bg-gray-50 border-gray-200 text-night" : "bg-white border-dashed border-gray-200 text-gray-300 italic"}`}>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider whitespace-nowrap">BG</span>
+              <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg ${selectedFormat ? "bg-gray-100 text-night" : "bg-white border border-dashed border-gray-200 text-gray-300 italic"}`}>
                 {selectedFormat ? selectedFormat.businessGroup : "—"}
               </span>
             </div>
 
             {/* Category */}
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider whitespace-nowrap">Category</span>
-              <span className={`text-xs font-semibold px-3 py-1.5 rounded-xl border ${selectedFormat ? "bg-gray-50 border-gray-200 text-night" : "bg-white border-dashed border-gray-200 text-gray-300 italic"}`}>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider whitespace-nowrap">Category</span>
+              <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg ${selectedFormat ? "bg-gray-100 text-night" : "bg-white border border-dashed border-gray-200 text-gray-300 italic"}`}>
                 {selectedFormat ? selectedFormat.category : "—"}
               </span>
             </div>
 
             <div className="flex items-center gap-2 ml-auto flex-shrink-0">
               {onSwitchToSearch && (
-                <button onClick={onSwitchToSearch} className="px-4 py-2 border border-gray-200 text-xs text-gray-500 hover:text-night hover:bg-gray-50 rounded-xl transition-all font-bold bg-white cursor-pointer">
+                <button onClick={onSwitchToSearch}
+                  className="px-3.5 py-2 border border-gray-200 text-xs text-gray-500 hover:text-night hover:bg-gray-50 rounded-lg transition-all font-bold bg-white cursor-pointer">
                   Search Library
                 </button>
               )}
-              <button onClick={handleClose} className="p-2 hover:bg-gray-50 rounded-xl text-gray-400 hover:text-night transition-colors border border-gray-200 bg-white cursor-pointer">
+              <button onClick={handleClose}
+                className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-night transition-colors cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
           </div>
+
+          {/* Level indicator breadcrumb */}
+          <div className="px-6 pb-3 flex items-center gap-1">
+            {LEVELS.map((lvl, i) => (
+              <div key={lvl.label} className="flex items-center gap-1">
+                {i > 0 && <ChevronRight className="w-3 h-3 text-gray-300 flex-shrink-0" />}
+                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md ${lvl.bg}`}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${lvl.dot} flex-shrink-0`} />
+                  <span className={`text-[10px] font-bold ${lvl.text} whitespace-nowrap`}>{lvl.label}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* ── Body: 70% workspace | 30% hierarchy ───────────────────────── */}
-        <div className="flex-1 flex min-h-0 overflow-hidden bg-gray-50/30">
-          {/* Left: Creation Workspace (70%) */}
+        <div className="flex-1 flex min-h-0 overflow-hidden">
+
+          {/* ── Left: Creation Workspace (70%) ── */}
           <div className="flex flex-col overflow-hidden border-r border-gray-200" style={{ width: "70%" }}>
             {!selectedFormat ? (
               <div className="flex-1 flex flex-col items-center justify-center gap-4 text-gray-400 p-8">
-                <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center">
-                  <Layers className="w-8 h-8 text-gray-300" />
+                <div className="w-16 h-16 rounded-2xl bg-white border-2 border-dashed border-gray-200 flex items-center justify-center">
+                  <Layers className="w-7 h-7 text-gray-300" />
                 </div>
                 <div className="text-center space-y-1.5">
                   <p className="text-sm font-bold text-night">Select a Format to begin</p>
-                  <p className="text-xs text-gray-400 max-w-sm mx-auto leading-relaxed">Choose a format from the dropdown above to start creating subranges, variants, and local variants.</p>
+                  <p className="text-xs text-gray-400 max-w-xs mx-auto leading-relaxed">
+                    Choose a format from the dropdown above to start building your product hierarchy.
+                  </p>
                 </div>
               </div>
             ) : (
-              <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
+              <div className="flex-1 overflow-y-auto no-scrollbar p-5 space-y-5">
 
-                {/* Add Subrange Toggle */}
-                <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-gray-200 w-fit shadow-sm">
-                  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Add Subrange?</span>
-                  <div className="flex items-center gap-4 px-3 py-1 rounded-lg bg-gray-50 border border-gray-200">
-                    <label className="flex items-center gap-1.5 cursor-pointer text-xs text-night font-bold select-none">
-                      <input type="radio" name="addSubrangeRadio" checked={addSubrangeOpted}
-                        onChange={() => setAddSubrangeOpted(true)}
-                        className="accent-sky cursor-pointer" />
-                      Yes
-                    </label>
-                    <label className="flex items-center gap-1.5 cursor-pointer text-xs text-night font-bold select-none">
-                      <input type="radio" name="addSubrangeRadio" checked={!addSubrangeOpted}
-                        onChange={() => setAddSubrangeOpted(false)}
-                        className="accent-sky cursor-pointer" />
-                      No
-                    </label>
+                {/* ── Add Subrange toggle ── */}
+                <div className="flex items-center gap-3">
+                  <span className="text-[11px] font-extrabold text-gray-500 uppercase tracking-wider">Include Subranges?</span>
+                  <div className="flex items-center bg-white border border-gray-200 rounded-lg p-0.5 gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setAddSubrangeOpted(true)}
+                      className={`px-3.5 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${addSubrangeOpted ? "bg-night text-white shadow-sm" : "text-gray-400 hover:text-gray-600"}`}
+                    >Yes</button>
+                    <button
+                      type="button"
+                      onClick={() => setAddSubrangeOpted(false)}
+                      className={`px-3.5 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${!addSubrangeOpted ? "bg-night text-white shadow-sm" : "text-gray-400 hover:text-gray-600"}`}
+                    >No</button>
                   </div>
                 </div>
 
                 <div className="border-t border-gray-100" />
 
-                {/* Subranges or direct variants */}
+                {/* ── Subranges or direct variants ── */}
                 {addSubrangeOpted ? (
-                  <div className="space-y-6">
+                  <div className="space-y-5">
                     {subranges.map((sr, sri) => (
-                      <div key={sr.id} className="animate-fadeInUp">
-                        {/* Subrange Container */}
-                        <div className="border border-gray-200 rounded-2xl bg-white shadow-sm overflow-hidden">
-                          {/* Subrange Header */}
-                          <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 bg-gray-50/60">
-                            <span className="w-7 h-7 rounded-xl bg-violet-50 border border-violet-100 text-violet-600 text-[10px] font-black flex items-center justify-center flex-shrink-0">
-                              SR{sri + 1}
-                            </span>
-                            <div className="flex-1">
-                              <AutocompleteInput
-                                value={sr.name}
-                                onChange={(val) => updateSubrangeName(sri, val)}
-                                suggestions={existingSubranges}
-                                placeholder="Enter sub range name..."
-                                className="flex-1"
-                              />
-                            </div>
-                            {subranges.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => removeSubrange(sri)}
-                                className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 transition-colors border border-gray-200 bg-white cursor-pointer flex-shrink-0"
-                                title="Remove Subrange"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
+                      <div
+                        key={sr.id}
+                        className="animate-fadeInUp pl-4 border-l-2 border-violet-200 space-y-3"
+                      >
+                        {/* SR name row */}
+                        <div className="flex items-center gap-3">
+                          <span className="w-6 h-6 rounded-md bg-violet-100 text-violet-600 text-[10px] font-black flex items-center justify-center flex-shrink-0 leading-none">
+                            S{sri + 1}
+                          </span>
+                          <div className="flex-1">
+                            <AutocompleteInput
+                              value={sr.name}
+                              onChange={(val) => updateSubrangeName(sri, val)}
+                              suggestions={existingSubranges}
+                              placeholder="Sub range name..."
+                            />
                           </div>
-
-                          {/* Subrange Body: Variants */}
-                          <div className="p-5">
-                            {renderVariantsSection(sri, sr.variants, sri)}
-                          </div>
+                          {subranges.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeSubrange(sri)}
+                              className="p-1.5 hover:bg-red-50 rounded-lg text-gray-300 hover:text-red-400 transition-colors cursor-pointer flex-shrink-0"
+                              title="Remove Subrange"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
 
-                        {sri < subranges.length - 1 && <div className="border-t border-gray-100 mt-6" />}
+                        {/* Variants indented */}
+                        <div className="ml-9">
+                          {/* Variants label */}
+                          <div className="flex items-center gap-1.5 mb-2.5">
+                            <Beaker className="w-3 h-3 text-gray-300" />
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Variants</span>
+                          </div>
+                          {renderVariantsSection(sri, sr.variants, sri)}
+                        </div>
+
+                        {sri < subranges.length - 1 && <div className="border-t border-gray-100 pt-1" />}
                       </div>
                     ))}
 
@@ -924,15 +838,18 @@ export default function CreateProductModal({
                     <button
                       type="button"
                       onClick={addSubrange}
-                      className="flex items-center gap-2 px-4 py-2.5 border border-dashed border-gray-300 hover:border-sky/50 rounded-xl text-sm font-bold text-gray-400 hover:text-sky hover:bg-sky/5 transition-all bg-white cursor-pointer"
+                      className="flex items-center gap-2 px-4 py-2 border border-dashed border-gray-200 hover:border-violet-300 rounded-lg text-xs font-bold text-gray-400 hover:text-violet-600 hover:bg-violet-50/50 transition-all bg-white cursor-pointer ml-4"
                     >
-                      <Plus className="w-4 h-4" />
+                      <Plus className="w-3.5 h-3.5" />
                       Add Subrange
                     </button>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Variants for {formatName}</p>
+                  <div className="space-y-2.5">
+                    <div className="flex items-center gap-1.5">
+                      <Beaker className="w-3 h-3 text-gray-300" />
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Variants for {formatName}</span>
+                    </div>
                     {renderVariantsSection(0, subranges[0]?.variants ?? [], 0)}
                   </div>
                 )}
@@ -940,13 +857,13 @@ export default function CreateProductModal({
             )}
           </div>
 
-          {/* Right: Hierarchy Preview (30%) */}
+          {/* ── Right: Hierarchy Preview (30%) ── */}
           <div className="flex-shrink-0 flex flex-col bg-white" style={{ width: "30%" }}>
-            <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 flex items-center gap-2">
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2 bg-gray-50/60">
               <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
-              <span className="text-[10px] font-extrabold text-night uppercase tracking-wider">Hierarchy Preview</span>
+              <span className="text-[10px] font-extrabold text-gray-500 uppercase tracking-wider">Hierarchy Preview</span>
             </div>
-            <div className="flex-1 overflow-hidden flex flex-col px-4 py-3 bg-white">
+            <div className="flex-1 overflow-hidden flex flex-col px-3 py-3">
               <HierarchyView
                 formatName={formatName}
                 addSubrangeOpted={addSubrangeOpted}
@@ -956,48 +873,53 @@ export default function CreateProductModal({
           </div>
         </div>
 
-        {/* ── Footer ────────────────────────────────────────────────────── */}
-        <div className="flex-shrink-0 border-t border-gray-200 bg-white px-6 py-4 flex items-center justify-between gap-3 z-20">
-          <div className="flex items-center gap-3 ml-auto">
-            <button type="button" onClick={onNavigateToSKU}
-              className="flex items-center gap-1.5 px-5 py-2.5 border border-gray-200 text-gray-500 hover:text-night bg-white hover:bg-gray-50 rounded-xl text-sm font-bold transition-all cursor-pointer">
-              <Tag className="w-3.5 h-3.5" />
-              Create SKU
-            </button>
-            <button type="button" onClick={handleCreateProduct} disabled={!selectedFormat}
-              className="flex items-center gap-1.5 px-6 py-2.5 bg-sky text-white rounded-xl text-sm font-bold hover:bg-dark disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md shadow-sky/20 active:scale-95 cursor-pointer">
-              <Check className="w-3.5 h-3.5 text-white" />
-              Create Product
-            </button>
-          </div>
+        {/* ── Footer ─────────────────────────────────────────────────────── */}
+        <div className="flex-shrink-0 border-t border-gray-200 bg-white px-6 py-3.5 flex items-center justify-end gap-2.5">
+          <button
+            type="button"
+            onClick={onNavigateToSKU}
+            className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 text-gray-500 hover:text-night bg-white hover:bg-gray-50 rounded-lg text-xs font-bold transition-all cursor-pointer"
+          >
+            <Tag className="w-3.5 h-3.5" />
+            Create SKU
+          </button>
+          <button
+            type="button"
+            onClick={handleCreateProduct}
+            disabled={!selectedFormat}
+            className="flex items-center gap-1.5 px-5 py-2 bg-sky text-white rounded-lg text-xs font-bold hover:bg-dark disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm shadow-sky/20 active:scale-95 cursor-pointer"
+          >
+            <Check className="w-3.5 h-3.5" />
+            Create Product
+          </button>
         </div>
       </div>
 
-      {/* Cancel Confirmation Popup */}
+      {/* ── Cancel Confirmation Dialog ────────────────────────────────── */}
       {showCancelConfirm && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
           <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl p-6 max-w-sm w-full">
             <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 bg-red-50 text-red-500 rounded-xl">
-                <AlertTriangle className="w-5 h-5" />
+              <div className="p-2 bg-red-50 text-red-500 rounded-xl flex-shrink-0">
+                <AlertTriangle className="w-4 h-4" />
               </div>
               <h3 className="text-night font-bold text-sm">Discard changes?</h3>
             </div>
             <p className="text-xs text-gray-500 leading-relaxed">
               You have unsaved product details. Are you sure you want to close without saving?
             </p>
-            <div className="flex gap-2 justify-end mt-6">
+            <div className="flex gap-2 justify-end mt-5">
               <button
                 onClick={() => setShowCancelConfirm(false)}
-                className="px-4 py-2.5 border border-gray-200 text-gray-500 hover:text-night hover:bg-gray-50 font-bold rounded-xl text-xs transition-colors cursor-pointer bg-white"
+                className="px-4 py-2 border border-gray-200 text-gray-500 hover:text-night hover:bg-gray-50 font-bold rounded-lg text-xs transition-colors cursor-pointer bg-white"
               >
-                No, Keep Editing
+                Keep Editing
               </button>
               <button
                 onClick={resetAndClose}
-                className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg text-xs transition-colors cursor-pointer"
               >
-                Yes, Discard
+                Discard
               </button>
             </div>
           </div>
