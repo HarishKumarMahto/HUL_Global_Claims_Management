@@ -15,14 +15,14 @@ const MOCK_PRODUCTS = [
 ];
 
 const MOCK_AVAILABLE_CLAIMS = [
-  { id: 'ac-1', text: 'Clinically proven to moisturize' },
-  { id: 'ac-2', text: 'Dermatologist recommended' },
-  { id: 'ac-3', text: 'Leaves skin feeling soft' },
+  { id: 'ac-1', text: 'Clinically proven to moisturize', product: 'Dove Intensive Repair', marketingChannel: 'Digital', lifecycleStage: 'Approved' },
+  { id: 'ac-2', text: 'Dermatologist recommended', product: 'Dove Advanced Serum', marketingChannel: 'TV', lifecycleStage: 'Published' },
+  { id: 'ac-3', text: 'Leaves skin feeling soft', product: 'Dove Body Wash', marketingChannel: 'All Channels', lifecycleStage: 'Draft' },
 ];
 
 const MOCK_SOURCE_CLAIMS = [
-  { id: 'sc-1', text: '24 hour hydration', source: 'Parent Product A' },
-  { id: 'sc-2', text: 'pH balanced formula', source: 'Parent Product B' },
+  { id: 'sc-1', text: '24 hour hydration', source: 'Parent Product A', product: 'Parent Product A', marketingChannel: 'Print', lifecycleStage: 'Approved' },
+  { id: 'sc-2', text: 'pH balanced formula', source: 'Parent Product B', product: 'Parent Product B', marketingChannel: 'Digital', lifecycleStage: 'Published' },
 ];
 
 const MOCK_PARENT_PRODUCTS = [
@@ -31,12 +31,12 @@ const MOCK_PARENT_PRODUCTS = [
 ];
 
 const MOCK_PARENT_CLAIMS = [
-  { id: 'pc-1', parentId: 'pp-1', text: 'Provides 24-hour deep hydration' },
-  { id: 'pc-2', parentId: 'pp-1', text: 'Formulated with active skin nourishing serum' },
-  { id: 'pc-3', parentId: 'pp-1', text: 'Clinically proven hypoallergenic' },
-  { id: 'pc-4', parentId: 'pp-2', text: 'Suitable for daily face & body care' },
-  { id: 'pc-5', parentId: 'pp-2', text: 'Dermatologist recommended for EMEA sensitive skin' },
-  { id: 'pc-6', parentId: 'pp-2', text: 'Restores skin protective moisture barrier' },
+  { id: 'pc-1', parentId: 'pp-1', text: 'Provides 24-hour deep hydration', product: 'Dove Core Global', marketingChannel: 'TV', lifecycleStage: 'Approved' },
+  { id: 'pc-2', parentId: 'pp-1', text: 'Formulated with active skin nourishing serum', product: 'Dove Core Global', marketingChannel: 'Digital', lifecycleStage: 'Published' },
+  { id: 'pc-3', parentId: 'pp-1', text: 'Clinically proven hypoallergenic', product: 'Dove Core Global', marketingChannel: 'All Channels', lifecycleStage: 'Draft' },
+  { id: 'pc-4', parentId: 'pp-2', text: 'Suitable for daily face & body care', product: 'Dove Core EMEA', marketingChannel: 'Social Media', lifecycleStage: 'Approved' },
+  { id: 'pc-5', parentId: 'pp-2', text: 'Dermatologist recommended for EMEA sensitive skin', product: 'Dove Core EMEA', marketingChannel: 'Print', lifecycleStage: 'Draft' },
+  { id: 'pc-6', parentId: 'pp-2', text: 'Restores skin protective moisture barrier', product: 'Dove Core EMEA', marketingChannel: 'TV', lifecycleStage: 'Published' },
 ];
 
 const MARKETING_CHANNELS = [
@@ -220,7 +220,7 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
 
   // Top Row State
   const [productSearch, setProductSearch] = useState('');
-  const [selectedProduct, setSelectedProduct] = useState(null as any);
+  const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
   const [showProductDropdown, setShowProductDropdown] = useState(false);
   const [language, setLanguage] = useState('English');
 
@@ -228,7 +228,7 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
   const [activeTab, setActiveTab] = useState<'Create' | 'Available Product Claims' | 'Copy Claims' | 'Inherit'>('Create');
 
   // Workspace Data (Step 1)
-  const [createdText, setCreatedText] = useState('');
+  const [createdTexts, setCreatedTexts] = useState<Record<string, string>>({});
   const [createdChannels, setCreatedChannels] = useState<string[]>([]);
   const [showCreatedChannelsDropdown, setShowCreatedChannelsDropdown] = useState(false);
   const [selectedAvailable, setSelectedAvailable] = useState<Set<string>>(new Set());
@@ -289,8 +289,8 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
           syncedRows.push(existing);
         } else {
           const template = step2Claims.find(c => c.statement === stmt) || {
-            productId: selectedProduct?.id || 'prod-1',
-            geography: selectedProduct?.geography || 'Global',
+            productId: selectedProducts[0]?.id || 'prod-1',
+            geography: selectedProducts[0]?.geography || 'Global',
             channels: createdChannels.length > 0 ? [...createdChannels] : ['All Channels'],
             source: 'Manual'
           };
@@ -359,10 +359,12 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
   };
 
   const handleProductSelect = (p: any) => {
-    setSelectedProduct(p);
-    setProductSearch(p.name);
+    const next = [...selectedProducts, p];
+    setSelectedProducts(next);
+    setProductSearch('');
     setShowProductDropdown(false);
-    setSelectedGeographies([p.geography || 'Global']);
+    const allGeos = Array.from(new Set(next.map(np => np.geography || 'Global')));
+    setSelectedGeographies(allGeos);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -373,24 +375,61 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
     // Simulate parsing document
     setTimeout(() => {
       const extracted = `\nExtracted from ${file.name}:\n- Provides 48h moisture\n- Gentle on sensitive skin`;
-      setCreatedText(prev => prev + extracted);
+      if (createdChannels.length <= 1) {
+        const channelKey = createdChannels.length === 1 ? createdChannels[0] : 'default';
+        setCreatedTexts(prev => ({ ...prev, [channelKey]: (prev[channelKey] || '') + extracted }));
+      } else {
+        setCreatedTexts(prev => {
+          const next = { ...prev };
+          createdChannels.forEach(ch => {
+            next[ch] = (next[ch] || '') + extracted;
+          });
+          return next;
+        });
+      }
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }, 800);
   };
 
   const handleSaveCreate = () => {
-    if (!createdText.trim()) return;
-    const statements = createdText.split('\n').filter(s => s.trim() && !s.startsWith('Extracted from'));
-    const newClaims = statements.map(s => ({
-      statement: s.replace(/^[-*]\s/, '').trim(),
-      productId: selectedProduct?.id || '',
-      geography: selectedProduct?.geography || '',
-      channels: [...createdChannels],
-      source: 'Created'
-    }));
+    const newClaims: any[] = [];
+    const products = selectedProducts.length > 0 ? selectedProducts.map(p => p.name) : ['Global Product'];
+    
+    if (createdChannels.length <= 1) {
+      const channelKey = createdChannels.length === 1 ? createdChannels[0] : 'default';
+      const text = createdTexts[channelKey] || '';
+      if (text.trim()) {
+        const statements = text.split('\n').filter(s => s.trim() && !s.startsWith('Extracted from'));
+        statements.forEach(s => {
+          newClaims.push({
+            statement: s.replace(/^[-*]\s/, '').trim(),
+            products: products,
+            channels: createdChannels.length > 0 ? [...createdChannels] : ['All Channels'],
+            source: 'Created'
+          });
+        });
+      }
+    } else {
+      createdChannels.forEach(ch => {
+        const text = createdTexts[ch] || '';
+        if (text.trim()) {
+          const statements = text.split('\n').filter(s => s.trim() && !s.startsWith('Extracted from'));
+          statements.forEach(s => {
+            newClaims.push({
+              statement: s.replace(/^[-*]\s/, '').trim(),
+              products: products,
+              channels: [ch],
+              source: 'Created'
+            });
+          });
+        }
+      });
+    }
+    
+    if (newClaims.length === 0) return;
     setStep2Claims(prev => [...prev, ...newClaims]);
-    setCreatedText('');
+    setCreatedTexts({});
     setCreatedChannels([]);
     showSuccess(`Saved ${newClaims.length} created claim(s)`);
   };
@@ -401,9 +440,8 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
       const claim = MOCK_AVAILABLE_CLAIMS.find(c => c.id === id);
       return {
         statement: claim?.text || '',
-        productId: selectedProduct?.id || '',
-        geography: selectedProduct?.geography || '',
-        channels: [],
+        products: [claim?.product || 'Unknown Product'],
+        channels: [claim?.marketingChannel || 'All Channels'],
         source: 'Available'
       };
     });
@@ -418,9 +456,8 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
       const claim = MOCK_SOURCE_CLAIMS.find(c => c.id === id);
       return {
         statement: claim?.text || '',
-        productId: selectedProduct?.id || '',
-        geography: selectedProduct?.geography || '',
-        channels: [],
+        products: [claim?.product || 'Unknown Product'],
+        channels: [claim?.marketingChannel || 'All Channels'],
         source: 'Copied'
       };
     });
@@ -435,9 +472,8 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
       const parentClaim = MOCK_PARENT_CLAIMS.find(c => c.id === id);
       return {
         statement: parentClaim?.text || '',
-        productId: selectedProduct?.id || '',
-        geography: selectedProduct?.geography || '',
-        channels: [],
+        products: [parentClaim?.product || 'Unknown Product'],
+        channels: [parentClaim?.marketingChannel || 'All Channels'],
         source: 'Localized'
       };
     });
@@ -451,7 +487,7 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
     setTimeout(() => {
       let currentStaged = [...step2Claims];
       if (currentStaged.length === 0) {
-        currentStaged = [{ statement: '', productId: selectedProduct?.id || 'prod-1', geography: selectedProduct?.geography || 'Global', channels: createdChannels.length > 0 ? [...createdChannels] : ['All Channels'], source: 'Manual' }];
+        currentStaged = [{ statement: '', productId: selectedProducts[0]?.id || 'prod-1', geography: selectedProducts[0]?.geography || 'Global', channels: createdChannels.length > 0 ? [...createdChannels] : ['All Channels'], source: 'Manual' }];
       }
 
       // Generate the row-wise multiplication for each selected language!
@@ -507,7 +543,7 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
   };
 
   const addStep2Row = () => {
-    setStep2Claims([...step2Claims, { statement: '', productId: selectedProduct?.id || 'prod-1', geography: selectedProduct?.geography || 'Global', channels: createdChannels.length > 0 ? [...createdChannels] : ['All Channels'], source: 'Manual', localStatement: '', qualifier: '', language: targetLanguages[0] || 'French' }]);
+    setStep2Claims([...step2Claims, { statement: '', productId: selectedProducts[0]?.id || 'prod-1', geography: selectedProducts[0]?.geography || 'Global', channels: createdChannels.length > 0 ? [...createdChannels] : ['All Channels'], source: 'Manual', localStatement: '', qualifier: '', language: targetLanguages[0] || 'French' }]);
   };
 
   const handleFinalSubmit = () => {
@@ -522,11 +558,11 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
       lifecycleStage: 'Proposed',
       version: 'v1.0',
       channels: c.channels || [],
-      geographies: selectedGeographies.length > 0 ? [...selectedGeographies] : [selectedProduct?.geography || 'Global'],
+      geographies: selectedGeographies.length > 0 ? [...selectedGeographies] : [selectedProducts[0]?.geography || 'Global'],
       brands: [],
       categories: [],
       relatedProjects: [],
-      linkedProducts: [selectedProduct?.id || 'prod-1'],
+      linkedProducts: selectedProducts.map(p => p.id),
       substantiationDocs: [],
       riskAssessments: [],
       supportStrategy: '',
@@ -573,8 +609,8 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
       )}
 
       {/* Header */}
-      <div className="px-6 py-3 border-b border-pebble flex items-center justify-between flex-shrink-0 bg-white z-40 relative">
-        <div className="flex items-center gap-4">
+      <div className="px-6 py-3 border-b border-pebble flex items-center justify-between flex-shrink-0 bg-white z-40 relative gap-6">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
           <div className="w-9 h-9 rounded-full bg-sky/10 flex items-center justify-center text-sky flex-shrink-0">
             <FileText className="w-4 h-4" />
           </div>
@@ -584,41 +620,101 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
 
           {/* Product & Geographies inline in header — step 1 only */}
           {step === 1 && (
-            <div className="flex items-center gap-4 ml-4">
-              {/* Product */}
-              <div className="relative">
-                <input
-                  type="text"
-                  value={productSearch}
-                  onChange={(e) => { setProductSearch(e.target.value); setShowProductDropdown(true); setSelectedProduct(null); }}
-                  onFocus={() => setShowProductDropdown(true)}
-                  placeholder="Search product..."
-                  className="w-56 px-3 py-2 bg-earth/50 border border-pebble rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-sky/50 focus:border-sky transition-all placeholder:font-normal"
-                />
+            <div className="flex items-center gap-4 ml-4 flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <div className="relative flex-shrink-0">
+                  <button
+                    onClick={() => setShowProductDropdown(!showProductDropdown)}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-earth/50 border border-pebble rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-sky/50 focus:border-sky transition-all min-w-[160px] justify-between"
+                  >
+                    <span className={selectedProducts.length > 0 ? "text-night font-bold" : "text-gray-500"}>
+                      Select Products
+                    </span>
+                    <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showProductDropdown ? 'rotate-180' : ''}`} />
+                  </button>
                 {showProductDropdown && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-pebble rounded-xl shadow-xl z-50 max-h-56 overflow-y-auto animate-in fade-in slide-in-from-top-1">
-                    {MOCK_PRODUCTS.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).map(p => (
-                      <button key={p.id} onClick={() => handleProductSelect(p)}
-                        className="w-full text-left px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors flex items-center justify-between border-b border-pebble/50 last:border-0">
-                        <span className="font-medium truncate">{p.name}</span>
-                        <span className="text-xs text-sky bg-sky/10 px-2 py-0.5 rounded-full ml-2 flex-shrink-0">{p.type}</span>
-                      </button>
-                    ))}
-                    {MOCK_PRODUCTS.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).length === 0 && (
-                      <div className="px-4 py-3 text-sm text-gray-400 text-center">No products found</div>
-                    )}
+                  <div className="absolute top-full left-0 mt-1 min-w-[320px] bg-white border border-pebble rounded-xl shadow-xl z-50 max-h-72 flex flex-col overflow-hidden animate-in fade-in slide-in-from-top-1">
+                    <div className="bg-white border-b border-pebble px-3 py-2 flex-shrink-0">
+                      <div className="relative">
+                        <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          value={productSearch}
+                          onChange={(e) => setProductSearch(e.target.value)}
+                          placeholder="Search..."
+                          className="w-full pl-8 pr-2 py-1.5 bg-earth/50 border border-pebble rounded-lg text-xs focus:outline-none focus:border-sky"
+                        />
+                      </div>
+                    </div>
+                    <div className="overflow-y-auto no-scrollbar py-1">
+                      {MOCK_PRODUCTS.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).map(p => {
+                        const isSelected = selectedProducts.find(sp => sp.id === p.id);
+                        return (
+                          <button key={p.id} onClick={() => {
+                            let next;
+                            if (isSelected) {
+                              next = selectedProducts.filter(sp => sp.id !== p.id);
+                            } else {
+                              next = [...selectedProducts, p];
+                            }
+                            setSelectedProducts(next);
+                            const allGeos = Array.from(new Set(next.map(np => np.geography || 'Global')));
+                            setSelectedGeographies(allGeos);
+                          }}
+                            className={`w-full text-left px-3 py-2 text-sm transition-colors flex items-center justify-between hover:bg-earth`}>
+                            <div className="flex items-center gap-3">
+                              <div className={`w-4 h-4 rounded border flex flex-shrink-0 items-center justify-center ${isSelected ? 'bg-sky border-sky' : 'border-gray-300'}`}>
+                                {isSelected && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                              </div>
+                              <span className={`truncate ${isSelected ? 'font-bold text-sky' : 'text-night'}`}>{p.name}</span>
+                            </div>
+                            <span className="text-[9px] uppercase font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded flex-shrink-0 ml-2">{p.type}</span>
+                          </button>
+                        );
+                      })}
+                      {MOCK_PRODUCTS.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).length === 0 && (
+                        <div className="px-4 py-3 text-sm text-gray-400 text-center">No products found</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                </div>
+
+                {/* Product Pills */}
+                {selectedProducts.length > 0 && (
+                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-1 mask-linear-right pr-2">
+                    {selectedProducts.map(p => {
+                       const displayName = selectedProducts.length > 2 
+                         ? p.name.split(' ').map(w => w[0]).join('').toUpperCase().substring(0, 4) 
+                         : p.name;
+                       return (
+                         <div key={p.id} className="flex items-center gap-1 px-2 py-1 bg-pebble/30 text-night text-[10px] font-bold rounded-lg border border-pebble flex-shrink-0" title={p.name}>
+                           <span className="truncate max-w-[120px]">{displayName}</span>
+                           <button onClick={() => {
+                              const next = selectedProducts.filter(sp => sp.id !== p.id);
+                              setSelectedProducts(next);
+                              const allGeos = Array.from(new Set(next.map(np => np.geography || 'Global')));
+                              setSelectedGeographies(allGeos);
+                           }} className="text-gray-400 hover:text-red-500 transition-colors"><X className="w-3 h-3" /></button>
+                         </div>
+                       );
+                    })}
                   </div>
                 )}
               </div>
 
               {/* Geographies */}
-              <div className="flex items-center bg-earth/30 border border-pebble rounded-xl px-3 py-2 min-w-[140px]">
-                {selectedProduct?.geography ? (
-                  <span className="px-2 py-0.5 bg-sky/10 text-sky text-[10px] font-bold uppercase tracking-wider rounded">
-                    {selectedProduct.geography}
-                  </span>
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-1 mask-linear-right pr-2">
+                {selectedProducts.length > 0 ? (
+                  Array.from(new Set(selectedProducts.map(p => p.geography || 'Global'))).map(geo => (
+                    <span key={geo} className="flex items-center gap-1.5 px-2.5 py-1 bg-earth/50 border border-pebble text-gray-600 text-[10px] font-bold uppercase tracking-wider rounded-lg whitespace-nowrap flex-shrink-0">
+                      <Globe className="w-3 h-3 text-gray-400" />{geo}
+                    </span>
+                  ))
                 ) : (
-                  <span className="text-xs text-gray-400 font-medium">Geography</span>
+                  <span className="flex items-center gap-1.5 px-2.5 py-1 bg-transparent border border-dashed border-pebble text-gray-400 text-xs font-medium rounded-lg whitespace-nowrap">
+                    <Globe className="w-3.5 h-3.5" /> Geography
+                  </span>
                 )}
               </div>
             </div>
@@ -728,7 +824,7 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
                     {/* Keep Selection */}
                     <button
                       onClick={handleSaveCreate}
-                      disabled={!createdText.trim() && createdChannels.length === 0}
+                      disabled={Object.values(createdTexts).every(t => !t.trim()) && createdChannels.length === 0}
                       className="flex items-center gap-1.5 px-4 py-2 bg-sky text-white rounded-xl text-sm font-bold hover:bg-dark disabled:opacity-40 transition-all active:scale-95 shadow-sm shadow-sky/20 flex-shrink-0"
                     >
                       <Check className="w-3.5 h-3.5" /> Keep Selection
@@ -738,8 +834,11 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
                   {/* Text boxes: one per selected channel if multiple, else single */}
                   {createdChannels.length <= 1 ? (
                     <textarea
-                      value={createdText}
-                      onChange={(e) => setCreatedText(e.target.value)}
+                      value={createdTexts[createdChannels.length === 1 ? createdChannels[0] : 'default'] || ''}
+                      onChange={(e) => {
+                         const key = createdChannels.length === 1 ? createdChannels[0] : 'default';
+                         setCreatedTexts(prev => ({...prev, [key]: e.target.value}));
+                      }}
                       placeholder="Type or paste claim statements with a line break"
                       className="flex-1 min-h-[160px] w-full p-4 border border-pebble rounded-2xl text-sm focus:outline-none focus:ring-4 focus:ring-sky/10 focus:border-sky transition-all resize-none bg-white shadow-inner"
                     />
@@ -751,8 +850,8 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
                             <span className="px-2 py-0.5 bg-sky/10 text-sky rounded-md">{ch}</span>
                           </label>
                           <textarea
-                            value={createdText}
-                            onChange={(e) => setCreatedText(e.target.value)}
+                            value={createdTexts[ch] || ''}
+                            onChange={(e) => setCreatedTexts(prev => ({...prev, [ch]: e.target.value}))}
                             placeholder="Type or paste claim statements with a line break"
                             rows={4}
                             className="w-full p-3 border border-pebble rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-sky/10 focus:border-sky transition-all resize-none bg-white shadow-inner"
@@ -771,9 +870,16 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
                     <div>
                       <h3 className="text-base font-bold text-night">Select existing claims of the product(s)</h3>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2">
                       <button onClick={() => setSelectedAvailable(new Set(MOCK_AVAILABLE_CLAIMS.map(c => c.id)))} className="px-3 py-1.5 text-xs font-semibold text-sky bg-sky/10 rounded-lg hover:bg-sky/20 transition-colors">Select All</button>
                       <button onClick={() => setSelectedAvailable(new Set())} className="px-3 py-1.5 text-xs font-semibold text-gray-500 hover:text-night hover:bg-earth rounded-lg transition-colors">Clear</button>
+                      <button
+                        onClick={handleSaveAvailable}
+                        disabled={selectedAvailable.size === 0}
+                        className="flex items-center gap-2 px-4 py-1.5 ml-2 bg-sky text-white rounded-lg text-sm font-bold hover:bg-dark disabled:opacity-50 transition-all active:scale-95 shadow-sm shadow-sky/20"
+                      >
+                        <Check className="w-4 h-4" /> Keep Selection {selectedAvailable.size > 0 ? `(${selectedAvailable.size})` : ''}
+                      </button>
                     </div>
                   </div>
 
@@ -784,6 +890,9 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
                           <tr>
                             <th className="w-14 px-5 py-3 border-b border-pebble" />
                             <th className="px-5 py-3 text-left font-bold text-gray-600 border-b border-pebble">Claim Statement</th>
+                            <th className="px-5 py-3 text-left font-bold text-gray-600 border-b border-pebble whitespace-nowrap">Product</th>
+                            <th className="px-5 py-3 text-left font-bold text-gray-600 border-b border-pebble whitespace-nowrap">Marketing Channel</th>
+                            <th className="px-5 py-3 text-left font-bold text-gray-600 border-b border-pebble whitespace-nowrap">Lifecycle Stage</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-pebble">
@@ -807,6 +916,11 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
                                 <td className="px-5 py-4">
                                   <span className={`font-medium ${isSel ? 'text-sky' : 'text-night'}`}>{claim.text}</span>
                                 </td>
+                                <td className="px-5 py-4 text-gray-500 text-xs">{claim.product}</td>
+                                <td className="px-5 py-4 text-gray-500 text-xs">{claim.marketingChannel}</td>
+                                <td className="px-5 py-4">
+                                  <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-[10px] font-bold uppercase">{claim.lifecycleStage}</span>
+                                </td>
                               </tr>
                             );
                           })}
@@ -814,48 +928,30 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
                       </table>
                     </div>
                   </div>
-
-                  <div className="flex justify-end items-center mt-6">
-                    <button
-                      onClick={handleSaveAvailable}
-                      disabled={selectedAvailable.size === 0}
-                      className="flex items-center gap-2 px-6 py-2.5 bg-sky text-white rounded-xl text-sm font-bold hover:bg-dark disabled:opacity-50 transition-all active:scale-95 shadow-sm shadow-sky/20"
-                    >
-                      <Check className="w-4 h-4" /> Keep Selection {selectedAvailable.size > 0 ? `(${selectedAvailable.size})` : ''}
-                    </button>
-                  </div>
                 </div>
               )}
 
               {/* 3. COPY CLAIMS TAB */}
               {activeTab === 'Copy Claims' && (
                 <div className="flex flex-col h-full w-full animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <div className="grid grid-cols-[1fr_2.5fr] gap-4 mb-4">
-                    {/* Target Info */}
-                    <div className="border border-pebble rounded-2xl px-5 py-3 bg-gradient-to-br from-earth/50 to-white shadow-sm flex flex-col justify-center">
-                      <div className="text-base font-bold text-night truncate" title={productSearch || 'None Selected'}>
-                        {productSearch || 'None Selected'}
-                      </div>
-                      {selectedProduct?.geography && (
-                        <div className="text-xs font-medium text-sky mt-0.5 flex items-center gap-1.5">
-                          <Globe className="w-3.5 h-3.5" />{selectedProduct.geography}
-                        </div>
-                      )}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="relative w-80">
+                      <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={copySearch}
+                        onChange={e => setCopySearch(e.target.value)}
+                        placeholder="Find Source Product..."
+                        className="w-full pl-9 pr-4 py-2 bg-white border border-pebble rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky/50 focus:border-sky transition-all shadow-sm"
+                      />
                     </div>
-
-                    {/* Source Search */}
-                    <div className="border border-pebble rounded-2xl px-5 py-3 bg-white shadow-sm flex flex-col justify-center">
-                      <div className="relative">
-                        <Search className="w-5 h-5 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                        <input
-                          type="text"
-                          value={copySearch}
-                          onChange={e => setCopySearch(e.target.value)}
-                          placeholder="Find Source Product..."
-                          className="w-full pl-11 pr-4 py-2.5 bg-white border border-pebble rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky/50 focus:border-sky transition-all shadow-sm"
-                        />
-                      </div>
-                    </div>
+                    <button
+                      onClick={handleSaveCopy}
+                      disabled={selectedCopy.size === 0}
+                      className="flex items-center gap-2 px-4 py-1.5 bg-sky text-white rounded-lg text-sm font-bold hover:bg-dark disabled:opacity-50 transition-all active:scale-95 shadow-sm shadow-sky/20"
+                    >
+                      <Check className="w-4 h-4" /> Keep Selection {selectedCopy.size > 0 ? `(${selectedCopy.size})` : ''}
+                    </button>
                   </div>
 
                   <div className="flex-1 border border-pebble rounded-2xl overflow-hidden bg-white shadow-sm flex flex-col mb-4">
@@ -865,7 +961,9 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
                           <tr>
                             <th className="w-14 px-5 py-3 border-b border-pebble" />
                             <th className="px-5 py-3 text-left font-bold text-gray-600 border-b border-pebble">Claim Statement</th>
-                            <th className="px-5 py-3 text-left font-bold text-gray-600 border-b border-pebble">Source Product</th>
+                            <th className="px-5 py-3 text-left font-bold text-gray-600 border-b border-pebble whitespace-nowrap">Product</th>
+                            <th className="px-5 py-3 text-left font-bold text-gray-600 border-b border-pebble whitespace-nowrap">Marketing Channel</th>
+                            <th className="px-5 py-3 text-left font-bold text-gray-600 border-b border-pebble whitespace-nowrap">Lifecycle Stage</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-pebble">
@@ -889,6 +987,10 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
                                 <td className="px-5 py-4 font-medium text-night">{claim.text}</td>
                                 <td className="px-5 py-4 text-gray-500 text-xs">
                                   <span className="bg-earth px-2.5 py-1 rounded-md font-semibold">{claim.source}</span>
+                                </td>
+                                <td className="px-5 py-4 text-gray-500 text-xs">{claim.marketingChannel}</td>
+                                <td className="px-5 py-4">
+                                  <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-[10px] font-bold uppercase">{claim.lifecycleStage}</span>
                                 </td>
                               </tr>
                             );
@@ -918,13 +1020,6 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
                         <span className="text-sm font-semibold text-night group-hover:text-sky transition-colors">Risk Summaries</span>
                       </label>
                     </div>
-                    <button
-                      onClick={handleSaveCopy}
-                      disabled={selectedCopy.size === 0}
-                      className="flex items-center gap-2 px-6 py-2.5 bg-sky text-white rounded-xl text-sm font-bold hover:bg-dark disabled:opacity-50 transition-all active:scale-95 shadow-sm shadow-sky/20"
-                    >
-                      <Check className="w-4 h-4" /> Keep Selection {selectedCopy.size > 0 ? `(${selectedCopy.size})` : ''}
-                    </button>
                   </div>
                 </div>
               )}
@@ -932,87 +1027,82 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
               {/* 4. INHERIT TAB */}
               {activeTab === 'Inherit' && (
                 <div className="flex flex-col h-full w-full animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider shrink-0">Parent Product:</span>
-                    <div className="relative w-72 flex items-center bg-white border border-pebble rounded-xl px-3 py-1.5 shadow-sm">
-                      <Search className="w-4 h-4 text-gray-400 mr-2 shrink-0" />
-                      <input
-                        type="text"
-                        value={parentProductSearch}
-                        onChange={(e) => {
-                          setParentProductSearch(e.target.value);
-                          setShowParentProductDropdown(true);
-                        }}
-                        onFocus={(e) => {
-                          e.currentTarget.select();
-                          setShowParentProductDropdown(true);
-                        }}
-                        onBlur={() => setTimeout(() => setShowParentProductDropdown(false), 200)}
-                        placeholder="Search parent product..."
-                        className="w-full bg-transparent text-sm font-bold text-night focus:outline-none placeholder:font-normal placeholder:text-gray-400"
-                      />
-                      {selectedParentProduct && (
-                        <span className="text-xs font-semibold text-sky bg-sky/10 px-2 py-0.5 rounded-md flex items-center gap-1 shrink-0 ml-2">
-                          <Globe className="w-3 h-3" /> {selectedParentProduct.geography}
-                        </span>
-                      )}
-                      {showParentProductDropdown && (
-                        <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-pebble rounded-xl shadow-xl z-30 max-h-48 overflow-y-auto animate-in fade-in slide-in-from-top-1">
-                          {MOCK_PARENT_PRODUCTS.filter(p => {
-                            if (selectedParentProduct && parentProductSearch === selectedParentProduct.name) {
-                              return true;
-                            }
-                            return p.name.toLowerCase().includes(parentProductSearch.toLowerCase());
-                          }).map(p => (
-                            <button
-                              key={p.id}
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                                setSelectedParentProduct(p);
-                                setParentProductSearch(p.name);
-                                setShowParentProductDropdown(false);
-                                setSelectedLocalizeClaims(new Set());
-                                setParentClaimSearch('');
-                              }}
-                              className="w-full text-left px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors flex items-center justify-between border-b border-pebble/50 last:border-0"
-                            >
-                              <span className="font-semibold">{p.name}</span>
-                              <span className="text-xs text-sky bg-sky/10 px-2 py-0.5 rounded-full">{p.geography}</span>
-                            </button>
-                          ))}
-                          {MOCK_PARENT_PRODUCTS.filter(p => {
-                            if (selectedParentProduct && parentProductSearch === selectedParentProduct.name) {
-                              return true;
-                            }
-                            return p.name.toLowerCase().includes(parentProductSearch.toLowerCase());
-                          }).length === 0 && (
-                              <div className="px-4 py-2.5 text-sm text-gray-500 text-center">No parent products found</div>
-                            )}
-                        </div>
-                      )}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-bold text-gray-400 uppercase tracking-wider shrink-0">Parent Product:</span>
+                      <div className="relative w-64 flex items-center bg-white border border-pebble rounded-xl px-3 py-1.5 shadow-sm">
+                        <Search className="w-4 h-4 text-gray-400 mr-2 shrink-0" />
+                        <input
+                          type="text"
+                          value={parentProductSearch}
+                          onChange={(e) => {
+                            setParentProductSearch(e.target.value);
+                            setShowParentProductDropdown(true);
+                          }}
+                          onFocus={(e) => {
+                            e.currentTarget.select();
+                            setShowParentProductDropdown(true);
+                          }}
+                          onBlur={() => setTimeout(() => setShowParentProductDropdown(false), 200)}
+                          placeholder="Search parent product..."
+                          className="w-full bg-transparent text-sm font-bold text-night focus:outline-none placeholder:font-normal placeholder:text-gray-400"
+                        />
+                        {selectedParentProduct && (
+                          <span className="text-xs font-semibold text-sky bg-sky/10 px-2 py-0.5 rounded-md flex items-center gap-1 shrink-0 ml-2">
+                            <Globe className="w-3 h-3" /> {selectedParentProduct.geography}
+                          </span>
+                        )}
+                        {showParentProductDropdown && (
+                          <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-pebble rounded-xl shadow-xl z-30 max-h-48 overflow-y-auto animate-in fade-in slide-in-from-top-1">
+                            {MOCK_PARENT_PRODUCTS.filter(p => {
+                              if (selectedParentProduct && parentProductSearch === selectedParentProduct.name) {
+                                return true;
+                              }
+                              return p.name.toLowerCase().includes(parentProductSearch.toLowerCase());
+                            }).map(p => (
+                              <button
+                                key={p.id}
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  setSelectedParentProduct(p);
+                                  setParentProductSearch(p.name);
+                                  setShowParentProductDropdown(false);
+                                  setSelectedLocalizeClaims(new Set());
+                                  setParentClaimSearch('');
+                                }}
+                                className="w-full text-left px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors flex items-center justify-between border-b border-pebble/50 last:border-0"
+                              >
+                                <span className="font-semibold">{p.name}</span>
+                                <span className="text-xs text-sky bg-sky/10 px-2 py-0.5 rounded-full">{p.geography}</span>
+                              </button>
+                            ))}
+                            {MOCK_PARENT_PRODUCTS.filter(p => {
+                              if (selectedParentProduct && parentProductSearch === selectedParentProduct.name) {
+                                return true;
+                              }
+                              return p.name.toLowerCase().includes(parentProductSearch.toLowerCase());
+                            }).length === 0 && (
+                                <div className="px-4 py-2.5 text-sm text-gray-500 text-center">No parent products found</div>
+                              )}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  {selectedParentProduct ? (
-                    <>
-                      <div className="flex items-center justify-between gap-4 mb-4">
-                        <span className="text-sm font-bold text-night truncate max-w-[200px]">
-                          Claims for {selectedParentProduct.name}
-                        </span>
+                    <div className="flex items-center gap-2 flex-1 ml-4 justify-end">
+                      {selectedParentProduct && (
+                        <>
+                          <div className="relative w-64 mr-2">
+                            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                            <input
+                              type="text"
+                              value={parentClaimSearch}
+                              onChange={e => setParentClaimSearch(e.target.value)}
+                              placeholder="Search claims..."
+                              className="w-full pl-9 pr-3 py-1.5 bg-white border border-pebble rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-sky/50 focus:border-sky transition-all shadow-sm"
+                            />
+                          </div>
 
-                        {/* Compact Claims Search Input */}
-                        <div className="relative flex-1 max-w-xs">
-                          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                          <input
-                            type="text"
-                            value={parentClaimSearch}
-                            onChange={e => setParentClaimSearch(e.target.value)}
-                            placeholder="Search claims..."
-                            className="w-full pl-9 pr-3 py-1.5 bg-white border border-pebble rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-sky/50 focus:border-sky transition-all shadow-sm"
-                          />
-                        </div>
-
-                        <div className="flex gap-2">
                           <button
                             onClick={() => {
                               const activeClaims = MOCK_PARENT_CLAIMS.filter(c => c.parentId === selectedParentProduct.id && c.text.toLowerCase().includes(parentClaimSearch.toLowerCase()));
@@ -1028,9 +1118,21 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
                           >
                             Clear
                           </button>
-                        </div>
-                      </div>
+                        </>
+                      )}
 
+                      <button
+                        onClick={handleSaveLocalize}
+                        disabled={selectedLocalizeClaims.size === 0}
+                        className="flex items-center gap-2 px-4 py-1.5 ml-2 bg-sky text-white rounded-lg text-sm font-bold hover:bg-dark disabled:opacity-50 transition-all active:scale-95 shadow-sm shadow-sky/20 whitespace-nowrap"
+                      >
+                        <Check className="w-4 h-4" /> Keep Selection {selectedLocalizeClaims.size > 0 ? `(${selectedLocalizeClaims.size})` : ''}
+                      </button>
+                    </div>
+                  </div>
+
+                  {selectedParentProduct ? (
+                    <>
                       <div className="flex-1 border border-pebble rounded-2xl overflow-hidden bg-white shadow-sm flex flex-col mb-4">
                         <div className="flex-1 overflow-y-auto">
                           <table className="w-full text-sm">
@@ -1038,6 +1140,9 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
                               <tr>
                                 <th className="w-14 px-5 py-3 border-b border-pebble" />
                                 <th className="px-5 py-3 text-left font-bold text-gray-600 border-b border-pebble">Claim Statement</th>
+                                <th className="px-5 py-3 text-left font-bold text-gray-600 border-b border-pebble whitespace-nowrap">Product</th>
+                                <th className="px-5 py-3 text-left font-bold text-gray-600 border-b border-pebble whitespace-nowrap">Marketing Channel</th>
+                                <th className="px-5 py-3 text-left font-bold text-gray-600 border-b border-pebble whitespace-nowrap">Lifecycle Stage</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-pebble">
@@ -1059,12 +1164,17 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
                                       </div>
                                     </td>
                                     <td className="px-5 py-4 font-semibold text-night">{claim.text}</td>
+                                    <td className="px-5 py-4 text-gray-500 text-xs">{claim.product}</td>
+                                    <td className="px-5 py-4 text-gray-500 text-xs">{claim.marketingChannel}</td>
+                                    <td className="px-5 py-4">
+                                      <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-[10px] font-bold uppercase">{claim.lifecycleStage}</span>
+                                    </td>
                                   </tr>
                                 );
                               })}
                               {MOCK_PARENT_CLAIMS.filter(c => c.parentId === selectedParentProduct.id && c.text.toLowerCase().includes(parentClaimSearch.toLowerCase())).length === 0 && (
                                 <tr>
-                                  <td colSpan={2} className="px-5 py-8 text-center text-sm text-gray-400 font-medium">No matching claims found</td>
+                                  <td colSpan={5} className="px-5 py-8 text-center text-sm text-gray-400 font-medium">No matching claims found</td>
                                 </tr>
                               )}
                             </tbody>
@@ -1078,16 +1188,6 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
                       <span className="text-sm font-semibold text-gray-400">Please select a parent product from the dropdown to see its claims</span>
                     </div>
                   )}
-
-                  <div className="flex justify-end pt-2">
-                    <button
-                      onClick={handleSaveLocalize}
-                      disabled={selectedLocalizeClaims.size === 0}
-                      className="flex items-center gap-2 px-6 py-2.5 bg-sky text-white rounded-xl text-sm font-bold hover:bg-dark disabled:opacity-50 transition-all active:scale-95 shadow-sm shadow-sky/20"
-                    >
-                      <Check className="w-4 h-4" /> Keep Selection {selectedLocalizeClaims.size > 0 ? `(${selectedLocalizeClaims.size})` : ''}
-                    </button>
-                  </div>
                 </div>
               )}
 
@@ -1138,25 +1238,33 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
                         </div>
                         <div className="divide-y divide-pebble/40 bg-white">
                           {sourceClaims.map((claim: any) => (
-                            <div key={claim._idx} className="flex items-start gap-2 px-3 py-2.5 group hover:bg-earth/30 transition-colors animate-in fade-in duration-200">
-                              <span className="flex-1 text-xs font-medium text-night leading-relaxed line-clamp-3">{claim.statement}</span>
-                              <div className="flex-shrink-0 flex items-center gap-1 mt-0.5">
-                                {/* Upload doc button */}
-                                <button
-                                  type="button"
-                                  title="Upload document"
-                                  className="p-1 text-gray-300 hover:text-sky hover:bg-sky/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                                  onClick={() => fileInputRef.current?.click()}
-                                >
-                                  <Upload className="w-3 h-3" />
-                                </button>
-                                {/* Remove button */}
-                                <button
-                                  onClick={() => removeStep2Row(claim._idx)}
-                                  className="p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
+                            <div key={claim._idx} className="flex flex-col gap-1 px-3 py-2.5 group hover:bg-earth/30 transition-colors animate-in fade-in duration-200">
+                              <div className="flex items-start gap-2">
+                                <span className="flex-1 text-xs font-medium text-night leading-relaxed line-clamp-3">{claim.statement}</span>
+                                <div className="flex-shrink-0 flex items-center gap-1 mt-0.5">
+                                  <button
+                                    type="button"
+                                    title="Upload document"
+                                    className="p-1 text-gray-300 hover:text-sky hover:bg-sky/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                    onClick={() => fileInputRef.current?.click()}
+                                  >
+                                    <Upload className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    onClick={() => removeStep2Row(claim._idx)}
+                                    className="p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {claim.products?.map((p: string) => (
+                                  <span key={p} className="px-1.5 py-0.5 bg-gray-100 border border-gray-200 text-gray-500 text-[9px] font-bold rounded-md uppercase">{p}</span>
+                                ))}
+                                {claim.channels?.map((c: string) => (
+                                  <span key={c} className="px-1.5 py-0.5 bg-sky/5 border border-sky/20 text-sky-600 text-[9px] font-bold rounded-md uppercase">{c}</span>
+                                ))}
                               </div>
                             </div>
                           ))}
