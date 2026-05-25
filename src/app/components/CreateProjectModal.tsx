@@ -374,7 +374,7 @@ export default function CreateProjectModal({
     return Object.keys(newErrors).length === 0 && !isDuplicateName;
   };
 
-  const handleSave = (createAnother = false) => {
+  const handleSave = (navigateNext = false) => {
     if (!validate()) return;
 
     const regions = formData.region.length > 0 ? formData.region : ['Global'];
@@ -402,16 +402,8 @@ export default function CreateProjectModal({
       teamMembers: generateTeamMembersForProject(formData.businessGroup, regions, projectLead),
     };
 
-    onCreateProject(newProject, true);
-
-    if (createAnother) {
-      setFormData(emptyForm);
-      setErrors({});
-      setIsDuplicateName(false);
-      setExternalRefType(null);
-    } else {
-      handleClose();
-    }
+    onCreateProject(newProject, navigateNext);
+    handleClose();
   };
 
   const handleClose = () => {
@@ -458,7 +450,7 @@ export default function CreateProjectModal({
               />
               <div>
                 <label className="block text-xs text-gray-500 mb-1.5 uppercase tracking-wide font-semibold">
-                  Description <span className="text-red-500">*</span>
+                  Description
                 </label>
                 <textarea
                   value={formData.description}
@@ -687,13 +679,13 @@ export default function CreateProjectModal({
       {/* Footer */}
       <div className="px-6 py-4 border-t border-pebble flex items-center justify-end gap-3 flex-shrink-0 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] relative z-40">
         <button
-          onClick={handleClose}
-          className="px-6 py-2 border border-pebble text-gray-600 rounded-xl text-sm font-semibold hover:text-night hover:bg-earth transition-colors cursor-pointer"
+          onClick={() => handleSave(false)}
+          className="px-6 py-2 border border-pebble text-brand-night hover:bg-earth rounded-xl text-sm font-bold transition-all cursor-pointer"
         >
-          Cancel
+          Create Project
         </button>
         <button
-          onClick={() => handleSave(false)}
+          onClick={() => handleSave(true)}
           className="flex items-center gap-2 px-8 py-2 bg-sky text-white rounded-xl text-sm font-bold hover:bg-dark transition-all shadow-md shadow-sky/20 cursor-pointer"
         >
           <Check className="w-4 h-4" strokeWidth={3} />

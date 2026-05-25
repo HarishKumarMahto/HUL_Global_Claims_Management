@@ -1636,6 +1636,14 @@ export default function ClaimCreationModal({
         {/* Step 2 Footer */}
         <div className="px-6 py-4 bg-white border-t border-pebble flex items-center justify-between flex-shrink-0 z-20">
           <div className="flex items-center gap-4">
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="px-4 py-2 border border-gray-200 text-gray-500 hover:text-night bg-white hover:bg-gray-50 rounded-xl text-xs font-bold transition-all cursor-pointer"
+              >
+                Back
+              </button>
+            )}
             <button
               onClick={goToStep1}
               className="px-6 py-2.5 border border-pebble rounded-xl text-sm font-bold text-gray-600 hover:bg-earth hover:text-night transition-all cursor-pointer"

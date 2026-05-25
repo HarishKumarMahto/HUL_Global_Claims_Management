@@ -581,7 +581,7 @@ export default function ClaimsModule({
             window.dispatchEvent(new CustomEvent('cancelChainedCreation'));
           }}
           onCreate={handleCreateClaims}
-          onBack={isChainedFlow ? () => { window.dispatchEvent(new CustomEvent('backToProductCreation')); setCreationConfig({ open: false }); } : undefined}
+          onBack={(isChainedFlow || pendingProducts) ? () => { window.dispatchEvent(new CustomEvent('backToProductCreation')); setCreationConfig({ open: false }); } : undefined}
           isChainedFlow={isChainedFlow}
           pendingProducts={pendingProducts}
         />

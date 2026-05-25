@@ -456,8 +456,8 @@ export default function CreateProductModal({
   };
 
   // ── Create Product ────────────────────────────────────────────────────────
-  const handleCreateProduct = () => {
-    if (!selectedFormat) return;
+  const buildListToCreate = () => {
+    if (!selectedFormat) return [];
     const listToCreate: any[] = [];
     const nowStr = new Date().toISOString().split("T")[0];
     const getCompoundName = (...parts: string[]) => parts.filter(Boolean).join(" ");
@@ -503,9 +503,24 @@ export default function CreateProductModal({
     } else {
       processVariants(subranges[0]?.variants ?? [], selectedFormat.id, selectedFormat.name);
     }
+    return listToCreate;
+  };
 
-    if (listToCreate.length > 0) onCreate(listToCreate, true);
+  const handleCreateProduct = () => {
+    const listToCreate = buildListToCreate();
+    if (listToCreate.length > 0) onCreate(listToCreate, false);
     resetAndClose();
+  };
+
+  const handleAddAndCreateClaim = () => {
+    const listToCreate = buildListToCreate();
+    if (listToCreate.length > 0) {
+      window.dispatchEvent(new CustomEvent('stashChainedProduct', { detail: { products: listToCreate } }));
+    } else if (selectedFormat) {
+      window.dispatchEvent(new CustomEvent('stashChainedProduct', { detail: { products: [selectedFormat] } }));
+    }
+    handleClose();
+    window.dispatchEvent(new CustomEvent('openClaimCreation'));
   };
 
   if (!isOpen) return null;
@@ -809,9 +824,9 @@ export default function CreateProductModal({
             )}
           </div>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={handleClose}
-              className="px-4 py-2 border border-gray-200 text-gray-500 hover:text-night bg-white hover:bg-gray-50 rounded-xl text-xs font-bold transition-all cursor-pointer">
-              Cancel
+            <button type="button" onClick={handleCreateProduct} disabled={!selectedFormat}
+              className="px-4 py-2 border border-gray-200 text-night hover:bg-gray-50 rounded-xl text-xs font-bold transition-all disabled:opacity-40 cursor-pointer">
+              Create Product
             </button>
             {onNavigateToSKU && (
               <button type="button" onClick={handleNavigateToSKU}
@@ -819,7 +834,7 @@ export default function CreateProductModal({
                 Create SKU
               </button>
             )}
-            <button type="button" onClick={handleCreateProduct} disabled={!selectedFormat}
+            <button type="button" onClick={handleAddAndCreateClaim} disabled={!selectedFormat}
               className="flex items-center gap-1.5 px-5 py-2 bg-sky text-white rounded-xl text-xs font-bold hover:bg-dark disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md shadow-sky/20 cursor-pointer">
               <Check className="w-3.5 h-3.5" />
               Add and Create Claim

@@ -441,28 +441,20 @@ export default function ProjectCreationScreen({
       </div>
 
       {/* Action Footer */}
-      <div className="px-6 py-4 border-t border-pebble bg-earth flex items-center justify-between flex-shrink-0">
+      <div className="px-6 py-4 border-t border-pebble bg-earth flex items-center justify-end flex-shrink-0 gap-3">
         <button
-          onClick={handleBackAttempt}
-          className="px-5 py-2.5 border border-pebble rounded-xl text-sm font-semibold text-brand-night bg-white hover:bg-gray-50 transition-all cursor-pointer"
+          onClick={handleCreateProject}
+          className="px-6 py-2.5 border border-pebble text-brand-night bg-white hover:bg-gray-50 rounded-xl text-sm font-bold transition-all cursor-pointer"
         >
-          Cancel
+          Create Project
         </button>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleCreateProject}
-            className="px-6 py-2.5 border border-pebble text-brand-night bg-white hover:bg-gray-50 rounded-xl text-sm font-bold transition-all cursor-pointer"
-          >
-            Save Project Only
-          </button>
-          <button
-            onClick={handleCreateAndContinue}
-            className="px-6 py-2.5 bg-brand-sky text-white rounded-xl text-sm font-bold shadow-lg shadow-sky/15 hover:bg-sky-dark transition-all cursor-pointer flex items-center gap-2"
-          >
-            Save and Create Product
-            <ChevronLeft className="w-4 h-4 rotate-180" />
-          </button>
-        </div>
+        <button
+          onClick={handleCreateAndContinue}
+          className="px-6 py-2.5 bg-brand-sky text-white rounded-xl text-sm font-bold shadow-lg shadow-sky/15 hover:bg-sky-dark transition-all cursor-pointer flex items-center gap-2"
+        >
+          Add and Create Product
+          <ChevronLeft className="w-4 h-4 rotate-180" />
+        </button>
       </div>
 
       {/* Cancel Confirm Modal */}
