@@ -1158,7 +1158,7 @@ export default function RelatedClaimsTab({ subFilter = "all", hideOuterHeader = 
   };
 
   return (
-    <div className={hideOuterHeader ? "p-4" : "p-6 h-full flex flex-col overflow-hidden"}>
+    <div className={hideOuterHeader ? "p-4" : "p-0 h-full flex flex-col overflow-hidden"}>
       {/* Header */}
       {!hideOuterHeader ? (
         <div className="flex-shrink-0">

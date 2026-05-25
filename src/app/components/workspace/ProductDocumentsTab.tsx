@@ -207,8 +207,8 @@ export default function ProductDocumentsTab() {
   };
 
   return (
-    <div className="p-6 overflow-y-auto no-scrollbar">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-0 overflow-y-auto no-scrollbar">
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-night">Project Documents</h2>
           <p className="text-sm text-gray-500 mt-0.5">Supporting documents, MOMs, and approvals for this project</p>

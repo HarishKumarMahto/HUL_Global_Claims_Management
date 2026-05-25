@@ -314,8 +314,8 @@ export default function ProjectTeamTab({ project, onSave }: ProjectTeamTabProps)
   const existingEmails = new Set(currentMembers.map(m => m.email));
 
   return (
-    <div className="p-6 flex-1 overflow-y-auto no-scrollbar">
-      <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="p-0 flex-1 overflow-y-auto no-scrollbar">
+      <div className="mb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-night dark:text-white text-xl font-bold">Project Team Workspace</h2>
@@ -327,7 +327,7 @@ export default function ProjectTeamTab({ project, onSave }: ProjectTeamTabProps)
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         {teams.map(team => (
           <div key={team.id} className="bg-white dark:bg-card rounded-xl border border-pebble overflow-hidden flex flex-col shadow-xs">
             {/* Card Header */}

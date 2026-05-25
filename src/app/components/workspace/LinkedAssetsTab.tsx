@@ -169,9 +169,9 @@ export default function LinkedAssetsTab() {
   });
 
   return (
-        <div className="p-6 h-full flex flex-col overflow-hidden no-scrollbar">
+        <div className="p-0 h-full flex flex-col overflow-hidden no-scrollbar">
       <div className="flex-shrink-0">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-night">Linked Assets</h2>
             <p className="text-sm text-gray-500 mt-0.5">Documents, studies, certificates, and media supporting this project</p>
