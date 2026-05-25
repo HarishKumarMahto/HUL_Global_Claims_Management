@@ -806,6 +806,8 @@ export default function App() {
     setSelectedAsset(null);
     setAssetsModuleView("library");
     setSelectedDocument(null);
+    setIsCreateProjectModalOpen(false);
+    setIsCreateProductModalOpen(false);
   };
 
   const handleViewChange = (view: string) => {
