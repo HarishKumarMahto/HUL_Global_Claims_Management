@@ -6,9 +6,10 @@ import {
 } from 'lucide-react';
 import type { DocumentRecord, DocumentType, DocumentLifecycle } from './documentsData';
 import { CURRENT_USER } from '../../types';
+import { initialProjects } from '../../types';
 import DocumentsTable from './DocumentsTable';
 import UploadDocumentModal from './UploadDocumentModal';
-import { TablePagination } from '../ui/tableUtils';
+import { TableState } from '../../types';
 
 const DOC_TYPE_OPTIONS: DocumentType[] = ['Substantiation Evidence', 'Formulation Document', 'Project Document'];
 const LIFECYCLE_OPTIONS: DocumentLifecycle[] = ['Draft', 'In Use', 'Created', 'Expired', 'Cancelled', 'Withdrawn', 'Obsolete'];
@@ -97,21 +98,40 @@ export default function DocumentsModule({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 12;
 
   const [typeFilter, setTypeFilter] = useState<DocumentType[]>([]);
   const [lifecycleFilter, setLifecycleFilter] = useState<DocumentLifecycle[]>([]);
   const [geoFilter, setGeoFilter] = useState<string[]>([]);
-
-  // Reset page on filter/view change
-  useEffect(() => { setCurrentPage(1); }, [activeLibraryView, typeFilter, lifecycleFilter, geoFilter, searchQuery]);
+  const [tableState, setTableState] = useState<TableState | undefined>();
 
   // ─── View Filtering (US-M16-F01) ─────────────────────────────────────────
   const viewFilteredDocs = documents.filter(doc => {
-    if (doc.isArchived) return false; // hide archived unless toggle shown
+    if (doc.isArchived) return false;
     if (activeLibraryView === 'My Documents') {
-      return doc.createdBy === CURRENT_USER || doc.createdBy.toLowerCase().includes('sarah');
+      const isCreator = doc.createdBy === CURRENT_USER || doc.createdBy.toLowerCase().includes('sarah');
+      if (isCreator) return true;
+
+      if (doc.documentType === 'Project Document' && doc.linkedProjectIds) {
+         // Check if user is on any of the linked projects
+         const isOnProject = doc.linkedProjectIds.some(pid => {
+            const proj = initialProjects.find(p => p.id === pid);
+            if (!proj) return false;
+            return proj.projectLead === CURRENT_USER || proj.claimsLead === CURRENT_USER || proj.projectCreator === CURRENT_USER;
+         });
+         if (isOnProject) return true;
+      }
+      
+      if (doc.documentType === 'Substantiation Evidence' && (doc.linkedClaimIds?.length || doc.linkedAssetIds?.length)) {
+          // Approximating claim/asset creator check by presence of links for now since user is generally active in these
+          return true;
+      }
+
+      if (doc.documentType === 'Formulation Document' && doc.linkedProductIds?.length) {
+         // Approximating product creator check
+         return true;
+      }
+
+      return false;
     }
     if (activeLibraryView === 'Substantiation Evidence') return doc.documentType === 'Substantiation Evidence';
     if (activeLibraryView === 'Formulation Documents') return doc.documentType === 'Formulation Document';
@@ -135,12 +155,6 @@ export default function DocumentsModule({
 
     return matchesSearch && matchesType && matchesLifecycle && matchesGeo;
   });
-
-  const totalPages = Math.max(1, Math.ceil(filteredDocs.length / PAGE_SIZE));
-  const safePage = Math.min(currentPage, totalPages);
-  const paginatedDocs = filteredDocs.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-
-  const activeFilterCount = typeFilter.length + lifecycleFilter.length + geoFilter.length;
 
   const clearAllFilters = () => {
     setTypeFilter([]);
@@ -265,54 +279,16 @@ export default function DocumentsModule({
             </div>
           )}
 
-          {/* Top Toolbar inner */}
-          <div className="bg-white border-b border-pebble px-4 py-2.5 flex items-center justify-between flex-shrink-0">
-            <div className="flex items-center gap-3">
-              {selectedIds.length > 0 ? (
-                <>
-                  <span className="text-sm text-sky font-medium bg-sky/10 px-2.5 py-0.5 rounded">{selectedIds.length} of {filteredDocs.length} selected</span>
-                  <button
-                    onClick={() => setSelectedIds([])}
-                    className="text-xs text-gray-500 hover:text-night transition-colors"
-                  >
-                    Clear selection
-                  </button>
-                </>
-              ) : (
-                <span className="text-sm text-gray-600 font-medium ml-1">Documents Library</span>
-              )}
-            </div>
 
-            <div className="flex items-center gap-3">
-              {selectedIds.length > 0 && (
-                <button
-                  className="px-3 py-1.5 bg-sky text-white rounded-lg text-sm hover:bg-dark transition-colors font-medium shadow-sm flex items-center gap-1.5"
-                >
-                  <MoreHorizontal className="w-3.5 h-3.5" /> Bulk Actions
-                </button>
-              )}
-            </div>
-          </div>
 
           {/* Table Area */}
           <DocumentsTable
-            documents={paginatedDocs}
+            documents={filteredDocs}
             onDocumentClick={onDocumentClick}
             selectedIds={selectedIds}
             onSelectionChange={setSelectedIds}
-          />
-
-          {/* Pagination Footer */}
-          <TablePagination
-            currentPage={safePage}
-            totalPages={totalPages}
-            totalRecords={filteredDocs.length}
-            startIndex={(safePage - 1) * PAGE_SIZE}
-            itemsPerPage={PAGE_SIZE}
-            label="documents"
-            onPrev={() => setCurrentPage(p => Math.max(1, p - 1))}
-            onNext={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-            onPageSelect={setCurrentPage}
+            savedState={tableState}
+            onStateChange={setTableState}
           />
         </div>
       </div>
