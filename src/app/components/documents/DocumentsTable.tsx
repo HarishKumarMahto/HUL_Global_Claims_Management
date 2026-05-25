@@ -490,9 +490,8 @@ export default function DocumentsTable({
                         {col.id === "name" && (
                           <div className="flex items-center gap-2">
                             <FileIcon fileType={currentVer?.fileType} />
-                            <div>
-                              <div className="font-medium text-night group-hover:text-sky transition-colors truncate max-w-[220px]" title={doc.name}>{doc.name}</div>
-                              <div className="text-[10px] text-gray-400 mt-0.5">{doc.id}</div>
+                            <div className="font-medium text-night group-hover:text-sky transition-colors truncate max-w-[220px]" title={doc.name}>
+                              {doc.name}
                             </div>
                           </div>
                         )}

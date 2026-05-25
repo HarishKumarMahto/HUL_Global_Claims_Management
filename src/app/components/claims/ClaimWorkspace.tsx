@@ -994,7 +994,7 @@ function SupportStrategySection({
                   onClick={() => setSeModalOpen(true)}
                   className="flex items-center gap-1 text-xs text-violet-600 hover:underline font-medium"
                 >
-                  <FileText className="w-3 h-3" /> Attach SE from Library
+                  <FileText className="w-3 h-3" /> Upload Substantiation Evidence
                 </button>
               </div>
             )}

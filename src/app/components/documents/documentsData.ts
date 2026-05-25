@@ -92,6 +92,7 @@ export interface DocumentRecord {
   businessGroup?: string;
   category?: string;
   brand?: string;
+  format?: string;
   documentNumber?: string;
   tabLink?: string;
   relatedProjectIds?: string[];
@@ -121,7 +122,7 @@ export function evaluateFormulationLifecycle(
   ) {
     return doc.lifecycleState as FormulationLifecycle;
   }
-  if (linkedProductLifecycles.some(l => l === 'In Use')) return 'In Use';
+  if (linkedProductLifecycles.some(l => l === 'In Use' || l === 'In-use')) return 'In Use';
   return 'Created';
 }
 

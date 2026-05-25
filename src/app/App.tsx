@@ -862,42 +862,84 @@ export default function App() {
   // Re-evaluate SE lifecycle on every documents change; push toast when expired
   useEffect(() => {
     const now = new Date();
-    let changed = false;
-    const updated = documents.map((doc) => {
+    let docsChanged = false;
+    let claimsChanged = false;
+    let assetsChanged = false;
+
+    const updatedDocs = documents.map((doc) => {
       if (doc.documentType !== "Substantiation Evidence") return doc;
-      if (
-        doc.lifecycleState === "Cancelled" ||
-        doc.lifecycleState === "Expired"
-      )
-        return doc;
-      const isExpired = doc.validToDate && new Date(doc.validToDate) < now;
-      if (isExpired && doc.lifecycleState !== "Expired") {
-        changed = true;
-        return {
-          ...doc,
-          lifecycleState: "Expired" as const,
-          modifiedDate: now.toISOString(),
-        };
+
+      if (doc.lifecycleState !== "Cancelled" && doc.lifecycleState !== "Expired") {
+        const isExpired = doc.validToDate && new Date(doc.validToDate) < now;
+        if (isExpired) {
+          docsChanged = true;
+          return {
+            ...doc,
+            lifecycleState: "Expired" as const,
+            modifiedDate: now.toISOString(),
+          };
+        }
       }
-      // In Use ↔ Draft based on linkages
-      const hasLinks =
-        (doc.linkedClaimIds?.length ?? 0) > 0 ||
-        (doc.linkedAssetIds?.length ?? 0) > 0;
-      const targetState = hasLinks ? "In Use" : "Draft";
-      if (doc.lifecycleState !== targetState) {
-        changed = true;
-        return {
-          ...doc,
-          lifecycleState: targetState as any,
-          modifiedDate: now.toISOString(),
-        };
+
+      if (doc.lifecycleState !== "Cancelled" && doc.lifecycleState !== "Expired") {
+        const hasLinks =
+          (doc.linkedClaimIds?.length ?? 0) > 0 ||
+          (doc.linkedAssetIds?.length ?? 0) > 0;
+        const targetState = hasLinks ? "In Use" : "Draft";
+        if (doc.lifecycleState !== targetState) {
+          docsChanged = true;
+          return {
+            ...doc,
+            lifecycleState: targetState as any,
+            modifiedDate: now.toISOString(),
+          };
+        }
       }
       return doc;
     });
-    if (changed) setDocuments(updated);
-    // Run on mount and on documents length change only (avoids infinite loop)
+
+    const finalClaims = [...claims];
+    const finalAssets = [...assets];
+
+    updatedDocs.forEach((doc) => {
+      if (doc.documentType !== "Substantiation Evidence") return;
+      if (doc.lifecycleState === "Cancelled" || doc.lifecycleState === "Expired") {
+        const targetState = doc.lifecycleState;
+        
+        doc.linkedClaimIds?.forEach((cid) => {
+          const cIndex = finalClaims.findIndex((c) => c.id === cid);
+          if (cIndex >= 0 && finalClaims[cIndex].lifecycleStage !== targetState) {
+            finalClaims[cIndex] = { ...finalClaims[cIndex], lifecycleStage: targetState as any };
+            claimsChanged = true;
+            toast.showToast({
+              title: `Claim ${targetState}`,
+              message: `Claim ${cid} moved to ${targetState} because its substantiation evidence (${doc.id}) is ${targetState}.`,
+              type: targetState === "Cancelled" ? "error" : "warning"
+            });
+          }
+        });
+
+        doc.linkedAssetIds?.forEach((aid) => {
+          const aIndex = finalAssets.findIndex((a) => a.id === aid);
+          if (aIndex >= 0 && finalAssets[aIndex].lifecycleStage !== targetState) {
+            finalAssets[aIndex] = { ...finalAssets[aIndex], lifecycleStage: targetState as any };
+            assetsChanged = true;
+            toast.showToast({
+              title: `Asset ${targetState}`,
+              message: `Asset ${aid} moved to ${targetState} because its substantiation evidence (${doc.id}) is ${targetState}.`,
+              type: targetState === "Cancelled" ? "error" : "warning"
+            });
+          }
+        });
+      }
+    });
+
+    if (docsChanged) setDocuments(updatedDocs);
+    if (claimsChanged) setClaims(finalClaims);
+    if (assetsChanged) setAssets(finalAssets);
+    
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [documents.length]);
+  }, [documents, claims, assets]);
 
   const handleModuleChange = (module: string) => {
     setActiveModule(module);
@@ -1770,6 +1812,9 @@ export default function App() {
               onSectionChange={setActiveWorkspaceSection}
               relatedClaimsSubFilter={relatedClaimsSubFilter}
               onRelatedClaimsSubFilterChange={setRelatedClaimsSubFilter}
+              documents={documents}
+              onDocumentChange={(doc) => setDocuments(docs => docs.map(d => d.id === doc.id ? doc : d))}
+              onDocumentAdd={(doc) => setDocuments(docs => [doc, ...docs])}
             />
           ) : activeModule === "Projects" ? (
             activeView.startsWith("My Asset:") ? (

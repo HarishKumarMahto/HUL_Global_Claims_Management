@@ -1,5 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
-import type React from 'react';
+import React, { useState, useRef, useEffect, Fragment } from 'react';
 import { Asset, AssetLifecycle, AssetRiskRecord, AssetComment, AssetApprovalWorkflow, ASSET_LIFECYCLE_COLORS } from '../../types';
 import { ChevronLeft, ChevronRight, Users, Star, ChevronDown, Plus, Upload, Link2, Shield, History, CheckCircle, CheckCircle2, FileText, Image, Film, Music, Sparkles, X, Download, ArrowRight, MessageSquare, Send, FolderKanban, ExternalLink, Zap, ArrowLeft, Globe, Search } from 'lucide-react';
 import DownloadAssetModal from './DownloadAssetModal';
@@ -7,6 +6,7 @@ import SPARCiPanel from './SPARCiPanel';
 import LifecycleTransitionModal from './LifecycleTransitionModal';
 import ApprovalWorkflowModal from './ApprovalWorkflowModal';
 import ApprovalWorkflowPanel from './ApprovalWorkflowPanel';
+import UploadDocumentModal from '../documents/UploadDocumentModal';
 
 interface AssetWorkspaceProps {
   asset: Asset;
@@ -59,6 +59,8 @@ export default function AssetWorkspace({
   const [newRiskComment, setNewRiskComment] = useState('');
   const [showCollabToast, setShowCollabToast] = useState(false);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [seModalOpen, setSeModalOpen] = useState(false);
+  const [localSEDocs, setLocalSEDocs] = useState<any[]>([]);
 
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const isNavigatingRef = useRef(false);
@@ -442,16 +444,28 @@ export default function AssetWorkspace({
               <div className="border-t border-pebble pt-5">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-xs text-gray-500 uppercase tracking-wide font-semibold">Substantiation Documents</h4>
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 border border-pebble rounded-lg text-xs text-sky hover:bg-pale transition-colors">
+                  <button onClick={() => setSeModalOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 border border-pebble rounded-lg text-xs text-sky hover:bg-pale transition-colors">
                     <Plus className="w-3.5 h-3.5" />
-                    Add Document
+                    Upload Substantiation Evidence
                   </button>
                 </div>
-                <div className="border-2 border-dashed border-pebble rounded-lg p-6 text-center">
-                  <FileText className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                  <p className="text-sm text-gray-400">No substantiation documents yet</p>
-                  <p className="text-xs text-gray-400 mt-1">Upload PDFs, images, or other supporting files</p>
-                </div>
+                {localSEDocs.length === 0 ? (
+                  <div className="border-2 border-dashed border-pebble rounded-lg p-6 text-center">
+                    <FileText className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                    <p className="text-sm text-gray-400">No substantiation documents yet</p>
+                    <p className="text-xs text-gray-400 mt-1">Upload PDFs, images, or other supporting files</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {localSEDocs.map((doc, i) => (
+                      <div key={i} className="flex items-center gap-3 px-3 py-2 bg-earth rounded-lg border border-pebble">
+                        <FileText className="w-4 h-4 text-sky/60 flex-shrink-0" />
+                        <span className="text-sm text-night flex-1 truncate">{doc.name}</span>
+                        <span className="text-xs text-gray-500 flex-shrink-0">{doc.subtype}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -778,9 +792,8 @@ export default function AssetWorkspace({
                             </thead>
                             <tbody>
                               {sectionClaims.map((claim, i) => (
-                                <>
+                                <Fragment key={claim.id}>
                                   <tr
-                                    key={claim.id}
                                     className={`border-b border-pebble hover:bg-earth transition-colors cursor-pointer ${expandedClaimRow === claim.id ? 'bg-pale/30' : i % 2 !== 0 ? 'bg-earth/20' : ''}`}
                                     onClick={() => setExpandedClaimRow(expandedClaimRow === claim.id ? null : claim.id)}
                                   >
@@ -867,7 +880,7 @@ export default function AssetWorkspace({
                                       </td>
                                     </tr>
                                   )}
-                                </>
+                                </Fragment>
                               ))}
                             </tbody>
                           </table>
@@ -1343,6 +1356,19 @@ export default function AssetWorkspace({
           onClose={() => setShowApprovalModal(false)}
           asset={asset}
           onSave={handleSaveWorkflow}
+        />
+      )}
+      {/* SE Upload Modal */}
+      {seModalOpen && (
+        <UploadDocumentModal
+          isOpen={seModalOpen}
+          onClose={() => setSeModalOpen(false)}
+          contextDocType="Substantiation Evidence"
+          contextAssetId={asset.id}
+          onCreate={(doc) => {
+            setLocalSEDocs(prev => [...prev, doc]);
+            setSeModalOpen(false);
+          }}
         />
       )}
     </div>

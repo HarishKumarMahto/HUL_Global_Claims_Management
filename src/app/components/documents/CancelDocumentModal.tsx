@@ -51,14 +51,14 @@ export default function CancelDocumentModal({
           ? { ...v, lifecycleState: "Cancelled" }
           : v,
       ),
-      // Remove all linkages
-      linkedClaimIds: [],
-      linkedAssetIds: [],
-      linkedProductIds: [],
+      // Remove all linkages, EXCEPT for Substantiation Evidence which must retain them for cascading cancellations
+      linkedClaimIds: document.documentType === "Substantiation Evidence" ? document.linkedClaimIds : [],
+      linkedAssetIds: document.documentType === "Substantiation Evidence" ? document.linkedAssetIds : [],
+      linkedProductIds: document.documentType === "Substantiation Evidence" ? document.linkedProductIds : [],
       linkedProjectIds:
-        document.documentType === "Project Document"
-          ? []
-          : document.linkedProjectIds,
+        document.documentType === "Project Document" || document.documentType === "Substantiation Evidence"
+          ? document.linkedProjectIds
+          : [],
     };
     onConfirm(updated);
   };

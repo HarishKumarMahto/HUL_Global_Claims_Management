@@ -98,6 +98,7 @@ export default function DocumentsModule({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   const [typeFilter, setTypeFilter] = useState<DocumentType[]>([]);
   const [lifecycleFilter, setLifecycleFilter] = useState<DocumentLifecycle[]>([]);
@@ -106,7 +107,7 @@ export default function DocumentsModule({
 
   // ─── View Filtering (US-M16-F01) ─────────────────────────────────────────
   const viewFilteredDocs = documents.filter(doc => {
-    if (doc.isArchived) return false;
+    if (!showArchived && doc.isArchived) return false;
     if (activeLibraryView === 'My Documents') {
       const isCreator = doc.createdBy === CURRENT_USER || doc.createdBy.toLowerCase().includes('sarah');
       if (isCreator) return true;
@@ -239,6 +240,20 @@ export default function DocumentsModule({
               onToggle={v => setGeoFilter(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v])}
               onClear={() => setGeoFilter([])}
             />
+            <div className="w-px h-6 bg-pebble mx-1"></div>
+            <label className="flex items-center gap-2 cursor-pointer ml-1">
+              <div className="relative">
+                <input 
+                  type="checkbox" 
+                  className="sr-only" 
+                  checked={showArchived}
+                  onChange={(e) => setShowArchived(e.target.checked)} 
+                />
+                <div className={`block w-10 h-6 rounded-full transition-colors ${showArchived ? 'bg-sky' : 'bg-gray-200'}`}></div>
+                <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${showArchived ? 'transform translate-x-4' : ''}`}></div>
+              </div>
+              <span className="text-xs font-medium text-gray-600 select-none">Show Archived</span>
+            </label>
           </div>
         </div>
       </div>

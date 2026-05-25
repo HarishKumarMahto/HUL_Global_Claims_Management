@@ -12,6 +12,7 @@ import SKUCreationScreen from './SKUCreationScreen';
 import FormatCreationScreen from './FormatCreationScreen';
 import TechnologyCreationScreen from './TechnologyCreationScreen';
 import type { DocumentRecord } from '../documents/documentsData';
+import UploadDocumentModal from '../documents/UploadDocumentModal';
 
 export type ProductModuleView = 'landing' | 'hierarchy' | 'detail' | 'productCreation' | 'skuCreation' | 'formatCreation' | 'technologyCreation';
 
@@ -72,6 +73,9 @@ export default function ProductsModule({
   const [skuCreationSource, setSkuCreationSource] = useState<'products' | 'productCreation' | 'createProductModal'>('products');
   const [recentLocalVariants, setRecentLocalVariants] = useState<Array<{ id: string; name: string; variant: string; geography: string }>>([]);
 
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [uploadContextProductId, setUploadContextProductId] = useState<string | undefined>(undefined);
+
   useEffect(() => {
     const handleFinalize = (e: Event) => {
       const ev = e as CustomEvent<{ products: ProductItem[] }>;
@@ -80,8 +84,17 @@ export default function ProductsModule({
         setProducts(prev => [...finalized, ...prev]);
       }
     };
+    const handleOpenUpload = (e: Event) => {
+      const ev = e as CustomEvent<{ productId: string }>;
+      setUploadContextProductId(ev.detail?.productId);
+      setUploadModalOpen(true);
+    };
     window.addEventListener('finalizeProducts', handleFinalize);
-    return () => window.removeEventListener('finalizeProducts', handleFinalize);
+    window.addEventListener('open-upload-formulation', handleOpenUpload);
+    return () => {
+      window.removeEventListener('finalizeProducts', handleFinalize);
+      window.removeEventListener('open-upload-formulation', handleOpenUpload);
+    };
   }, []);
 
   const savedViews = propsSavedViews !== undefined ? propsSavedViews : localSavedViews;
@@ -256,15 +269,29 @@ export default function ProductsModule({
 
   if (activeProductView === 'productCreation') {
     return (
-      <ProductCreationScreen
-        onBack={handleBackFromProductCreation}
-        onCreate={handleProductCreated}
-        onCreateSKU={() => handleOpenSKUCreation('productCreation')}
-        onCreateClaim={() => {
-          // TODO: Navigate to ClaimCreationScreen
-          handleBackFromProductCreation();
-        }}
-      />
+      <>
+        <ProductCreationScreen
+          onBack={handleBackFromProductCreation}
+          onCreate={handleProductCreated}
+          onCreateSKU={() => handleOpenSKUCreation('productCreation')}
+          onCreateClaim={() => {
+            // TODO: Navigate to ClaimCreationScreen
+            handleBackFromProductCreation();
+          }}
+        />
+        <UploadDocumentModal 
+          isOpen={uploadModalOpen} 
+          onClose={() => setUploadModalOpen(false)} 
+          onCreate={(doc) => {
+            if (onDocumentsChange) {
+              onDocumentsChange([...documents, doc]);
+            }
+            setUploadModalOpen(false);
+          }}
+          contextDocType="Formulation Document"
+          contextProductId={uploadContextProductId}
+        />
+      </>
     );
   }
 
@@ -300,6 +327,18 @@ export default function ProductsModule({
         {isCreateOpen && (
           <CreateProductModal isOpen={isCreateOpen} onClose={handleCloseCreate} onCreate={handleProductCreated} preselectedType={localCreateType} onNavigateToSKU={handleNavigateToSKU} onBack={() => { window.dispatchEvent(new CustomEvent('backToProjectCreation')); handleCloseCreate(); }} initialData={pendingProductData} />
         )}
+        <UploadDocumentModal 
+          isOpen={uploadModalOpen} 
+          onClose={() => setUploadModalOpen(false)} 
+          onCreate={(doc) => {
+            if (onDocumentsChange) {
+              onDocumentsChange([...documents, doc]);
+            }
+            setUploadModalOpen(false);
+          }}
+          contextDocType="Formulation Document"
+          contextProductId={uploadContextProductId}
+        />
         <ProductSavedViewsPanel
           isOpen={showSavedViewsPanel}
           onClose={() => onCloseSavedViewsPanel?.()}

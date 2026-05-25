@@ -32,6 +32,7 @@ import {
   Download,
   Users,
   Tag,
+  Upload,
 } from "lucide-react";
 const ChevronRightIcon = ChevronRight;
 import {
@@ -2876,6 +2877,19 @@ export default function ProductDetailsPage({
                         {getCreateChildLabel(product.type)}
                       </button>
                     )}
+                    <button
+                      onClick={() => {
+                        setActionMenuOpen(false);
+                        // Trigger formulation document upload
+                        // For demonstration we will dispatch an event or call a handler
+                        // but since the modal isn't injected here, we can dispatch a custom event
+                        window.dispatchEvent(new CustomEvent('open-upload-formulation', { detail: { productId: product.id } }));
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors text-left"
+                    >
+                      <Upload className="w-4 h-4 text-gray-400" />
+                      Upload Formulation Doc
+                    </button>
                     <button
                       onClick={() => {
                         setActionMenuOpen(false);

@@ -40,6 +40,7 @@ import {
   mockClaims,
   isProjectArchived,
 } from "../types";
+import type { DocumentRecord } from "./documents/documentsData";
 import ProjectDetailsTab from "./workspace/ProjectDetailsTab";
 import ProjectTeamTab from "./workspace/ProjectTeamTab";
 import GeographyTab from "./workspace/GeographyTab";
@@ -75,6 +76,9 @@ interface ProjectWorkspaceProps {
   currentUserRole?: UserRole;
   relatedClaimsSubFilter?: string;
   onRelatedClaimsSubFilterChange?: (filter: string) => void;
+  documents: DocumentRecord[];
+  onDocumentChange: (doc: DocumentRecord) => void;
+  onDocumentAdd: (doc: DocumentRecord) => void;
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -1149,8 +1153,11 @@ export default function ProjectWorkspace({
   activeSection,
   onSectionChange,
   currentUserRole = "Project Creator",
-  relatedClaimsSubFilter = "all",
+  relatedClaimsSubFilter,
   onRelatedClaimsSubFilterChange,
+  documents,
+  onDocumentChange,
+  onDocumentAdd,
 }: ProjectWorkspaceProps) {
   const [isFavorite, setIsFavorite] = useState(project.isFavorite || false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -1726,7 +1733,7 @@ export default function ProjectWorkspace({
       case "Related Assets":
         return <LinkedAssetsTab />;
       case "Project Documents":
-        return <ProductDocumentsTab />;
+        return <ProductDocumentsTab project={project} documents={documents} onDocumentChange={onDocumentChange} onDocumentAdd={onDocumentAdd} />;
       default:
         return null;
     }

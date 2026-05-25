@@ -7,7 +7,8 @@ import {
   ChevronLeft, ChevronRight
 } from 'lucide-react';
 import type { DocumentRecord } from './documentsData';
-import { isDocumentReadOnly, canCreateNewVersion } from './documentsData';
+import { isDocumentReadOnly, canCreateNewVersion, evaluateFormulationLifecycle } from './documentsData';
+import DocumentLifecycleBadge from './DocumentLifecycleBadge';
 import DocumentVersionModal from './DocumentVersionModal';
 import CancelDocumentModal from './CancelDocumentModal';
 import { initialProducts } from '../products/productData';
@@ -28,7 +29,7 @@ interface DocumentWorkspaceProps {
   onDocumentSelect?: (doc: DocumentRecord) => void;
 }
 
-const SECTIONS = [
+const BASE_SECTIONS = [
   { id: 'Document Details', icon: <Info className="w-4 h-4" /> },
   { id: 'Related Claims',   icon: <FileText className="w-4 h-4" /> },
   { id: 'Related Assets',   icon: <Paperclip className="w-4 h-4" /> },
@@ -66,8 +67,13 @@ export default function DocumentWorkspace({
   const [newComment, setNewComment] = useState('');
   const [versionModalOpen, setVersionModalOpen] = useState(false);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
   const readOnly = isDocumentReadOnly(document);
   const currentVer = document.versions.find(v => v.versionNumber === document.currentVersion);
+
+  const sections = document.documentType === 'Substantiation Evidence'
+    ? BASE_SECTIONS.filter(s => ['Document Details', 'Related Claims', 'Related Assets', 'Related Products', 'Version History', 'Comments'].includes(s.id))
+    : BASE_SECTIONS;
 
   const currentIndex = allDocuments && document ? allDocuments.findIndex(doc => doc.id === document.id) : -1;
   const totalDocuments = allDocuments ? allDocuments.length : 0;
@@ -125,12 +131,144 @@ export default function DocumentWorkspace({
     }
   }, [activeSection]);
 
+  const [isEditingSE, setIsEditingSE] = useState(false);
+  const [editedClaims, setEditedClaims] = useState<string[]>(document.linkedClaimIds || []);
+  const [editedAssets, setEditedAssets] = useState<string[]>(document.linkedAssetIds || []);
+  const [editedProducts, setEditedProducts] = useState<string[]>(document.relatedProductIds || []);
+  const [editedGeography, setEditedGeography] = useState<string[]>(document.geography || []);
+
+  const [derivedProducts, setDerivedProducts] = useState<string[]>([]);
+  const [derivedGeography, setDerivedGeography] = useState<string[]>([]);
+
+  const [isEditingFD, setIsEditingFD] = useState(false);
+  const [editedFDProducts, setEditedFDProducts] = useState<string[]>(document.linkedProductIds || []);
+
+  const handleDownload = (type: string) => {
+    setActionsOpen(false);
+    showToast(`Downloading ${type}...`);
+  };
+
+  useEffect(() => {
+    const claims = document.linkedClaimIds || [];
+    const assets = document.linkedAssetIds || [];
+    
+    // Compute initial derived to separate explicit
+    const productsSet = new Set<string>();
+    const geoSet = new Set<string>();
+    
+    if (document.documentType === 'Substantiation Evidence') {
+      const selectedClaimObjs = allClaims.filter(c => claims.includes(c.id));
+      selectedClaimObjs.forEach(c => {
+        if (c.productId) productsSet.add(c.productId);
+        if (['Regional', 'Local', 'SKU'].includes(c.classification || '')) {
+          c.geography?.forEach((g: string) => geoSet.add(g));
+        }
+      });
+      assets.forEach(aId => {
+        const a = allAssets.find(ass => ass.id === aId);
+        if (a) {
+          (a.linkedClaimIds || a.whereUsed?.claimIds || []).forEach((cid: string) => {
+            const c = allClaims.find(claim => claim.id === cid);
+            if (c?.productId) productsSet.add(c.productId);
+          });
+        }
+      });
+    }
+
+    const initDerivedProducts = Array.from(productsSet);
+    const initDerivedGeo = Array.from(geoSet);
+
+    setEditedClaims(claims);
+    setEditedAssets(assets);
+    setEditedProducts((document.relatedProductIds || []).filter(id => !initDerivedProducts.includes(id)));
+    setEditedGeography((document.geography || []).filter(g => !initDerivedGeo.includes(g)));
+    setIsEditingSE(false);
+
+    if (document.documentType === 'Formulation Document') {
+      setEditedFDProducts(document.linkedProductIds || []);
+      setIsEditingFD(false);
+    }
+  }, [document, allClaims, allAssets]);
+
+  useEffect(() => {
+    if (document.documentType === 'Substantiation Evidence') {
+      const productsSet = new Set<string>();
+      const geoSet = new Set<string>();
+      
+      const selectedClaimObjs = allClaims.filter(c => editedClaims.includes(c.id));
+      selectedClaimObjs.forEach(c => {
+        if (c.productId) productsSet.add(c.productId);
+        if (['Regional', 'Local', 'SKU'].includes(c.classification || '')) {
+          c.geography?.forEach((g: string) => geoSet.add(g));
+        }
+      });
+
+      editedAssets.forEach(aId => {
+        const a = allAssets.find(ass => ass.id === aId);
+        if (a) {
+          (a.linkedClaimIds || a.whereUsed?.claimIds || []).forEach((cid: string) => {
+            const c = allClaims.find(claim => claim.id === cid);
+            if (c?.productId) productsSet.add(c.productId);
+          });
+        }
+      });
+
+      setDerivedProducts(Array.from(productsSet));
+      setDerivedGeography(Array.from(geoSet));
+    }
+  }, [editedClaims, editedAssets, document.documentType, allClaims, allAssets]);
+
+  const handleMultiSelect = (val: string, current: string[], setter: React.Dispatch<React.SetStateAction<string[]>>) => {
+    if (val === '') return;
+    if (!current.includes(val)) setter([...current, val]);
+  };
+  const removeMultiSelect = (val: string, current: string[], setter: React.Dispatch<React.SetStateAction<string[]>>) => {
+    setter(current.filter(item => item !== val));
+  };
+  const handleSaveSE = () => {
+    onDocumentChange({
+      ...document,
+      linkedClaimIds: editedClaims,
+      linkedAssetIds: editedAssets,
+      relatedProductIds: Array.from(new Set([...editedProducts, ...derivedProducts])),
+      geography: Array.from(new Set([...editedGeography, ...derivedGeography])),
+      modifiedDate: new Date().toISOString()
+    });
+    setIsEditingSE(false);
+    showToast('Substantiation Evidence updated');
+  };
+
+  const handleSaveFD = () => {
+    const successfullyLinkedIds: string[] = [];
+    const successfullyLinkedLifecycles: string[] = [];
+    editedFDProducts.forEach(prodId => {
+      const p = initialProducts.find(prod => prod.id === prodId || prod.productId === prodId);
+      if (p && p.lifecycleState === 'Created') {
+        successfullyLinkedIds.push(p.id);
+        successfullyLinkedLifecycles.push(p.lifecycleState);
+      }
+    });
+
+    const tempDoc = { lifecycleState: document.lifecycleState } as DocumentRecord;
+    const newLifecycle = evaluateFormulationLifecycle(tempDoc, successfullyLinkedLifecycles);
+
+    onDocumentChange({
+      ...document,
+      linkedProductIds: successfullyLinkedIds,
+      lifecycleState: newLifecycle,
+      modifiedDate: new Date().toISOString()
+    });
+    setIsEditingFD(false);
+    showToast('Formulation Document updated');
+  };
+
+
   const handleScrollLeft = (e: React.UIEvent<HTMLDivElement>) => {
     if (isNavigatingRef.current) return;
     const container = e.currentTarget;
     const containerRect = container.getBoundingClientRect();
     const triggerLine = containerRect.top + containerRect.height * 0.3;
-    for (const sec of SECTIONS) {
+    for (const sec of sections) {
       const el = sectionRefs.current[sec.id];
       if (el) {
         const rect = el.getBoundingClientRect();
@@ -251,13 +389,13 @@ export default function DocumentWorkspace({
                 <>
                   <div className="fixed inset-0 z-20" onClick={() => setActionsOpen(false)} />
                   <div className="absolute right-0 top-full mt-1 bg-white border border-pebble rounded-xl shadow-xl z-30 min-w-[200px] overflow-hidden">
-                    <button className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors">
+                    <button onClick={() => handleDownload('Original')} className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors">
                       <Download className="w-4 h-4 text-sky" /> Download Original
                     </button>
-                    <button className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors">
+                    <button onClick={() => handleDownload('Rendition')} className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors">
                       <Download className="w-4 h-4 text-sky" /> Download Rendition (PDF)
                     </button>
-                    <button className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors">
+                    <button onClick={() => handleDownload('Annotations')} className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors">
                       <Download className="w-4 h-4 text-sky" /> Download with Annotations
                     </button>
                     {canCreateNewVersion(document) && (
@@ -271,7 +409,7 @@ export default function DocumentWorkspace({
                         </button>
                       </>
                     )}
-                    {!readOnly && (
+                    {(!readOnly || document.lifecycleState === 'Expired') && document.lifecycleState !== 'Cancelled' && (
                       <>
                         <div className="border-t border-pebble my-1" />
                         <button
@@ -296,6 +434,29 @@ export default function DocumentWorkspace({
                         </button>
                       </>
                     )}
+                    {document.documentType === 'Formulation Document' && !['Cancelled', 'Obsolete', 'Withdrawn'].includes(document.lifecycleState) && (
+                      <>
+                        <div className="border-t border-pebble my-1" />
+                        <button
+                          onClick={() => {
+                            onDocumentChange({ ...document, lifecycleState: 'Withdrawn', modifiedDate: new Date().toISOString() });
+                            setActionsOpen(false);
+                          }}
+                          className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm text-yellow-600 hover:bg-earth transition-colors"
+                        >
+                          <Archive className="w-4 h-4 text-yellow-600" /> Mark as Withdrawn
+                        </button>
+                        <button
+                          onClick={() => {
+                            onDocumentChange({ ...document, lifecycleState: 'Obsolete', modifiedDate: new Date().toISOString() });
+                            setActionsOpen(false);
+                          }}
+                          className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm text-purple-600 hover:bg-earth transition-colors"
+                        >
+                          <Archive className="w-4 h-4 text-purple-600" /> Mark as Obsolete
+                        </button>
+                      </>
+                    )}
                   </div>
                 </>
               )}
@@ -308,21 +469,18 @@ export default function DocumentWorkspace({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2.5 mb-2 flex-wrap">
               <h2 className="text-night truncate font-bold leading-tight text-lg">{document.name}</h2>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
-                {document.lifecycleState}
-              </span>
+              <DocumentLifecycleBadge state={document.lifecycleState as any} size="sm" />
               <span className="text-xs text-gray-400 font-mono">v{document.currentVersion}</span>
-              {document.versions.length > 1 && (
-                <span className="text-xs text-gray-400 font-medium">({document.versions.length} versions)</span>
+              {document.versions[0]?.versionedFrom && (
+                <span className="text-[10px] text-sky bg-sky/10 border border-sky/20 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                  Versioned from v{document.versions[0].versionedFrom}
+                </span>
               )}
             </div>
 
             <div className="flex items-center gap-2 mt-1 flex-wrap">
               <span className="px-2.5 py-1 bg-sky/10 text-sky border border-sky/20 rounded-full text-xs flex-shrink-0 font-medium">
                 {document.documentType}
-              </span>
-              <span className="px-2.5 py-1 bg-earth text-gray-600 border border-pebble/40 rounded-full text-xs flex-shrink-0 font-mono">
-                {document.id}
               </span>
               {document.businessGroup && (
                 <span className="px-2.5 py-1 bg-earth text-gray-600 border border-pebble/40 rounded-full text-xs flex-shrink-0">
@@ -360,39 +518,239 @@ export default function DocumentWorkspace({
           className="flex-1 overflow-y-auto min-w-0 snap-y snap-proximity scroll-smooth no-scrollbar md:max-w-[45%] lg:max-w-[42%]"
           onScroll={handleScrollLeft}
         >
-          {SECTIONS.map((sec) => {
+          {sections.map((sec) => {
             /* ── Per-section content ──────────────────────── */
             let content: React.ReactNode = null;
 
-            if (sec.id === 'Document Details') {
+            if (sec.id === 'Document Details' || sec.id === 'Substantiation Evidence Details') {
               content = document.documentType === 'Substantiation Evidence' ? (
                 <div className="bg-white p-6 rounded-xl border border-gray-300 shadow-sm">
-                  <h3 className="text-base font-bold text-night border-b border-pebble pb-3 mb-4">Substantiation Evidence Details</h3>
-                  <div className="space-y-4">
-                    {[
-                      { label: 'Name', value: document.name },
-                      { label: 'Description', value: document.description || '—' },
-                      { label: 'Subtype', value: document.subtype || '—' },
-                      { label: 'Valid To Date', value: formatDate(document.validToDate) },
-                      { label: 'Created By', value: document.createdBy },
-                    ].map(f => (
-                      <div key={f.label}>
-                        <p className="text-xs text-gray-400 font-medium mb-1 uppercase tracking-wide">{f.label}</p>
-                        <p className="text-sm text-night">{f.value}</p>
-                      </div>
-                    ))}
-                    <div>
-                      <p className="text-xs text-gray-400 font-medium mb-1 uppercase tracking-wide">Geography</p>
-                      <div className="flex flex-wrap gap-1.5">{document.geography.map(g => <span key={g} className="px-2 py-0.5 rounded bg-earth text-night text-xs font-medium">{g}</span>)}</div>
-                    </div>
+                  <div className="flex items-center justify-between border-b border-pebble pb-3 mb-4">
+                    <h3 className="text-base font-bold text-night">Substantiation Evidence Details</h3>
+                    {!readOnly && (
+                      <button
+                        onClick={() => isEditingSE ? handleSaveSE() : setIsEditingSE(true)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${isEditingSE ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-sky/10 text-sky hover:bg-sky/20'}`}
+                      >
+                        {isEditingSE ? 'Save Changes' : 'Edit Details'}
+                      </button>
+                    )}
                   </div>
+                  {!isEditingSE ? (
+                    <div className="space-y-4">
+                      {[
+                        { label: 'Name', value: document.name },
+                        { label: 'Description', value: document.description || '—' },
+                        { label: 'Subtype', value: document.subtype || '—' },
+                        { label: 'Valid To Date', value: formatDate(document.validToDate) },
+                        { label: 'Created By', value: document.createdBy },
+                      ].map(f => (
+                        <div key={f.label}>
+                          <p className="text-xs text-gray-400 font-medium mb-1 uppercase tracking-wide">{f.label}</p>
+                          <p className="text-sm text-night">{f.value}</p>
+                        </div>
+                      ))}
+                      <div>
+                        <p className="text-xs text-gray-400 font-medium mb-1 uppercase tracking-wide">Business Group</p>
+                        <div className="flex flex-wrap gap-1.5"><span className="px-2 py-0.5 rounded bg-earth text-night text-xs font-medium">{document.businessGroup || '—'}</span></div>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400 font-medium mb-1 uppercase tracking-wide">Geography</p>
+                        <div className="flex flex-wrap gap-1.5">{document.geography.map(g => <span key={g} className="px-2 py-0.5 rounded bg-earth text-night text-xs font-medium">{g}</span>)}</div>
+                      </div>
+                      <div className="pt-4 border-t border-pebble">
+                        <h4 className="text-sm font-bold text-night mb-3">File Info</h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div><p className="text-[10px] text-gray-400 font-medium uppercase">File Name</p><p className="text-xs font-mono truncate">{currentVer?.fileName || '—'}</p></div>
+                          <div><p className="text-[10px] text-gray-400 font-medium uppercase">Type</p><p className="text-xs font-mono">{currentVer?.fileType || '—'}</p></div>
+                          <div><p className="text-[10px] text-gray-400 font-medium uppercase">Size</p><p className="text-xs font-mono">{currentVer?.fileSizeBytes ? (currentVer.fileSizeBytes / 1024).toFixed(1) + ' KB' : '—'}</p></div>
+                          <div><p className="text-[10px] text-gray-400 font-medium uppercase">Uploaded At</p><p className="text-xs font-mono">{formatDate(currentVer?.uploadedAt)}</p></div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-5">
+                      {[
+                        { label: 'Name', value: document.name },
+                        { label: 'Subtype', value: document.subtype || '—' },
+                        { label: 'Valid To Date', value: formatDate(document.validToDate) },
+                      ].map(f => (
+                        <div key={f.label}>
+                          <p className="text-xs text-gray-400 font-medium mb-1 uppercase tracking-wide">{f.label}</p>
+                          <p className="text-sm text-night">{f.value}</p>
+                        </div>
+                      ))}
+
+                      {/* Related Products */}
+                      <div className="pt-2 border-t border-pebble">
+                        <label className="block text-xs font-bold text-night mb-1.5">Linked Products</label>
+                        <select
+                          className="w-full px-3 py-2 border border-pebble rounded-lg text-sm bg-white"
+                          value=""
+                          onChange={e => handleMultiSelect(e.target.value, editedProducts, setEditedProducts)}
+                        >
+                          <option value="" disabled>Select Product…</option>
+                          {initialProducts.filter(p => !editedProducts.includes(p.id) && !derivedProducts.includes(p.id)).map(p => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                        </select>
+                        {(editedProducts.length > 0 || derivedProducts.length > 0) && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {Array.from(new Set([...editedProducts, ...derivedProducts])).map(id => {
+                              const isDerived = derivedProducts.includes(id);
+                              const p = initialProducts.find(prod => prod.id === id || prod.productId === id);
+                              return (
+                                <span key={id} className={`inline-flex items-center gap-1 px-2 py-1 border rounded-lg text-xs ${isDerived ? 'bg-gray-100 text-gray-500 border-gray-200' : 'bg-earth border-pebble'}`}>
+                                  {p?.name || id}
+                                  {isDerived && <span className="text-[10px] uppercase bg-gray-200 px-1 rounded ml-1">Derived</span>}
+                                  {!isDerived && <button onClick={() => removeMultiSelect(id, editedProducts, setEditedProducts)} className="text-gray-400 hover:text-red-500"><X className="w-3 h-3" /></button>}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Related Claims */}
+                      <div>
+                        <label className="block text-xs font-bold text-night mb-1.5">Linked Claims</label>
+                        <select
+                          className="w-full px-3 py-2 border border-pebble rounded-lg text-sm bg-white"
+                          value=""
+                          onChange={e => handleMultiSelect(e.target.value, editedClaims, setEditedClaims)}
+                        >
+                          <option value="" disabled>Select Claim…</option>
+                          {allClaims.filter(c => !editedClaims.includes(c.id)).map(c => (
+                            <option key={c.id} value={c.id}>{c.id} - {c.versions?.[c.currentVersion]?.globalStatement?.substring(0,40)}…</option>
+                          ))}
+                        </select>
+                        {editedClaims.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {editedClaims.map(id => (
+                              <span key={id} className="inline-flex items-center gap-1 px-2 py-1 bg-earth border border-pebble rounded-lg text-xs">
+                                {id}
+                                <button onClick={() => removeMultiSelect(id, editedClaims, setEditedClaims)} className="text-gray-400 hover:text-red-500"><X className="w-3 h-3" /></button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Related Assets */}
+                      <div>
+                        <label className="block text-xs font-bold text-night mb-1.5">Linked Assets</label>
+                        <select
+                          className="w-full px-3 py-2 border border-pebble rounded-lg text-sm bg-white"
+                          value=""
+                          onChange={e => handleMultiSelect(e.target.value, editedAssets, setEditedAssets)}
+                        >
+                          <option value="" disabled>Select Asset…</option>
+                          {allAssets.filter(a => !editedAssets.includes(a.id)).map(a => (
+                            <option key={a.id} value={a.id}>{a.name}</option>
+                          ))}
+                        </select>
+                        {editedAssets.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {editedAssets.map(id => {
+                              const a = allAssets.find(ass => ass.id === id);
+                              return (
+                                <span key={id} className="inline-flex items-center gap-1 px-2 py-1 bg-earth border border-pebble rounded-lg text-xs">
+                                  {a?.name || id}
+                                  <button onClick={() => removeMultiSelect(id, editedAssets, setEditedAssets)} className="text-gray-400 hover:text-red-500"><X className="w-3 h-3" /></button>
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Geography */}
+                      <div>
+                        <label className="block text-xs font-bold text-night mb-1.5">Geography</label>
+                        <div className="flex flex-wrap gap-2">
+                          {['Global', 'North America', 'Europe', 'Asia', 'Latin America', 'Africa', 'Middle East'].map(g => {
+                            const isDerived = derivedGeography.includes(g);
+                            const isSelected = editedGeography.includes(g) || isDerived;
+                            return (
+                              <button
+                                key={g}
+                                disabled={isDerived}
+                                onClick={() => {
+                                  if (isDerived) return;
+                                  isSelected ? removeMultiSelect(g, editedGeography, setEditedGeography) : handleMultiSelect(g, editedGeography, setEditedGeography)
+                                }}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
+                                  isDerived ? 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed opacity-80 relative' :
+                                  isSelected ? 'bg-sky-50 border-sky-300 text-sky-700' : 'bg-white border-pebble text-gray-600 hover:bg-earth'
+                                }`}
+                              >
+                                {g}
+                                {isDerived && <span className="absolute -top-2 -right-2 bg-gray-300 text-gray-600 text-[8px] px-1 rounded-full uppercase leading-none border border-gray-400 font-bold z-10 hidden group-hover:block">Derived</span>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="bg-white p-6 rounded-xl border border-gray-300 shadow-sm">
-                  <h3 className="text-base font-bold text-night border-b border-pebble pb-3 mb-4">Document Details</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-5">
-                    {[
-                      { label: 'Name', value: document.name },
+                  <div className="flex items-center justify-between border-b border-pebble pb-3 mb-4">
+                    <h3 className="text-base font-bold text-night">Document Details</h3>
+                    {document.documentType === 'Formulation Document' && !readOnly && (
+                      <button
+                        onClick={() => isEditingFD ? handleSaveFD() : setIsEditingFD(true)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${isEditingFD ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-sky/10 text-sky hover:bg-sky/20'}`}
+                      >
+                        {isEditingFD ? 'Save Changes' : 'Edit Details'}
+                      </button>
+                    )}
+                  </div>
+                  {isEditingFD ? (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5 border-b border-pebble pb-4 mb-4">
+                        {[
+                          { label: 'Name', value: document.name },
+                          { label: 'Document Type', value: document.documentType },
+                        ].map(f => (
+                          <div key={f.label}>
+                            <p className="text-xs text-gray-400 font-medium mb-1">{f.label}</p>
+                            <p className="text-sm text-night">{f.value}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="pt-2">
+                        <label className="block text-xs font-bold text-night mb-1.5">Linked Products</label>
+                        <select
+                          className="w-full px-3 py-2 border border-pebble rounded-lg text-sm bg-white"
+                          value=""
+                          onChange={e => handleMultiSelect(e.target.value, editedFDProducts, setEditedFDProducts)}
+                        >
+                          <option value="" disabled>Select Product…</option>
+                          {initialProducts.filter(p => !editedFDProducts.includes(p.id)).map(p => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                        </select>
+                        {editedFDProducts.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {editedFDProducts.map(id => {
+                              const p = initialProducts.find(prod => prod.id === id || prod.productId === id);
+                              return (
+                                <span key={id} className="inline-flex items-center gap-1 px-2 py-1 bg-earth border border-pebble rounded-lg text-xs">
+                                  {p?.name || id}
+                                  <button onClick={() => removeMultiSelect(id, editedFDProducts, setEditedFDProducts)} className="text-gray-400 hover:text-red-500"><X className="w-3 h-3" /></button>
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-5">
+                      {[
+                        { label: 'Name', value: document.name },
                       { label: 'Document Type', value: document.documentType },
                       { label: 'Version', value: `v${document.currentVersion}` },
                       { label: 'Lifecycle', value: document.lifecycleState },
@@ -418,6 +776,7 @@ export default function DocumentWorkspace({
                       </div>
                     ))}
                   </div>
+                  )}
                 </div>
               );
             }
@@ -680,7 +1039,7 @@ export default function DocumentWorkspace({
                 <div className="p-8" style={{ fontSize: `${zoom / 100 * 12}px` }}>
                   <div className="border-b-2 border-sky/30 pb-4 mb-6">
                     <div className="text-night font-bold text-xl mb-1">{document.name}</div>
-                    <div className="text-gray-500 text-sm">{document.documentType} · {document.id}</div>
+                    <div className="text-gray-500 text-sm">{document.documentType}</div>
                   </div>
                   <div className="space-y-3">
                     {[...Array(18)].map((_, i) => (
