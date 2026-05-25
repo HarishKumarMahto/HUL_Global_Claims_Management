@@ -207,6 +207,43 @@ function getMockTranslation(text: string, language: string): string {
   return `[${language}] ${trimmed.replace(/^[-*]\s/, '')}`;
 }
 
+function getEnglishTranslation(text: string): string {
+  if (!text) return '';
+  const trimmed = text.trim();
+
+  // Try to remove bracket patterns like "[French] ..." or "[German] ..." or "[Spanish] ..."
+  const matchBracket = trimmed.match(/^\[[^\]]+\]\s*(.*)$/);
+  if (matchBracket) {
+    const content = matchBracket[1].trim();
+    return getEnglishTranslation(content);
+  }
+
+  // 1. Search in MOCK_DICTIONARY (where value is string)
+  for (const lang of Object.keys(MOCK_DICTIONARY)) {
+    const dict = MOCK_DICTIONARY[lang];
+    for (const [englishKey, translation] of Object.entries(dict)) {
+      if (typeof translation === 'string' && translation.toLowerCase() === trimmed.toLowerCase()) {
+        return englishKey;
+      }
+    }
+  }
+
+  // 2. Search in MOCK_EXISTING_TRANSLATIONS (where value is string[])
+  for (const lang of Object.keys(MOCK_EXISTING_TRANSLATIONS)) {
+    const dict = MOCK_EXISTING_TRANSLATIONS[lang];
+    for (const [englishKey, translations] of Object.entries(dict)) {
+      if (Array.isArray(translations)) {
+        if (translations.some((t: string) => t.toLowerCase() === trimmed.toLowerCase())) {
+          return englishKey;
+        }
+      }
+    }
+  }
+
+  // If no match found in dictionary, fallback to the text itself
+  return trimmed;
+}
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
@@ -523,7 +560,11 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
 
   const handleStep2Change = (index: number, field: string, value: any) => {
     const updated = [...step2Claims];
-    updated[index] = { ...updated[index], [field]: value };
+    if (field === 'statement') {
+      updated[index] = { ...updated[index], statement: value, englishTranslation: '' };
+    } else {
+      updated[index] = { ...updated[index], [field]: value };
+    }
     setStep2Claims(updated);
   };
 
@@ -1258,14 +1299,7 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
                                   </button>
                                 </div>
                               </div>
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {claim.products?.map((p: string) => (
-                                  <span key={p} className="px-1.5 py-0.5 bg-gray-100 border border-gray-200 text-gray-500 text-[9px] font-bold rounded-md uppercase">{p}</span>
-                                ))}
-                                {claim.channels?.map((c: string) => (
-                                  <span key={c} className="px-1.5 py-0.5 bg-sky/5 border border-sky/20 text-sky-600 text-[9px] font-bold rounded-md uppercase">{c}</span>
-                                ))}
-                              </div>
+                              {/* Product name and marketing channel are hidden per user request */}
                             </div>
                           ))}
                         </div>
@@ -1432,12 +1466,31 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
 
                             {/* Global Statement */}
                             <td className="px-4 py-3.5">
-                              <textarea
-                                value={claim.statement}
-                                onChange={(e) => handleStep2Change(index, 'statement', e.target.value)}
-                                className="w-full px-3 py-2 bg-earth/30 border border-pebble rounded-xl text-sm font-medium text-night focus:bg-white focus:ring-2 focus:ring-sky/50 focus:border-sky focus:outline-none transition-all resize-y"
-                                rows={2}
-                              />
+                              <div className="relative">
+                                <textarea
+                                  value={claim.statement}
+                                  onChange={(e) => handleStep2Change(index, 'statement', e.target.value)}
+                                  className="w-full pl-3 pr-8 py-2 bg-earth/30 border border-pebble rounded-xl text-sm font-medium text-night focus:bg-white focus:ring-2 focus:ring-sky/50 focus:border-sky focus:outline-none transition-all resize-y"
+                                  rows={2}
+                                />
+                                <button
+                                  type="button"
+                                  title="Translate Statement to English"
+                                  onClick={() => {
+                                    const englishText = getEnglishTranslation(claim.statement);
+                                    handleStep2Change(index, 'englishTranslation', englishText);
+                                  }}
+                                  className="absolute bottom-2.5 right-2.5 p-1 text-gray-400 hover:text-sky hover:bg-sky/10 rounded-md transition-all cursor-pointer z-10"
+                                >
+                                  <Languages className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                              {claim.englishTranslation && (
+                                <div className="mt-1 text-xs text-gray-500 italic bg-gray-50 px-2 py-1 rounded border border-gray-100/60 leading-relaxed">
+                                  <span className="font-bold text-[9px] uppercase tracking-wider text-gray-400 block mb-0.5">English Translation:</span>
+                                  {claim.englishTranslation}
+                                </div>
+                              )}
                             </td>
 
                             {/* Translate Button Column */}
