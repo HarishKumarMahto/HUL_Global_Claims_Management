@@ -232,7 +232,8 @@ export default function CreateProjectModal({
   onClose,
   onCreateProject,
   existingProjectNames,
-}: CreateProjectModalProps) {
+  initialData,
+}: CreateProjectModalProps & { initialData?: Omit<Project, "id"> | null }) {
   const emptyForm = {
     name: '',
     description: '',
@@ -248,10 +249,51 @@ export default function CreateProjectModal({
     launchDate: '',
   };
 
-  const [formData, setFormData] = useState(emptyForm);
+  const [formData, setFormData] = useState<any>(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isDuplicateName, setIsDuplicateName] = useState(false);
   const [externalRefType, setExternalRefType] = useState<'innoflex' | 'blg' | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      if (initialData) {
+        const categories = initialData.category
+          ? String(initialData.category).split(',').map(s => s.trim()).filter(Boolean)
+          : [];
+        const regions = initialData.region
+          ? String(initialData.region).split(',').map(s => s.trim()).filter(Boolean)
+          : [];
+
+        setFormData({
+          name: initialData.name || '',
+          description: initialData.description || '',
+          businessGroup: initialData.businessGroup || '',
+          category: categories,
+          type: initialData.type || '',
+          scope: initialData.scope || '',
+          region: regions,
+          innoflexProjectName: initialData.innoflexProjectName || '',
+          blgProjectName: initialData.blgProjectName || '',
+          startDate: initialData.startDate || new Date().toISOString().split('T')[0],
+          evaluationDate: initialData.evaluationDate || '',
+          launchDate: initialData.launchDate || '',
+        });
+
+        if (initialData.innoflexProjectName) {
+          setExternalRefType('innoflex');
+        } else if (initialData.blgProjectName) {
+          setExternalRefType('blg');
+        } else {
+          setExternalRefType(null);
+        }
+      } else {
+        setFormData(emptyForm);
+        setExternalRefType(null);
+      }
+      setErrors({});
+      setIsDuplicateName(false);
+    }
+  }, [isOpen, initialData]);
 
   if (!isOpen) return null;
 
@@ -360,7 +402,7 @@ export default function CreateProjectModal({
       teamMembers: generateTeamMembersForProject(formData.businessGroup, regions, projectLead),
     };
 
-    onCreateProject(newProject);
+    onCreateProject(newProject, true);
 
     if (createAnother) {
       setFormData(emptyForm);
@@ -476,7 +518,7 @@ export default function CreateProjectModal({
               </div>
 
               {externalRefType === 'innoflex' && (
-                <div className="animate-fade-in w-full md:w-1/2">
+               <div className="animate-fade-in w-full md:w-1/2">
                   <label className="block text-xs text-gray-500 mb-1.5 uppercase tracking-wide font-semibold">
                     Innoflex project name <span className="text-red-500">*</span>
                   </label>
@@ -655,7 +697,7 @@ export default function CreateProjectModal({
           className="flex items-center gap-2 px-8 py-2 bg-sky text-white rounded-xl text-sm font-bold hover:bg-dark transition-all shadow-md shadow-sky/20 cursor-pointer"
         >
           <Check className="w-4 h-4" strokeWidth={3} />
-          Create Project
+          Add and Create Product
         </button>
       </div>
     </div>

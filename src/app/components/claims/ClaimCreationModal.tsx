@@ -249,9 +249,20 @@ interface Props {
   onClose: () => void;
   onCreate: (claims: Claim[]) => void;
   initialStep?: number;
+  onBack?: () => void;
+  isChainedFlow?: boolean;
+  pendingProducts?: any[] | null;
 }
 
-export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialStep = 1 }: Props) {
+export default function ClaimCreationModal({
+  isOpen,
+  onClose,
+  onCreate,
+  initialStep = 1,
+  onBack,
+  isChainedFlow = false,
+  pendingProducts = null,
+}: Props) {
   const [step, setStep] = useState(initialStep);
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -308,6 +319,16 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showLanguageDropdown, showGeoDropdown]);
+
+  useEffect(() => {
+    if (isOpen && pendingProducts && pendingProducts.length > 0) {
+      setSelectedProducts(pendingProducts);
+      const allGeos = Array.from(new Set(pendingProducts.map(np => np.geography || np.geographies?.[0] || 'Global')));
+      setSelectedGeographies(allGeos as string[]);
+    }
+  }, [isOpen, pendingProducts]);
+
+  const allAvailableProducts = [...(pendingProducts || []), ...MOCK_PRODUCTS];
 
   const syncClaimsWithLanguages = (newLanguages: string[]) => {
     if (newLanguages.length === 0) return;
@@ -623,7 +644,12 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
       updatedAt: new Date().toISOString()
     }));
 
-    onCreate(newClaims);
+    if (isChainedFlow) {
+      const customEvent = new CustomEvent('finalizeChainedCreation', { detail: { claims: newClaims } });
+      window.dispatchEvent(customEvent);
+    } else {
+      onCreate(newClaims);
+    }
     onClose();
   };
 
@@ -688,7 +714,7 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
                       </div>
                     </div>
                     <div className="overflow-y-auto no-scrollbar py-1">
-                      {MOCK_PRODUCTS.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).map(p => {
+                      {allAvailableProducts.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).map(p => {
                         const isSelected = selectedProducts.find(sp => sp.id === p.id);
                         return (
                           <button key={p.id} onClick={() => {
@@ -699,8 +725,8 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
                               next = [...selectedProducts, p];
                             }
                             setSelectedProducts(next);
-                            const allGeos = Array.from(new Set(next.map(np => np.geography || 'Global')));
-                            setSelectedGeographies(allGeos);
+                            const allGeos = Array.from(new Set(next.map(np => np.geography || np.geographies?.[0] || 'Global')));
+                            setSelectedGeographies(allGeos as string[]);
                           }}
                             className={`w-full text-left px-3 py-2 text-sm transition-colors flex items-center justify-between hover:bg-earth`}>
                             <div className="flex items-center gap-3">
@@ -713,7 +739,7 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
                           </button>
                         );
                       })}
-                      {MOCK_PRODUCTS.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).length === 0 && (
+                      {allAvailableProducts.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).length === 0 && (
                         <div className="px-4 py-3 text-sm text-gray-400 text-center">No products found</div>
                       )}
                     </div>
@@ -1317,8 +1343,17 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
 
         {/* Step 1 Footer */}
         <div className="px-6 py-2.5 bg-white border-t border-pebble flex items-center justify-between flex-shrink-0 z-20">
-          {/* Left: staged count */}
-          <div className="text-sm font-medium text-gray-500">
+          <div className="flex items-center gap-4">
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="px-4 py-2 border border-gray-200 text-gray-500 hover:text-night bg-white hover:bg-gray-50 rounded-xl text-xs font-bold transition-all cursor-pointer"
+              >
+                Back
+              </button>
+            )}
+            {/* Left: staged count */}
+            <div className="text-sm font-medium text-gray-500">
             {step2Claims.length > 0 ? (
               <span className="flex items-center gap-1.5 text-sky bg-sky/10 px-3 py-1 rounded-full font-bold">
                 <CheckCircle2 className="w-4 h-4" /> {step2Claims.length} claim(s) staged
@@ -1326,6 +1361,7 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
             ) : (
               <span className="text-gray-400">Gather statements above to continue</span>
             )}
+          </div>
           </div>
 
           {/* Right: two action buttons */}
@@ -1347,7 +1383,7 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
               className="flex items-center gap-2 px-6 py-2 bg-sky text-white rounded-xl text-sm font-bold hover:bg-dark disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md shadow-sky/20 active:scale-95"
             >
               <CheckCircle2 className="w-4 h-4" />
-              Add Claim
+              Create Claim
             </button>
           </div>
         </div>
@@ -1622,7 +1658,7 @@ export default function ClaimCreationModal({ isOpen, onClose, onCreate, initialS
               disabled={!isStep2Valid}
               className="flex items-center gap-2 px-8 py-2.5 bg-sky text-white rounded-xl text-sm font-bold hover:bg-dark transition-all disabled:opacity-50 shadow-md shadow-sky/20 active:scale-95 cursor-pointer"
             >
-              Create & Finalize <CheckCircle2 className="w-4 h-4" />
+              Create Claim <CheckCircle2 className="w-4 h-4" />
             </button>
           </div>
         </div>

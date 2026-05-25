@@ -20,11 +20,13 @@ import { Project } from "../../types";
 interface CreateProductModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreate: (products: any[]) => void;
+  onCreate: (products: any[], navigateNext?: boolean) => void;
   preselectedType?: ProductType;
   project?: Project;
   onSwitchToSearch?: () => void;
   onNavigateToSKU?: () => void;
+  onBack?: () => void;
+  initialData?: any[] | null;
 }
 
 type LocalVariantRow = {
@@ -274,7 +276,7 @@ function HierarchyView({ formatName, subranges }: { formatName: string; subrange
 
 // ─── Main Modal ───────────────────────────────────────────────────────────────
 export default function CreateProductModal({
-  isOpen, onClose, onCreate, preselectedType, project, onSwitchToSearch, onNavigateToSKU,
+  isOpen, onClose, onCreate, preselectedType, project, onSwitchToSearch, onNavigateToSKU, onBack, initialData,
 }: CreateProductModalProps) {
   const [selectedFormatId, setSelectedFormatId] = useState<string>("");
   const [formatDropOpen, setFormatDropOpen] = useState(false);
@@ -282,6 +284,88 @@ export default function CreateProductModal({
   const selectedFormat = FORMAT_OPTIONS.find((f) => f.id === selectedFormatId) ?? null;
   const [addSubrangeOpted, setAddSubrangeOpted] = useState(true);
   const [subranges, setSubranges] = useState<SubrangeEntry[]>([makeDefaultSubrange()]);
+
+  useEffect(() => {
+    if (isOpen) {
+      if (initialData && initialData.length > 0) {
+        const subrangeItems = initialData.filter(item => item.type === 'Subrange');
+        const variantItems = initialData.filter(item => item.type === 'Variant');
+        const localVariantItems = initialData.filter(item => item.type === 'Local Variant');
+
+        const hasSubranges = subrangeItems.length > 0;
+        setAddSubrangeOpted(hasSubranges);
+
+        const firstItem = initialData[0];
+        if (firstItem) {
+          if (firstItem.type === 'Subrange' || (firstItem.type === 'Variant' && !hasSubranges)) {
+            setSelectedFormatId(firstItem.parentId || "");
+          } else if (firstItem.type === 'Variant' && hasSubranges) {
+            const subrange = subrangeItems.find(s => s.id === firstItem.parentId);
+            setSelectedFormatId(subrange?.parentId || "");
+          } else if (firstItem.type === 'Local Variant') {
+            const variant = variantItems.find(v => v.id === firstItem.parentId);
+            if (hasSubranges) {
+              const subrange = subrangeItems.find(s => s.id === variant?.parentId);
+              setSelectedFormatId(subrange?.parentId || "");
+            } else {
+              setSelectedFormatId(variant?.parentId || "");
+            }
+          }
+        }
+
+        if (hasSubranges) {
+          const rebuiltSubranges: SubrangeEntry[] = subrangeItems.map(sr => {
+            const srVariants = variantItems.filter(v => v.parentId === sr.id).map(v => {
+              const vLVs = localVariantItems.filter(lv => lv.parentId === v.id).map(lv => ({
+                id: lv.id || newId(),
+                geography: lv.geographies?.[0] || 'Global',
+                cucCode: lv.cucSpecNumber || "",
+              }));
+              return {
+                id: v.id,
+                name: v.levelName || "",
+                localVariants: vLVs,
+                showAddLVPanel: false,
+                pendingGeos: [],
+              };
+            });
+            return {
+              id: sr.id,
+              name: sr.levelName || "",
+              variants: srVariants,
+              collapsed: false,
+            };
+          });
+          setSubranges(rebuiltSubranges);
+        } else {
+          const rebuiltVariants = variantItems.map(v => {
+            const vLVs = localVariantItems.filter(lv => lv.parentId === v.id).map(lv => ({
+              id: lv.id || newId(),
+              geography: lv.geographies?.[0] || 'Global',
+              cucCode: lv.cucSpecNumber || "",
+            }));
+            return {
+              id: v.id,
+              name: v.levelName || "",
+              localVariants: vLVs,
+              showAddLVPanel: false,
+              pendingGeos: [],
+            };
+          });
+          setSubranges([{
+            id: newId(),
+            name: "",
+            variants: rebuiltVariants,
+            collapsed: false,
+          }]);
+        }
+      } else {
+        setSelectedFormatId("");
+        setSubranges([makeDefaultSubrange()]);
+        setAddSubrangeOpted(true);
+      }
+    }
+  }, [isOpen, initialData]);
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -420,7 +504,7 @@ export default function CreateProductModal({
       processVariants(subranges[0]?.variants ?? [], selectedFormat.id, selectedFormat.name);
     }
 
-    if (listToCreate.length > 0) onCreate(listToCreate);
+    if (listToCreate.length > 0) onCreate(listToCreate, true);
     resetAndClose();
   };
 
@@ -715,22 +799,32 @@ export default function CreateProductModal({
         </div>
 
         {/* ── Footer ── */}
-        <div className="flex-shrink-0 border-t border-gray-200 bg-white px-5 py-3 flex items-center justify-end gap-2">
-          <button type="button" onClick={handleClose}
-            className="px-4 py-2 border border-gray-200 text-gray-500 hover:text-night bg-white hover:bg-gray-50 rounded-xl text-xs font-bold transition-all cursor-pointer">
-            Cancel
-          </button>
-          {onNavigateToSKU && (
-            <button type="button" onClick={handleNavigateToSKU}
-              className="px-4 py-2 bg-white text-sky border border-sky rounded-xl text-xs font-bold hover:bg-sky/5 transition-all cursor-pointer">
-              Create SKU
+        <div className="flex-shrink-0 border-t border-gray-200 bg-white px-5 py-3 flex items-center justify-between">
+          <div>
+            {onBack && (
+              <button type="button" onClick={onBack}
+                className="px-4 py-2 border border-gray-200 text-gray-500 hover:text-night bg-white hover:bg-gray-50 rounded-xl text-xs font-bold transition-all cursor-pointer">
+                Back
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={handleClose}
+              className="px-4 py-2 border border-gray-200 text-gray-500 hover:text-night bg-white hover:bg-gray-50 rounded-xl text-xs font-bold transition-all cursor-pointer">
+              Cancel
             </button>
-          )}
-          <button type="button" onClick={handleCreateProduct} disabled={!selectedFormat}
-            className="flex items-center gap-1.5 px-5 py-2 bg-sky text-white rounded-xl text-xs font-bold hover:bg-dark disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md shadow-sky/20 cursor-pointer">
-            <Check className="w-3.5 h-3.5" />
-            Create Product
-          </button>
+            {onNavigateToSKU && (
+              <button type="button" onClick={handleNavigateToSKU}
+                className="px-4 py-2 bg-white text-sky border border-sky rounded-xl text-xs font-bold hover:bg-sky/5 transition-all cursor-pointer">
+                Create SKU
+              </button>
+            )}
+            <button type="button" onClick={handleCreateProduct} disabled={!selectedFormat}
+              className="flex items-center gap-1.5 px-5 py-2 bg-sky text-white rounded-xl text-xs font-bold hover:bg-dark disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md shadow-sky/20 cursor-pointer">
+              <Check className="w-3.5 h-3.5" />
+              Add and Create Claim
+            </button>
+          </div>
         </div>
       </div>
 

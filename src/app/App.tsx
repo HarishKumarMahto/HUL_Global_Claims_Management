@@ -357,6 +357,8 @@ export default function App() {
   >(null);
   const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] =
     useState(false);
+  const [pendingChainedProject, setPendingChainedProject] = useState<Omit<Project, "id"> | null>(null);
+  const [pendingChainedProduct, setPendingChainedProduct] = useState<any[] | null>(null);
   const [isCreateAssetModalOpen, setIsCreateAssetModalOpen] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState<FilterState>({
     status: [],
@@ -753,6 +755,109 @@ export default function App() {
     return () => window.removeEventListener("navigateToClaimDetails", handler);
   }, [claims]);
 
+  useEffect(() => {
+    const handler = () => {
+      setActiveModule("Claims");
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent("internalOpenClaimCreation"));
+      }, 50);
+    };
+    window.addEventListener("openClaimCreation", handler);
+    return () => window.removeEventListener("openClaimCreation", handler);
+  }, []);
+
+  useEffect(() => {
+    const handleBackToProject = () => {
+      setActiveModule("Projects");
+      setIsCreateProjectModalOpen(true);
+    };
+    window.addEventListener('backToProjectCreation', handleBackToProject);
+    return () => window.removeEventListener('backToProjectCreation', handleBackToProject);
+  }, []);
+
+  useEffect(() => {
+    const handleBackToProduct = () => {
+      setActiveModule("Products");
+      setIsCreateProductModalOpen(true);
+    };
+    window.addEventListener('backToProductCreation', handleBackToProduct);
+    return () => window.removeEventListener('backToProductCreation', handleBackToProduct);
+  }, []);
+
+  useEffect(() => {
+    const handleFinalize = (e: Event) => {
+      const ev = e as CustomEvent<{ claims: Claim[] }>;
+      const claimsPayload = ev.detail?.claims || [];
+
+      let finalProjectId = "";
+      if (pendingChainedProject) {
+        const newProject: Project = { id: String(Date.now()), ...pendingChainedProject };
+        finalProjectId = newProject.id;
+        setProjects((prev) => [newProject, ...prev]);
+      }
+
+      let finalProducts: any[] = [];
+      if (pendingChainedProduct) {
+        finalProducts = pendingChainedProduct.map((prod, idx) => {
+          const id = prod.id || `prod-${Date.now()}-${idx}-${Math.floor(Math.random() * 1000)}`;
+          const productId = prod.productId || `PROD-${new Date().getFullYear()}-${String(idx + 1).padStart(3, '0')}`;
+          return {
+            ...prod,
+            id,
+            productId,
+            projects: finalProjectId ? [finalProjectId] : [],
+            lifecycleState: 'Created',
+            childCount: 0,
+            claimsCount: 0,
+            projectsCount: 1,
+            geographyCount: prod.geographies?.length || 0,
+            lastModified: new Date().toISOString().split('T')[0],
+          };
+        });
+      }
+      
+      if (finalProducts.length > 0) {
+        window.dispatchEvent(new CustomEvent('finalizeProducts', { detail: { products: finalProducts } }));
+      }
+
+      let finalClaims: Claim[] = [];
+      if (claimsPayload.length > 0) {
+        finalClaims = claimsPayload.map(claim => {
+          return {
+            ...claim,
+            linkedProducts: finalProducts.map(p => p.id),
+            relatedProjectIds: finalProjectId ? [finalProjectId] : [],
+          };
+        });
+        setClaims(prev => [...finalClaims, ...prev]);
+      }
+
+      setPendingChainedProject(null);
+      setPendingChainedProduct(null);
+      setActiveModule("Claims");
+    };
+    window.addEventListener('finalizeChainedCreation', handleFinalize);
+    return () => window.removeEventListener('finalizeChainedCreation', handleFinalize);
+  }, [pendingChainedProject, pendingChainedProduct]);
+
+  useEffect(() => {
+    const handleStashProduct = (e: Event) => {
+      const ev = e as CustomEvent<{ products: any[] }>;
+      setPendingChainedProduct(ev.detail?.products || null);
+    };
+    window.addEventListener('stashChainedProduct', handleStashProduct);
+    return () => window.removeEventListener('stashChainedProduct', handleStashProduct);
+  }, []);
+
+  useEffect(() => {
+    const handleCancel = () => {
+      setPendingChainedProject(null);
+      setPendingChainedProduct(null);
+    };
+    window.addEventListener('cancelChainedCreation', handleCancel);
+    return () => window.removeEventListener('cancelChainedCreation', handleCancel);
+  }, []);
+
   // ─── Phase 6: Lifecycle Engine — SE Expiry Cascade ───────────────────────
   // Re-evaluate SE lifecycle on every documents change; push toast when expired
   useEffect(() => {
@@ -808,6 +913,8 @@ export default function App() {
     setSelectedDocument(null);
     setIsCreateProjectModalOpen(false);
     setIsCreateProductModalOpen(false);
+    setPendingChainedProject(null);
+    setPendingChainedProduct(null);
   };
 
   const handleViewChange = (view: string) => {
@@ -1101,11 +1208,17 @@ export default function App() {
     }
   };
 
-  const handleCreateProject = (project: Omit<Project, "id">) => {
-    const newProject: Project = { id: String(Date.now()), ...project };
-    setProjects((prev) => [newProject, ...prev]);
-    setActiveModule("Projects");
-    handleProjectClick(newProject);
+  const handleCreateProject = (project: Omit<Project, "id">, navigateNext?: boolean) => {
+    if (navigateNext) {
+      setPendingChainedProject(project);
+      setActiveModule("Products");
+      setIsCreateProductModalOpen(true);
+    } else {
+      const newProject: Project = { id: String(Date.now()), ...project };
+      setProjects((prev) => [newProject, ...prev]);
+      setActiveModule("Projects");
+      handleProjectClick(newProject);
+    }
   };
 
   const handleFavoriteToggle = (id: string) => {
@@ -2079,10 +2192,13 @@ export default function App() {
                   setSupportStrategyBlocker({ claimId, claimLabel })
                 }
                 externalSearchQuery={claimSearchQuery}
+                isChainedFlow={!!pendingChainedProject}
+                pendingProducts={pendingChainedProduct}
               />
             )
           ) : activeModule === "Products" ? (
             <ProductsModule
+              pendingProductData={pendingChainedProduct}
               activeProductView={activeProductView}
               onViewChange={setActiveProductView}
               selectedProduct={selectedProduct}
@@ -2092,7 +2208,13 @@ export default function App() {
               activeProductSection={activeProductSection}
               onProductSectionChange={setActiveProductSection}
               showCreateModal={isCreateProductModalOpen}
-              onCloseCreateModal={() => setIsCreateProductModalOpen(false)}
+              onCloseCreateModal={() => {
+                setIsCreateProductModalOpen(false);
+                if (activeModule === "Products") {
+                  setPendingChainedProject(null);
+                  setPendingChainedProduct(null);
+                }
+              }}
               showSavedViewsPanel={isProductSavedViewsPanelOpen}
               onCloseSavedViewsPanel={() =>
                 setIsProductSavedViewsPanelOpen(false)
@@ -2283,9 +2405,14 @@ export default function App() {
       />
       <CreateProjectModal
         isOpen={isCreateProjectModalOpen}
-        onClose={() => setIsCreateProjectModalOpen(false)}
+        onClose={() => {
+          setIsCreateProjectModalOpen(false);
+          setPendingChainedProject(null);
+          setPendingChainedProduct(null);
+        }}
         onCreateProject={handleCreateProject}
         existingProjectNames={projects.map((p) => p.name)}
+        initialData={pendingChainedProject}
       />
       {projectToClone && (
         <CloneProjectModal

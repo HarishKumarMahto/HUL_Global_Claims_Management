@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ProductItem, initialProducts, ProductType } from './productData';
 import ProductsLandingPage from './ProductsLandingPage';
 
@@ -39,6 +39,7 @@ interface Props {
   externalSearchQuery?: string;
   documents?: DocumentRecord[];
   onDocumentsChange?: (docs: DocumentRecord[]) => void;
+  pendingProductData?: any[] | null;
 }
 
 export default function ProductsModule({
@@ -54,6 +55,7 @@ export default function ProductsModule({
   externalSearchQuery,
   documents = [],
   onDocumentsChange,
+  pendingProductData,
 }: Props) {
   const [products, setProducts] = useState<ProductItem[]>(initialProducts);
   const [favorites, setFavorites] = useState<Set<string>>(new Set(['fmt-1', 'var-1', 'tech-1', 'fmt-3']));
@@ -67,8 +69,20 @@ export default function ProductsModule({
   const [localAppliedView, setLocalAppliedView] = useState<ProductSavedView | null>(null);
 
   // Screen-based flow states
-  const [skuCreationSource, setSkuCreationSource] = useState<'products' | 'productCreation'>('products');
+  const [skuCreationSource, setSkuCreationSource] = useState<'products' | 'productCreation' | 'createProductModal'>('products');
   const [recentLocalVariants, setRecentLocalVariants] = useState<Array<{ id: string; name: string; variant: string; geography: string }>>([]);
+
+  useEffect(() => {
+    const handleFinalize = (e: Event) => {
+      const ev = e as CustomEvent<{ products: ProductItem[] }>;
+      const finalized = ev.detail?.products || [];
+      if (finalized.length > 0) {
+        setProducts(prev => [...finalized, ...prev]);
+      }
+    };
+    window.addEventListener('finalizeProducts', handleFinalize);
+    return () => window.removeEventListener('finalizeProducts', handleFinalize);
+  }, []);
 
   const savedViews = propsSavedViews !== undefined ? propsSavedViews : localSavedViews;
   const setSavedViews = propsOnSavedViewsChange !== undefined ? propsOnSavedViewsChange : setLocalSavedViews;
@@ -132,14 +146,14 @@ export default function ProductsModule({
     }
   };
 
-  const handleOpenSKUCreation = (source: 'products' | 'productCreation' = 'products') => {
+  const handleOpenSKUCreation = (source: 'products' | 'productCreation' | 'createProductModal' = 'products') => {
     setSkuCreationSource(source);
     onViewChange('skuCreation');
   };
 
   const handleNavigateToSKU = () => {
     handleCloseCreate();
-    handleOpenSKUCreation('products');
+    handleOpenSKUCreation('createProductModal');
   };
 
   const handleBackFromProductCreation = () => {
@@ -149,12 +163,15 @@ export default function ProductsModule({
   const handleBackFromSKUCreation = () => {
     if (skuCreationSource === 'productCreation') {
       onViewChange('productCreation');
+    } else if (skuCreationSource === 'createProductModal') {
+      onViewChange('landing');
+      setLocalCreateModal(true);
     } else {
       onViewChange('landing');
     }
   };
 
-  const handleProductCreated = (products: any[]) => {
+  const handleProductCreated = (products: any[], navigateNext?: boolean) => {
     // Process and add products to state
     const itemsToAdd = Array.isArray(products) ? products : [products];
     const newItems: ProductItem[] = [];
@@ -176,7 +193,9 @@ export default function ProductsModule({
       newItems.push(full);
     });
 
-    setProducts(prev => [...newItems, ...prev]);
+    if (!navigateNext) {
+      setProducts(prev => [...newItems, ...prev]);
+    }
 
     // Extract local variants from the created products for SKU creation
     const localVariants = newItems
@@ -190,7 +209,13 @@ export default function ProductsModule({
     setRecentLocalVariants(prev => [...localVariants, ...prev]);
 
     // Close modal or go back to landing based on context
-    if (activeProductView === 'productCreation' || activeProductView === 'formatCreation' || activeProductView === 'technologyCreation') {
+    if (navigateNext) {
+      window.dispatchEvent(new CustomEvent('openClaimCreation'));
+      // wait, we should dispatch pendingChainedProduct up to App.tsx via App.tsx listening to it or we can just pass it directly by dispatching a custom event
+      // actually, App.tsx is already setting `setPendingChainedProduct`? No, we haven't implemented that yet. Let's do it via an event.
+      window.dispatchEvent(new CustomEvent('stashChainedProduct', { detail: { products: newItems } }));
+      handleCloseCreate();
+    } else if (activeProductView === 'productCreation' || activeProductView === 'formatCreation' || activeProductView === 'technologyCreation') {
       onViewChange('landing');
     } else {
       handleCloseCreate();
@@ -273,7 +298,7 @@ export default function ProductsModule({
           initialEditMode={productEditMode}
         />
         {isCreateOpen && (
-          <CreateProductModal isOpen={isCreateOpen} onClose={handleCloseCreate} onCreate={handleProductCreated} preselectedType={localCreateType} onNavigateToSKU={handleNavigateToSKU} />
+          <CreateProductModal isOpen={isCreateOpen} onClose={handleCloseCreate} onCreate={handleProductCreated} preselectedType={localCreateType} onNavigateToSKU={handleNavigateToSKU} onBack={() => { window.dispatchEvent(new CustomEvent('backToProjectCreation')); handleCloseCreate(); }} initialData={pendingProductData} />
         )}
         <ProductSavedViewsPanel
           isOpen={showSavedViewsPanel}
@@ -302,7 +327,7 @@ export default function ProductsModule({
           onCreateProduct={handleOpenCreate}
         />
         {isCreateOpen && (
-          <CreateProductModal isOpen={isCreateOpen} onClose={handleCloseCreate} onCreate={handleProductCreated} preselectedType={localCreateType} onNavigateToSKU={handleNavigateToSKU} />
+          <CreateProductModal isOpen={isCreateOpen} onClose={handleCloseCreate} onCreate={handleProductCreated} preselectedType={localCreateType} onNavigateToSKU={handleNavigateToSKU} onBack={() => { window.dispatchEvent(new CustomEvent('backToProjectCreation')); handleCloseCreate(); }} initialData={pendingProductData} />
         )}
         <ProductSavedViewsPanel
           isOpen={showSavedViewsPanel}
@@ -341,7 +366,7 @@ export default function ProductsModule({
         externalSearchQuery={externalSearchQuery}
       />
       {isCreateOpen && (
-        <CreateProductModal isOpen={isCreateOpen} onClose={handleCloseCreate} onCreate={handleProductCreated} preselectedType={localCreateType} onNavigateToSKU={handleNavigateToSKU} />
+        <CreateProductModal isOpen={isCreateOpen} onClose={handleCloseCreate} onCreate={handleProductCreated} preselectedType={localCreateType} onNavigateToSKU={handleNavigateToSKU} onBack={() => { window.dispatchEvent(new CustomEvent('backToProjectCreation')); handleCloseCreate(); }} initialData={pendingProductData} />
       )}
       <ProductSavedViewsPanel
         isOpen={showSavedViewsPanel}

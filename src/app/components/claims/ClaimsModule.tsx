@@ -85,6 +85,8 @@ interface ClaimsModuleProps {
   onClaimClick: (claim: Claim) => void;
   onAssessedBlocked?: (claimId: string, claimLabel: string) => void;
   externalSearchQuery?: string;
+  isChainedFlow?: boolean;
+  pendingProducts?: any[] | null;
 }
 
 export default function ClaimsModule({
@@ -96,6 +98,8 @@ export default function ClaimsModule({
   onClaimClick,
   onAssessedBlocked,
   externalSearchQuery,
+  isChainedFlow = false,
+  pendingProducts = null,
 }: ClaimsModuleProps) {
   const [searchQuery, setSearchQuery] = useState('');
   useEffect(() => {
@@ -103,6 +107,12 @@ export default function ClaimsModule({
       setSearchQuery(externalSearchQuery);
     }
   }, [externalSearchQuery]);
+
+  useEffect(() => {
+    const handler = () => setCreationConfig({ open: true });
+    window.addEventListener('internalOpenClaimCreation', handler);
+    return () => window.removeEventListener('internalOpenClaimCreation', handler);
+  }, []);
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [creationConfig, setCreationConfig] = useState<{ open: boolean; type?: ClaimType; initialTabs?: any[]; initialStep?: 1 | 2 }>({ open: false });
@@ -563,12 +573,17 @@ export default function ClaimsModule({
         />
       </div>
 
-      {/* Modals */}
       {creationConfig.open && (
         <ClaimCreationModal
           isOpen={true}
-          onClose={() => setCreationConfig({ open: false })}
+          onClose={() => {
+            setCreationConfig({ open: false });
+            window.dispatchEvent(new CustomEvent('cancelChainedCreation'));
+          }}
           onCreate={handleCreateClaims}
+          onBack={isChainedFlow ? () => { window.dispatchEvent(new CustomEvent('backToProductCreation')); setCreationConfig({ open: false }); } : undefined}
+          isChainedFlow={isChainedFlow}
+          pendingProducts={pendingProducts}
         />
       )}
 
