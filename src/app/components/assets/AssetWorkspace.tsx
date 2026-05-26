@@ -8,6 +8,26 @@ import ApprovalWorkflowModal from './ApprovalWorkflowModal';
 import ApprovalWorkflowPanel from './ApprovalWorkflowPanel';
 import UploadDocumentModal from '../documents/UploadDocumentModal';
 
+type RenditionAnnotation = {
+  id: string;
+  type: 'link' | 'comment' | 'anchor';
+  label: string;
+  rect: { x: number; y: number; w: number; h: number };
+  linkedDocIds?: string[];
+};
+
+const SAMPLE_LIBRARY_DOCS = [
+  { id: 'DOC-SE-001', name: 'Dove Intensive Repair Clinical Study Report', documentType: 'Substantiation Evidence', subtype: 'Clinical Reports' },
+  { id: 'DOC-SE-002', name: 'Persil Stain Removal Laboratory Test Results', documentType: 'Substantiation Evidence', subtype: 'Laboratory Test' },
+  { id: 'DOC-SE-003', name: "Hellmann's Consumer Preference Study", documentType: 'Substantiation Evidence', subtype: 'Consumer Study' },
+  { id: 'DOC-FD-001', name: 'Dove Intensive Repair Formulation Spec v0.1', documentType: 'Formulation Document', subtype: 'Skin Care' },
+  { id: 'DOC-FD-002', name: 'Persil Deep Clean Formulation Spec', documentType: 'Formulation Document', subtype: 'Fabric Care' },
+  { id: 'DOC-FD-003', name: 'Vaseline Intensive Care Microbiome Formula', documentType: 'Formulation Document', subtype: 'Skin Care' },
+  { id: 'DOC-PD-001', name: 'Dove IR Project Charter', documentType: 'Project Document', subtype: '' },
+  { id: 'DOC-PD-002', name: 'Persil Deep Clean Risk Assessment Summary', documentType: 'Project Document', subtype: '' },
+  { id: 'DOC-PD-003', name: 'TRESemmé LATAM Launch Briefing Deck', documentType: 'Project Document', subtype: '' },
+];
+
 interface AssetWorkspaceProps {
   asset: Asset;
   assets: Asset[];
@@ -76,10 +96,16 @@ export default function AssetWorkspace({
   const [commentModalOpen, setCommentModalOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [linkModalOpen, setLinkModalOpen] = useState(false);
-  const [linkTarget, setLinkTarget] = useState('');
   const [anchorModalOpen, setAnchorModalOpen] = useState(false);
   const [anchorName, setAnchorName] = useState('');
   const [toastMsg, setToastMsg] = useState('');
+
+  // Rendition annotations panel
+  const [annotations, setAnnotations] = useState<RenditionAnnotation[]>([]);
+  const [hoveredAnnotationId, setHoveredAnnotationId] = useState<string | null>(null);
+  const [docLibSearch, setDocLibSearch] = useState('');
+  const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
+  const [isRenditionExpanded, setIsRenditionExpanded] = useState(true);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -307,100 +333,91 @@ export default function AssetWorkspace({
     switch (id) {
       case 'Asset Details':
         return (
-          <div className="space-y-5">
-            {/* Asset Details subsection */}
-            <div>
-              <h4 className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Details</h4>
-              <div className="grid grid-cols-2 gap-y-4 gap-x-6">
-                <div>
-                  <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Business Group</label>
-                  <div className="text-sm text-night font-medium">{asset.businessGroup}</div>
+          <div className="bg-white p-6 rounded-xl border border-gray-300 shadow-sm">
+            <div className="flex items-center justify-between border-b border-pebble pb-3 mb-4">
+              <h3 className="text-base font-bold text-night">Asset Details</h3>
+            </div>
+            <div className="space-y-4">
+              {[
+                { label: 'Business Group', value: asset.businessGroup || '—' },
+                { label: 'Category', value: asset.category || '—' },
+                { label: 'Subtype', value: asset.subtype || 'Unclassified' },
+                { label: 'Version', value: `v${asset.currentVersionNumber}` },
+              ].map(f => (
+                <div key={f.label}>
+                  <p className="text-xs text-gray-400 font-medium mb-1 uppercase tracking-wide">{f.label}</p>
+                  <p className="text-sm text-night">{f.value}</p>
                 </div>
-                <div>
-                  <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Category</label>
-                  <div className="text-sm text-night">{asset.category}</div>
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Lifecycle Stage</label>
-                  <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs ${ASSET_LIFECYCLE_COLORS[asset.lifecycleStage]}`}>
+              ))}
+              <div>
+                <p className="text-xs text-gray-400 font-medium mb-1 uppercase tracking-wide">Lifecycle Stage</p>
+                <div className="flex flex-wrap gap-1.5">
+                  <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${ASSET_LIFECYCLE_COLORS[asset.lifecycleStage]}`}>
                     {asset.lifecycleStage}
                   </span>
                 </div>
-                <div>
-                  <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Subtype</label>
-                  <div className="text-sm text-night">{asset.subtype || <span className="text-gray-400">Unclassified</span>}</div>
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Geography</label>
-                  <div className="flex flex-wrap gap-1.5 mt-1">
-                    {asset.geography.map(geo => (
-                      <span key={geo} className="px-2 py-0.5 rounded bg-earth text-night text-xs">{geo}</span>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Version</label>
-                  <div className="text-sm text-night font-medium">v{asset.currentVersionNumber}</div>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 font-medium mb-1 uppercase tracking-wide">Geography</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {asset.geography.map(geo => (
+                    <span key={geo} className="px-2 py-0.5 rounded bg-earth text-night text-xs font-medium">{geo}</span>
+                  ))}
+                  {asset.geography.length === 0 && <span className="text-sm text-night">—</span>}
                 </div>
               </div>
-            </div>
 
-            {/* File Info subsection */}
-            <div className="border-t border-pebble pt-4">
-              <h4 className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">File Info</h4>
-              <div className="grid grid-cols-2 gap-y-4 gap-x-6">
-                <div>
-                  <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Total Versions</label>
-                  <div className="text-sm text-night">{asset.versions.length}</div>
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Created By</label>
-                  <div className="text-sm text-night">{asset.createdBy}</div>
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Created At</label>
-                  <div className="text-sm text-gray-600">{formatRelativeDate(asset.createdAt)}</div>
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Last Modified</label>
-                  <div className="text-sm text-gray-600">{formatRelativeDate(asset.modifiedAt)}</div>
-                </div>
-                {currentVersion && (
+              <div className="pt-4 border-t border-pebble">
+                <h4 className="text-sm font-bold text-night mb-3">File Info</h4>
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">File Type</label>
-                    <div className="text-sm text-night capitalize">{currentVersion.fileType}</div>
+                    <p className="text-[10px] text-gray-400 font-medium uppercase">Total Versions</p>
+                    <p className="text-xs font-mono">{asset.versions.length}</p>
                   </div>
-                )}
-                {currentVersion && (
                   <div>
-                    <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">File Size</label>
-                    <div className="text-sm text-night">{currentVersion.fileSize}</div>
+                    <p className="text-[10px] text-gray-400 font-medium uppercase">Created By</p>
+                    <p className="text-xs font-mono">{asset.createdBy}</p>
                   </div>
-                )}
+                  <div>
+                    <p className="text-[10px] text-gray-400 font-medium uppercase">Created At</p>
+                    <p className="text-xs font-mono">{formatRelativeDate(asset.createdAt)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-400 font-medium uppercase">Last Modified</p>
+                    <p className="text-xs font-mono">{formatRelativeDate(asset.modifiedAt)}</p>
+                  </div>
+                  {currentVersion && (
+                    <div>
+                      <p className="text-[10px] text-gray-400 font-medium uppercase">File Type</p>
+                      <p className="text-xs font-mono capitalize">{currentVersion.fileType}</p>
+                    </div>
+                  )}
+                  {currentVersion && (
+                    <div>
+                      <p className="text-[10px] text-gray-400 font-medium uppercase">File Size</p>
+                      <p className="text-xs font-mono">{currentVersion.fileSize}</p>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
 
-            {asset.isPlaceholder && (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
-                <Upload className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div className="text-xs text-amber-700">
-                  This is a placeholder asset. Upload the actual file to complete.
+              {asset.isPlaceholder && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+                  <Upload className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-xs text-amber-700">
+                    This is a placeholder asset. Upload the actual file to complete.
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         );
 
       case 'Support Strategy & Substantiation':
         return (
-          <div className="bg-white rounded-xl border border-pebble overflow-hidden">
-            <div className="px-6 py-4 border-b border-pebble flex items-center justify-between bg-white">
-              <div>
-                <h3 className="text-night font-semibold text-base">Support Strategy &amp; Substantiation</h3>
-                <p className="text-xs text-gray-400 mt-0.5">Capture the justification and evidence behind this asset</p>
-              </div>
-            </div>
-            <div className="p-6 space-y-6">
+          <div>
+            <h3 className="text-base font-bold text-night border-b border-pebble pb-3 mb-4">Support Strategy &amp; Substantiation</h3>
+            <div className="bg-white p-6 rounded-xl border border-gray-300 shadow-sm space-y-6">
               {/* Support Strategy Panel */}
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -425,14 +442,14 @@ export default function AssetWorkspace({
               <div className="border-t border-pebble pt-5">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-xs text-gray-500 uppercase tracking-wide font-semibold">Substantiation Documents</h4>
-                  <button onClick={() => setSeModalOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 border border-pebble rounded-lg text-xs text-sky hover:bg-pale transition-colors">
+                  <button onClick={() => setSeModalOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 border border-pebble rounded-lg text-xs text-sky hover:bg-pale transition-colors font-semibold">
                     <Plus className="w-3.5 h-3.5" />
                     Upload Substantiation Evidence
                   </button>
                 </div>
                 {localSEDocs.length === 0 ? (
                   <div className="border-2 border-dashed border-pebble rounded-lg p-6 text-center">
-                    <FileText className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                    <FileText className="w-8 h-8 text-gray-300 mx-auto mb-2 opacity-30" />
                     <p className="text-sm text-gray-400">No substantiation documents yet</p>
                     <p className="text-xs text-gray-400 mt-1">Upload PDFs, images, or other supporting files</p>
                   </div>
@@ -454,14 +471,9 @@ export default function AssetWorkspace({
 
       case 'Final Risk Level Summary':
         return (
-          <div className="bg-white rounded-xl border border-pebble overflow-hidden">
-            <div className="px-6 py-4 border-b border-pebble flex items-center justify-between bg-white">
-              <div>
-                <h3 className="text-night font-semibold text-base">Final Risk Level Summary</h3>
-                <p className="text-xs text-gray-400 mt-0.5">Consolidated risk assessment for this asset version</p>
-              </div>
-            </div>
-            <div className="p-6 space-y-5">
+          <div>
+            <h3 className="text-base font-bold text-night border-b border-pebble pb-3 mb-4">Final Risk Level Summary</h3>
+            <div className="bg-white p-6 rounded-xl border border-gray-300 shadow-sm space-y-5">
               {currentVersion?.finalRisk.finalRiskLevel ? (
                 <>
                   <div className="grid grid-cols-2 gap-4">
@@ -498,7 +510,7 @@ export default function AssetWorkspace({
                 </>
               ) : (
                 <div className="text-center py-10">
-                  <Shield className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                  <Shield className="w-12 h-12 text-gray-200 mx-auto mb-3 opacity-30" />
                   <p className="text-sm font-medium text-gray-500">No risk assessment completed</p>
                   <p className="text-xs text-gray-400 mt-1">Complete department risk records first</p>
                 </div>
@@ -509,23 +521,20 @@ export default function AssetWorkspace({
 
       case 'Risk Level Assessments':
         return (
-          <div className="bg-white rounded-xl border border-pebble overflow-hidden">
-            <div className="px-6 py-4 border-b border-pebble flex items-center justify-between bg-white">
-              <div>
-                <h3 className="text-night font-semibold text-base">Risk Level Assessments</h3>
-                <p className="text-xs text-gray-400 mt-0.5">Department-level risk records for this asset version</p>
-              </div>
+          <div>
+            <div className="flex items-center justify-between border-b border-pebble pb-3 mb-4">
+              <h3 className="text-base font-bold text-night">Risk Level Assessments</h3>
               {asset.lifecycleStage !== 'Assessed' && (
                 <button
                   onClick={() => setShowAddRisk(!showAddRisk)}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-sky text-white rounded-lg text-sm hover:bg-dark transition-colors"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-sky text-white rounded-lg text-xs hover:bg-dark transition-colors font-semibold"
                 >
                   <Plus className="w-4 h-4" />
                   Add Assessment
                 </button>
               )}
             </div>
-            <div className="p-6 space-y-4">
+            <div className="bg-white p-6 rounded-xl border border-gray-300 shadow-sm space-y-4">
               {showAddRisk && (
                 <div className="border border-sky/20 rounded-xl p-4 bg-pale space-y-3">
                   <div className="text-sm text-night font-medium mb-2">New Risk Record</div>
@@ -535,7 +544,7 @@ export default function AssetWorkspace({
                       <select
                         value={newRiskDept}
                         onChange={e => setNewRiskDept(e.target.value as AssetRiskRecord['department'])}
-                        className="w-full px-2 py-1.5 border border-pebble rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky"
+                        className="w-full px-2 py-1.5 border border-pebble rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky bg-white"
                       >
                         {(['R&D', 'Legal', 'RA', 'Claims Lead', 'Marketing'] as AssetRiskRecord['department'][]).map(d => (
                           <option key={d} value={d}>{d}</option>
@@ -547,7 +556,7 @@ export default function AssetWorkspace({
                       <select
                         value={newRiskLevel}
                         onChange={e => setNewRiskLevel(e.target.value as 'Low' | 'Medium' | 'High' | 'Very High')}
-                        className="w-full px-2 py-1.5 border border-pebble rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky"
+                        className="w-full px-2 py-1.5 border border-pebble rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky bg-white"
                       >
                         {['Low', 'Medium', 'High', 'Very High'].map(l => (
                           <option key={l} value={l}>{l}</option>
@@ -567,7 +576,7 @@ export default function AssetWorkspace({
                   </div>
                   <div className="flex items-center gap-2 justify-end">
                     <button onClick={() => setShowAddRisk(false)} className="px-3 py-1.5 text-sm text-gray-600 border border-pebble rounded-lg hover:bg-earth">Cancel</button>
-                    <button onClick={handleAddRisk} disabled={!newRiskComment.trim()} className="px-3 py-1.5 text-sm bg-sky text-white rounded-lg hover:bg-dark disabled:opacity-40">Save Record</button>
+                    <button onClick={handleAddRisk} disabled={!newRiskComment.trim()} className="px-3 py-1.5 text-sm bg-sky text-white rounded-lg hover:bg-dark disabled:opacity-40 font-semibold">Save Record</button>
                   </div>
                 </div>
               )}
@@ -577,7 +586,7 @@ export default function AssetWorkspace({
                     <div key={record.id} className="p-4 bg-earth rounded-xl border border-pebble">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-semibold text-night">{record.department}</span>
-                        <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${record.riskLevel === 'High' || record.riskLevel === 'Very High'
+                        <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${record.riskLevel === 'High' || record.riskLevel === 'Very High'
                           ? 'bg-red-50 text-red-700 border border-red-200'
                           : record.riskLevel === 'Medium'
                             ? 'bg-amber-50 text-amber-700 border border-amber-200'
@@ -595,7 +604,7 @@ export default function AssetWorkspace({
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <Shield className="w-10 h-10 text-gray-200 mx-auto mb-2" />
+                  <Shield className="w-10 h-10 text-gray-200 mx-auto mb-2 opacity-30" />
                   <p className="text-sm text-gray-400">No risk assessments yet</p>
                 </div>
               )}
@@ -680,203 +689,198 @@ export default function AssetWorkspace({
         });
 
         return (
-          <div className="space-y-4">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-night font-semibold text-base">Linked Claims</h3>
-                <p className="text-sm text-gray-500 mt-0.5">{ALL_LINKED_CLAIMS.length} claims linked to this asset</p>
-              </div>
+          <div>
+            <div className="flex items-center justify-between border-b border-pebble pb-3 mb-4">
+              <h3 className="text-base font-bold text-night">Linked Claims</h3>
               <div className="flex items-center gap-2">
-                <button className="flex items-center gap-2 px-3 py-2 border border-pebble text-night rounded-lg text-sm hover:bg-earth transition-colors">
-                  <Link2 className="w-4 h-4" />
-                  Link Claim
+                <button className="flex items-center gap-2 px-3 py-1.5 border border-pebble text-night rounded-lg text-xs hover:bg-earth transition-colors font-semibold">
+                  <Link2 className="w-3.5 h-3.5" /> Link Claim
                 </button>
-                <button className="flex items-center gap-2 px-3 py-2 bg-sky text-white rounded-lg text-sm hover:bg-dark transition-colors">
-                  <Plus className="w-4 h-4" />
-                  Add Claim
+                <button className="flex items-center gap-2 px-3 py-1.5 bg-sky text-white rounded-lg text-xs hover:bg-dark transition-colors font-semibold">
+                  <Plus className="w-3.5 h-3.5" /> Add Claim
                 </button>
               </div>
             </div>
 
-            {/* Search + type filter tabs */}
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="relative flex-1 max-w-xs">
-                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={linkedClaimSearch}
-                  onChange={e => setLinkedClaimSearch(e.target.value)}
-                  placeholder="Search claims..."
-                  className="w-full pl-9 pr-4 py-2 border border-pebble rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky"
-                />
-                {linkedClaimSearch && (
-                  <button onClick={() => setLinkedClaimSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2">
-                    <X className="w-3.5 h-3.5 text-gray-400" />
-                  </button>
-                )}
+            <div className="rounded-xl border border-pebble overflow-hidden bg-white shadow-sm flex flex-col min-h-[400px]">
+              {/* Search + type filter tabs */}
+              <div className="px-4 py-3 border-b border-pebble flex items-center gap-3 flex-wrap bg-white">
+                <div className="relative flex-1 max-w-xs">
+                  <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={linkedClaimSearch}
+                    onChange={e => setLinkedClaimSearch(e.target.value)}
+                    placeholder="Search claims..."
+                    className="w-full pl-9 pr-4 py-2 border border-pebble rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky bg-white"
+                  />
+                  {linkedClaimSearch && (
+                    <button onClick={() => setLinkedClaimSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <X className="w-3.5 h-3.5 text-gray-400" />
+                    </button>
+                  )}
+                </div>
+                <div className="flex gap-1 bg-earth rounded-lg p-1">
+                  {CLAIM_TYPE_TABS.map(tab => (
+                    <button
+                      key={tab}
+                      onClick={() => setClaimTypeFilter(tab)}
+                      className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                        claimTypeFilter === tab ? 'bg-white text-sky shadow-sm' : 'text-gray-500 hover:text-night'
+                      }`}
+                    >
+                      {tab}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="flex gap-1 bg-earth rounded-lg p-1">
-                {CLAIM_TYPE_TABS.map(tab => (
-                  <button
-                    key={tab}
-                    onClick={() => setClaimTypeFilter(tab)}
-                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                      claimTypeFilter === tab ? 'bg-white text-sky shadow-sm' : 'text-gray-500 hover:text-night'
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
-            </div>
 
-            {/* Section accordions — one per claim type */}
-            {filteredClaims.length > 0 ? (
-              <div className="space-y-3">
-                {(claimTypeFilter === 'All' ? sectionOrder : [claimTypeFilter]).map(sType => {
-                  const sectionClaims = sections[sType];
-                  if (!sectionClaims || sectionClaims.length === 0) return null;
-                  return (
-                    <div key={sType} className="bg-white rounded-xl border border-pebble overflow-hidden">
-                      {/* Section header */}
-                      <button
-                        className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-earth transition-colors"
-                        onClick={() => setExpandedClaimSection(expandedClaimSection === sType ? null : sType)}
-                      >
-                        <div className="flex items-center gap-3">
-                          {expandedClaimSection === sType
-                            ? <ChevronRight className="w-4 h-4 text-sky" />
-                            : <ChevronDown className="w-4 h-4 text-sky" />
-                          }
-                          <div className="text-left">
-                            <div className="text-sm text-night font-semibold">{sType} Claims</div>
-                            <div className="text-xs text-gray-500">{sectionClaims.length} claim{sectionClaims.length !== 1 ? 's' : ''} linked</div>
+              {filteredClaims.length > 0 ? (
+                <div className="p-4 space-y-3 overflow-y-auto flex-1 no-scrollbar">
+                  {(claimTypeFilter === 'All' ? sectionOrder : [claimTypeFilter]).map(sType => {
+                    const sectionClaims = sections[sType];
+                    if (!sectionClaims || sectionClaims.length === 0) return null;
+                    return (
+                      <div key={sType} className="bg-white rounded-xl border border-pebble overflow-hidden">
+                        {/* Section header */}
+                        <button
+                          className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-earth transition-colors"
+                          onClick={() => setExpandedClaimSection(expandedClaimSection === sType ? null : sType)}
+                        >
+                          <div className="flex items-center gap-3">
+                            {expandedClaimSection === sType
+                              ? <ChevronRight className="w-4 h-4 text-sky" />
+                              : <ChevronDown className="w-4 h-4 text-sky" />
+                            }
+                            <div className="text-left">
+                              <div className="text-sm text-night font-semibold">{sType} Claims</div>
+                              <div className="text-xs text-gray-500">{sectionClaims.length} claim{sectionClaims.length !== 1 ? 's' : ''} linked</div>
+                            </div>
                           </div>
-                        </div>
-                        <span className="text-xs text-gray-500 bg-earth px-2 py-1 rounded">{sectionClaims.length}</span>
-                      </button>
+                          <span className="text-xs text-gray-500 bg-earth px-2 py-1 rounded">{sectionClaims.length}</span>
+                        </button>
 
-                      {expandedClaimSection !== sType && (
-                        <div className="overflow-x-auto border-t border-pebble">
-                          <table className="w-full text-sm">
-                            <thead className="bg-earth">
-                              <tr>
-                                <th className="px-4 py-2.5 text-left text-xs text-gray-500 uppercase tracking-wide min-w-[220px]">Claim Statement</th>
-                                <th className="px-4 py-2.5 text-left text-xs text-gray-500 uppercase tracking-wide">ID</th>
-                                <th className="px-4 py-2.5 text-left text-xs text-gray-500 uppercase tracking-wide">Status</th>
-                                <th className="px-4 py-2.5 text-left text-xs text-gray-500 uppercase tracking-wide">Channel</th>
-                                <th className="px-4 py-2.5 text-left text-xs text-gray-500 uppercase tracking-wide">Risk</th>
-                                <th className="px-4 py-2.5 text-left text-xs text-gray-500 uppercase tracking-wide min-w-[100px]">Product</th>
-                                <th className="px-4 py-2.5 w-10" />
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {sectionClaims.map((claim, i) => (
-                                <Fragment key={claim.id}>
-                                  <tr
-                                    className={`border-b border-pebble hover:bg-earth transition-colors cursor-pointer ${expandedClaimRow === claim.id ? 'bg-pale/30' : i % 2 !== 0 ? 'bg-earth/20' : ''}`}
-                                    onClick={() => setExpandedClaimRow(expandedClaimRow === claim.id ? null : claim.id)}
-                                  >
-                                    <td className="px-4 py-3">
-                                      <div className="flex items-start gap-2">
-                                        <FileText className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 mt-0.5" />
-                                        <div>
-                                          <button
-                                            onClick={e => { e.stopPropagation(); onNavigateToClaim?.(claim.id); }}
-                                            className="text-sm text-night hover:text-sky transition-colors text-left font-medium flex items-center gap-1 group"
-                                          >
-                                            {claim.statement}
-                                            <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-sky" />
-                                          </button>
-                                          <div className="text-xs text-gray-400 mt-0.5 truncate max-w-[200px]">{claim.qualifier}</div>
-                                        </div>
-                                      </div>
-                                    </td>
-                                    <td className="px-4 py-3 text-xs font-mono text-gray-500 whitespace-nowrap">{claim.id}</td>
-                                    <td className="px-4 py-3">
-                                      <span className={`px-2 py-0.5 rounded-full text-xs ${LIFECYCLE_COLORS[claim.lifecycleStage] || 'bg-gray-100 text-gray-500'}`}>
-                                        {claim.lifecycleStage}
-                                      </span>
-                                    </td>
-                                    <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">{claim.channel}</td>
-                                    <td className="px-4 py-3">
-                                      <div className="flex items-center gap-1.5">
-                                        {RISK_ICON[claim.riskLevel]}
-                                        <span className={`text-xs font-medium ${RISK_STYLE[claim.riskLevel]}`}>{claim.riskLevel}</span>
-                                      </div>
-                                    </td>
-                                    <td className="px-4 py-3 text-xs text-gray-600 truncate max-w-[100px]">{claim.product}</td>
-                                    <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                                      <button
-                                        onClick={() => onNavigateToClaim?.(claim.id)}
-                                        className="p-1 hover:bg-earth rounded text-gray-400 hover:text-sky transition-colors"
-                                      >
-                                        <ExternalLink className="w-3.5 h-3.5" />
-                                      </button>
-                                    </td>
-                                  </tr>
-                                  {expandedClaimRow === claim.id && (
-                                    <tr key={`${claim.id}-detail`}>
-                                      <td colSpan={7} className="px-0 py-0 border-b-2 border-sky">
-                                        <div className="bg-pale/30 border-l-4 border-sky px-6 py-4">
-                                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm mb-4">
-                                            <div>
-                                              <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Claim ID</div>
-                                              <div className="text-night font-mono">{claim.id}</div>
-                                            </div>
-                                            <div>
-                                              <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Type</div>
-                                              <span className="px-2 py-0.5 rounded-full text-xs bg-purple-50 text-purple-700 border border-purple-200">{claim.claimType}</span>
-                                            </div>
-                                            <div>
-                                              <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Risk Level</div>
-                                              <div className={`flex items-center gap-1.5 text-sm font-medium ${RISK_STYLE[claim.riskLevel]}`}>
-                                                {RISK_ICON[claim.riskLevel]} {claim.riskLevel}
-                                              </div>
-                                            </div>
-                                            <div>
-                                              <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Product</div>
-                                              <div className="text-night text-sm">{claim.product}</div>
-                                            </div>
-                                          </div>
-                                          {claim.rcfSummary && (
-                                            <div className="mb-4">
-                                              <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">RCF Summary</div>
-                                              <p className="text-sm text-gray-700 bg-white border border-pebble rounded-lg px-3 py-2">{claim.rcfSummary}</p>
-                                            </div>
-                                          )}
-                                          <div className="flex gap-2">
+                        {expandedClaimSection !== sType && (
+                          <div className="overflow-x-auto border-t border-pebble">
+                            <table className="w-full text-sm">
+                              <thead className="bg-[#F6F7F0]">
+                                <tr>
+                                  <th className="px-4 py-2.5 text-left text-xs font-bold text-night uppercase tracking-wide min-w-[220px]">Claim Statement</th>
+                                  <th className="px-4 py-2.5 text-left text-xs font-bold text-night uppercase tracking-wide">ID</th>
+                                  <th className="px-4 py-2.5 text-left text-xs font-bold text-night uppercase tracking-wide">Status</th>
+                                  <th className="px-4 py-2.5 text-left text-xs font-bold text-night uppercase tracking-wide">Channel</th>
+                                  <th className="px-4 py-2.5 text-left text-xs font-bold text-night uppercase tracking-wide">Risk</th>
+                                  <th className="px-4 py-2.5 text-left text-xs font-bold text-night uppercase tracking-wide min-w-[100px]">Product</th>
+                                  <th className="px-4 py-2.5 w-10" />
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-pebble">
+                                {sectionClaims.map((claim, i) => (
+                                  <Fragment key={claim.id}>
+                                    <tr
+                                      className={`border-b border-pebble hover:bg-earth transition-colors cursor-pointer ${expandedClaimRow === claim.id ? 'bg-pale/30' : i % 2 !== 0 ? 'bg-earth/20' : ''}`}
+                                      onClick={() => setExpandedClaimRow(expandedClaimRow === claim.id ? null : claim.id)}
+                                    >
+                                      <td className="px-4 py-3">
+                                        <div className="flex items-start gap-2">
+                                          <FileText className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 mt-0.5" />
+                                          <div>
                                             <button
-                                              onClick={() => onNavigateToClaim?.(claim.id)}
-                                              className="flex items-center gap-1.5 px-3 py-1.5 bg-sky text-white rounded-lg text-xs hover:bg-dark"
+                                              onClick={e => { e.stopPropagation(); onNavigateToClaim?.(claim.id); }}
+                                              className="text-sm text-night hover:text-sky transition-colors text-left font-medium flex items-center gap-1 group"
                                             >
-                                              <ExternalLink className="w-3 h-3" /> Open Claim
+                                              {claim.statement}
+                                              <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-sky" />
                                             </button>
-                                            <button className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 text-red-600 rounded-lg text-xs hover:bg-red-50">
-                                              Unlink
-                                            </button>
+                                            <div className="text-xs text-gray-400 mt-0.5 truncate max-w-[200px]">{claim.qualifier}</div>
                                           </div>
                                         </div>
                                       </td>
+                                      <td className="px-4 py-3 text-xs font-mono text-gray-500 whitespace-nowrap">{claim.id}</td>
+                                      <td className="px-4 py-3">
+                                        <span className={`px-2 py-0.5 rounded-full text-xs ${LIFECYCLE_COLORS[claim.lifecycleStage] || 'bg-gray-100 text-gray-500'}`}>
+                                          {claim.lifecycleStage}
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">{claim.channel}</td>
+                                      <td className="px-4 py-3">
+                                        <div className="flex items-center gap-1.5">
+                                          {RISK_ICON[claim.riskLevel]}
+                                          <span className={`text-xs font-medium ${RISK_STYLE[claim.riskLevel]}`}>{claim.riskLevel}</span>
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-3 text-xs text-gray-600 truncate max-w-[100px]">{claim.product}</td>
+                                      <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                                        <button
+                                          onClick={() => onNavigateToClaim?.(claim.id)}
+                                          className="p-1 hover:bg-earth rounded text-gray-400 hover:text-sky transition-colors"
+                                        >
+                                          <ExternalLink className="w-3.5 h-3.5" />
+                                        </button>
+                                      </td>
                                     </tr>
-                                  )}
-                                </Fragment>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-10 border-2 border-dashed border-pebble rounded-xl">
-                <FileText className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">No {claimTypeFilter !== 'All' ? claimTypeFilter : ''} claims linked to this asset</p>
-              </div>
-            )}
+                                    {expandedClaimRow === claim.id && (
+                                      <tr key={`${claim.id}-detail`}>
+                                        <td colSpan={7} className="px-0 py-0 border-b-2 border-sky">
+                                          <div className="bg-pale/30 border-l-4 border-sky px-6 py-4">
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm mb-4">
+                                              <div>
+                                                <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Claim ID</div>
+                                                <div className="text-night font-mono">{claim.id}</div>
+                                              </div>
+                                              <div>
+                                                <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Type</div>
+                                                <span className="px-2 py-0.5 rounded-full text-xs bg-purple-50 text-purple-700 border border-purple-200">{claim.claimType}</span>
+                                              </div>
+                                              <div>
+                                                <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Risk Level</div>
+                                                <div className={`flex items-center gap-1.5 text-sm font-medium ${RISK_STYLE[claim.riskLevel]}`}>
+                                                  {RISK_ICON[claim.riskLevel]} {claim.riskLevel}
+                                                </div>
+                                              </div>
+                                              <div>
+                                                <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Product</div>
+                                                <div className="text-night text-sm">{claim.product}</div>
+                                              </div>
+                                            </div>
+                                            {claim.rcfSummary && (
+                                              <div className="mb-4">
+                                                <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">RCF Summary</div>
+                                                <p className="text-sm text-gray-700 bg-white border border-pebble rounded-lg px-3 py-2">{claim.rcfSummary}</p>
+                                              </div>
+                                            )}
+                                            <div className="flex gap-2">
+                                              <button
+                                                onClick={() => onNavigateToClaim?.(claim.id)}
+                                                className="flex items-center gap-1.5 px-3 py-1.5 bg-sky text-white rounded-lg text-xs hover:bg-dark font-semibold"
+                                              >
+                                                <ExternalLink className="w-3 h-3" /> Open Claim
+                                              </button>
+                                              <button className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 text-red-600 rounded-lg text-xs hover:bg-red-50 font-semibold">
+                                                Unlink
+                                              </button>
+                                            </div>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    )}
+                                  </Fragment>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-gray-400 flex-1 flex flex-col justify-center">
+                  <FileText className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">No linked claims</p>
+                </div>
+              )}
+            </div>
           </div>
         );
       }
@@ -899,24 +903,22 @@ export default function AssetWorkspace({
           },
         ];
         return (
-          <div className="space-y-4">
-            <div className="text-sm text-gray-500 mb-4">
-              {relatedProjects.length} projects using this asset
-            </div>
+          <div>
+            <h3 className="text-base font-bold text-night border-b border-pebble pb-3 mb-4">Related Projects</h3>
             {relatedProjects.length > 0 ? (
-              <div className="border border-pebble rounded-xl overflow-hidden">
+              <div className="rounded-xl border border-pebble overflow-hidden bg-white shadow-sm">
                 <table className="w-full text-sm">
-                  <thead className="bg-earth">
+                  <thead className="bg-[#F6F7F0]">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs text-gray-500 uppercase tracking-wide">Project Name</th>
-                      <th className="px-4 py-3 text-left text-xs text-gray-500 uppercase tracking-wide">Project ID</th>
-                      <th className="px-4 py-3 text-left text-xs text-gray-500 uppercase tracking-wide">Status</th>
-                      <th className="px-4 py-3 text-left text-xs text-gray-500 uppercase tracking-wide">Stage</th>
-                      <th className="px-4 py-3 text-left text-xs text-gray-500 uppercase tracking-wide">Lead</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-night uppercase">Project Name</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-night uppercase">Project ID</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-night uppercase">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-night uppercase">Stage</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-night uppercase">Lead</th>
                       <th className="px-4 py-3 w-12" />
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-pebble">
                     {relatedProjects.map((project, i) => (
                       <tr
                         key={project.id}
@@ -946,9 +948,9 @@ export default function AssetWorkspace({
                 </table>
               </div>
             ) : (
-              <div className="text-center py-10 border-2 border-dashed border-pebble rounded-xl">
-                <FolderKanban className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">Not used in any projects yet</p>
+              <div className="text-center py-12 text-gray-400 border border-pebble rounded-xl bg-white shadow-sm">
+                <FolderKanban className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                <p className="text-sm">No related projects</p>
               </div>
             )}
           </div>
@@ -956,108 +958,88 @@ export default function AssetWorkspace({
       }
 
       case 'Related Products': {
-        // FILE 2: includes `level` field
         const LINKED_PRODUCTS = [
           { id: 'PRD-VAR-001', name: 'Dove Intensive Repair Lotion 250ml', brand: 'Dove', category: 'Skin Care', lifecycleState: 'Active', claimsCount: 3, level: 'Format' },
           { id: 'PRD-VAR-002', name: 'Dove Intensive Repair Shampoo 400ml', brand: 'Dove', category: 'Hair Care', lifecycleState: 'Active', claimsCount: 2, level: 'Sub Range' },
         ];
         return (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-night font-semibold text-base">Related Products</h3>
-                <p className="text-sm text-gray-500 mt-0.5">{LINKED_PRODUCTS.length} products associated with this asset</p>
-              </div>
-              <button className="flex items-center gap-2 px-3 py-2 bg-sky text-white rounded-lg text-sm hover:bg-dark transition-colors">
-                <Plus className="w-4 h-4" />
-                Link Product
+          <div>
+            <div className="flex items-center justify-between border-b border-pebble pb-3 mb-4">
+              <h3 className="text-base font-bold text-night">Related Products</h3>
+              <button className="flex items-center gap-2 px-3 py-1.5 bg-sky text-white rounded-lg text-xs hover:bg-dark transition-colors font-semibold">
+                <Plus className="w-3.5 h-3.5" /> Link Product
               </button>
             </div>
-            <div className="border border-pebble rounded-xl overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-earth">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs text-gray-500 uppercase tracking-wide">Product Name</th>
-                    <th className="px-4 py-3 text-left text-xs text-gray-500 uppercase tracking-wide">Product ID</th>
-                    <th className="px-4 py-3 text-left text-xs text-gray-500 uppercase tracking-wide">Brand</th>
-                    <th className="px-4 py-3 text-left text-xs text-gray-500 uppercase tracking-wide">Category</th>
-                    <th className="px-4 py-3 text-left text-xs text-gray-500 uppercase tracking-wide">Level</th>
-                    <th className="px-4 py-3 text-left text-xs text-gray-500 uppercase tracking-wide">Status</th>
-                    <th className="px-4 py-3 text-left text-xs text-gray-500 uppercase tracking-wide">Claims</th>
-                    <th className="px-4 py-3 w-10" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {LINKED_PRODUCTS.map((product, i) => (
-                    <tr key={product.id} className={`border-b border-pebble hover:bg-earth transition-colors cursor-pointer ${i % 2 === 0 ? '' : 'bg-earth/30'}`}>
-                      <td className="px-4 py-3">
-                        <span className="text-sky hover:underline flex items-center gap-1.5 font-medium">
-                          <Globe className="w-3.5 h-3.5 flex-shrink-0" />
-                          {product.name}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-xs font-mono text-gray-500">{product.id}</td>
-                      <td className="px-4 py-3 text-xs text-gray-600">{product.brand}</td>
-                      <td className="px-4 py-3 text-xs text-gray-600">{product.category}</td>
-                      <td className="px-4 py-3 text-xs text-gray-600">{product.level}</td>
-                      <td className="px-4 py-3">
-                        <span className="px-2 py-0.5 rounded-full text-xs bg-green-50 text-green-700 border border-green-200">{product.lifecycleState}</span>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-gray-600">{product.claimsCount} claims</td>
-                      <td className="px-4 py-3">
-                        <button className="p-1 hover:bg-earth rounded text-gray-400 hover:text-sky transition-colors">
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
+            {LINKED_PRODUCTS.length > 0 ? (
+              <div className="rounded-xl border border-pebble overflow-hidden bg-white shadow-sm">
+                <table className="w-full text-sm">
+                  <thead className="bg-[#F6F7F0]">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-night uppercase">Product Name</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-night uppercase">Product ID</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-night uppercase">Brand</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-night uppercase">Category</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-night uppercase">Level</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-night uppercase">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-night uppercase">Claims</th>
+                      <th className="px-4 py-3 w-10" />
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-pebble">
+                    {LINKED_PRODUCTS.map((product, i) => (
+                      <tr key={product.id} className={`border-b border-pebble hover:bg-earth transition-colors cursor-pointer ${i % 2 === 0 ? '' : 'bg-earth/30'}`}>
+                        <td className="px-4 py-3">
+                          <span className="text-sky hover:underline flex items-center gap-1.5 font-medium">
+                            <Globe className="w-3.5 h-3.5 flex-shrink-0" />
+                            {product.name}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-xs font-mono text-gray-500">{product.id}</td>
+                        <td className="px-4 py-3 text-xs text-gray-600">{product.brand}</td>
+                        <td className="px-4 py-3 text-xs text-gray-600">{product.category}</td>
+                        <td className="px-4 py-3 text-xs text-gray-600">{product.level}</td>
+                        <td className="px-4 py-3">
+                          <span className="px-2 py-0.5 rounded-full text-xs bg-green-50 text-green-700 border border-green-200">{product.lifecycleState}</span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-600">{product.claimsCount} claims</td>
+                        <td className="px-4 py-3">
+                          <button className="p-1 hover:bg-earth rounded text-gray-400 hover:text-sky transition-colors">
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-12 text-gray-400 border border-pebble rounded-xl bg-white shadow-sm">
+                <Package className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                <p className="text-sm">No related products</p>
+              </div>
+            )}
           </div>
         );
       }
 
       case 'Approval Workflow':
         return (
-          <ApprovalWorkflowPanel
-            asset={asset}
-            onAssetSave={onAssetSave}
-            onManageApprovers={() => setShowApprovalModal(true)}
-            onInitiateWorkflow={() => setShowApprovalModal(true)}
-          />
+          <div>
+            <h3 className="text-base font-bold text-night border-b border-pebble pb-3 mb-4">Approval Workflow</h3>
+            <ApprovalWorkflowPanel
+              asset={asset}
+              onAssetSave={onAssetSave}
+              onManageApprovers={() => setShowApprovalModal(true)}
+              onInitiateWorkflow={() => setShowApprovalModal(true)}
+            />
+          </div>
         );
-
-      // case 'Audit Log': — commented out per requirements
 
       default:
         return (
           <p className="text-sm text-gray-400">Section content coming soon</p>
         );
     }
-  };
-
-  const renderWrappedSection = (id: string) => {
-    if (
-      id === 'Support Strategy & Substantiation' ||
-      id === 'Final Risk Level Summary' ||
-      id === 'Risk Level Assessments'
-    ) {
-      return renderSectionContent(id);
-    }
-    const headerTitle = id === 'Asset Details' ? 'Asset Details' : id;
-    return (
-      <div className="bg-transparent h-full flex flex-col">
-        <div className="bg-white px-6 py-4 border-b border-pebble flex-shrink-0 w-full">
-          <h3 className="text-lg text-night flex items-center gap-2" style={{ fontWeight: 600 }}>
-            {headerTitle}
-          </h3>
-        </div>
-        <div className="p-6">
-          {renderSectionContent(id)}
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -1256,34 +1238,59 @@ export default function AssetWorkspace({
       </div>
 
       {/* ── Main Body ────────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-hidden flex flex-col bg-transparent">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden bg-transparent">
+        {/* ── LEFT COLUMN: Sections up to Approval Workflow ── */}
         <div
-          className="flex-1 overflow-y-auto bg-transparent scroll-smooth no-scrollbar relative snap-y snap-proximity"
+          className={`flex-1 overflow-y-auto min-w-0 snap-y snap-proximity scroll-smooth no-scrollbar transition-all duration-300 ${isRenditionExpanded ? 'md:max-w-[45%] lg:max-w-[42%]' : 'max-w-full'}`}
           onScroll={handleScroll}
         >
-          <div className="flex flex-col md:flex-row gap-0 items-start relative w-full mb-0">
-            {/* ── LEFT COLUMN: Sections up to Approval Workflow ── */}
-            <div className="flex-1 md:max-w-[45%] lg:max-w-[42%] flex-shrink-0 min-w-0">
-              {ORDERED_ASSET_SECTIONS.slice(0, 5).map((item) => {
-                return (
-                  <div
-                    key={item.id}
-                    ref={(el) => { sectionRefs.current[item.id] = el; }}
-                    className="w-full h-[calc(100vh-73px)] flex-shrink-0 snap-start snap-always border-b-2 border-pebble/30 flex flex-col overflow-hidden bg-white/40"
-                  >
-                    <div className="flex-1 overflow-y-auto no-scrollbar">
-                      {renderWrappedSection(item.id)}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+          {ORDERED_ASSET_SECTIONS.map((item) => {
+            const isItemActive = activeSection === item.id;
+            return (
+              <div
+                key={item.id}
+                ref={(el) => { sectionRefs.current[item.id] = el; }}
+                className={`w-full min-h-screen flex-shrink-0 flex flex-col snap-start snap-always bg-transparent transition-opacity duration-300 border-b-2 border-pebble/30 ${
+                  isItemActive ? 'opacity-100' : 'opacity-75'
+                }`}
+              >
+                <div className="flex-1 p-6 md:p-8 space-y-6">
+                  {renderSectionContent(item.id)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
 
-            {/* ── RIGHT COLUMN: Sticky Rendition Viewer ── */}
-            <div className="w-full md:w-[55%] lg:w-[58%] xl:w-[60%] flex-shrink-0 sticky top-0 border-l border-pebble bg-[#1e1e2e] flex flex-col overflow-hidden h-[calc(100vh-73px)] hidden md:flex">
+        {/* ── RIGHT COLUMN: Rendition Viewer ── */}
+        <div className={`flex-shrink-0 border-l border-pebble bg-[#1e1e2e] flex flex-col overflow-hidden h-full hidden md:flex transition-all duration-300 ${
+          isRenditionExpanded ? 'w-full md:w-[55%] lg:w-[58%] xl:w-[60%]' : 'w-10'
+        }`}>
+          {!isRenditionExpanded ? (
+            <div className="flex flex-col items-center py-4 h-full border-l border-white/10 bg-[#16162a]">
+              <button
+                onClick={() => setIsRenditionExpanded(true)}
+                className="p-1.5 rounded-lg bg-sky/20 text-sky hover:bg-sky hover:text-white transition-colors"
+                title="Expand Rendition"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <div className="writing-vertical-rl text-white/30 text-xs tracking-widest uppercase font-semibold mt-8 rotate-180">
+                Rendition Viewer
+              </div>
+            </div>
+          ) : (
+            <>
               {/* Viewer toolbar */}
               <div className="flex items-center justify-between px-4 py-2 bg-[#16162a] border-b border-white/10 flex-shrink-0">
                 <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setIsRenditionExpanded(false)}
+                    className="p-1.5 rounded text-white/60 hover:text-white hover:bg-white/10 transition-colors mr-2"
+                    title="Collapse Rendition"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
                   <button
                     onClick={() => setZoom(z => Math.max(25, z - 10))}
                     className="p-1.5 rounded text-white/60 hover:text-white hover:bg-white/10 transition-colors"
@@ -1312,90 +1319,165 @@ export default function AssetWorkspace({
                 </div>
               </div>
 
-              {/* Canvas area — drag-to-select */}
-              <div
-                ref={renditionRef}
-                className="flex-1 overflow-auto relative select-none"
-                style={{ cursor: isDragging ? 'crosshair' : 'default' }}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={() => { if (isDragging) { setIsDragging(false); setDragRect(null); } }}
-              >
-                {/* Document page mock — scaled by zoom */}
-                <div className="min-h-full min-w-full flex items-start justify-center p-6">
-                  <div
-                    className="bg-white shadow-2xl rounded-sm relative"
-                    style={{
-                      width: `${(zoom / 100) * 595}px`,
-                      minHeight: `${(zoom / 100) * 842}px`,
-                      transformOrigin: 'top center',
-                    }}
-                  >
-                    {/* Simulated document content */}
-                    <div className="p-8" style={{ fontSize: `${zoom / 100 * 12}px` }}>
-                      <div className="border-b-2 border-sky/30 pb-4 mb-6">
-                        <div className="text-night font-bold text-xl mb-1">{asset.name}</div>
-                        <div className="text-gray-500 text-sm">{asset.category}</div>
-                      </div>
-                      <div className="space-y-3">
-                        {[...Array(18)].map((_, i) => (
-                          <div key={i} className={`h-3 rounded-full bg-gray-200 ${i % 4 === 0 ? 'w-full' : i % 3 === 0 ? 'w-4/5' : i % 2 === 0 ? 'w-3/4' : 'w-11/12'}`} />
-                        ))}
-                        <div className="mt-6 p-4 bg-sky/5 border border-sky/20 rounded">
-                          <div className="h-3 w-1/2 bg-sky/30 rounded mb-2" />
-                          {[...Array(4)].map((_, i) => <div key={i} className="h-2.5 bg-gray-200 rounded mb-1.5" />)}
+              {/* Canvas + Annotations Panel */}
+              <div className="flex-1 flex flex-row overflow-hidden">
+                {/* Canvas area — drag-to-select */}
+                <div
+                  ref={renditionRef}
+                  className="flex-1 overflow-auto relative select-none"
+                  style={{ cursor: isDragging ? 'crosshair' : 'default' }}
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={() => { if (isDragging) { setIsDragging(false); setDragRect(null); } }}
+                >
+                  {/* Document page mock — scaled by zoom */}
+                  <div className="min-h-full min-w-full flex items-start justify-center p-6">
+                    <div
+                      className="bg-white shadow-2xl rounded-sm relative"
+                      style={{
+                        width: `${(zoom / 100) * 595}px`,
+                        minHeight: `${(zoom / 100) * 842}px`,
+                        transformOrigin: 'top center',
+                      }}
+                    >
+                      {/* Simulated document content */}
+                      <div className="p-8" style={{ fontSize: `${zoom / 100 * 12}px` }}>
+                        <div className="border-b-2 border-sky/30 pb-4 mb-6">
+                          <div className="text-night font-bold text-xl mb-1">{asset.name}</div>
+                          <div className="text-gray-500 text-sm">{asset.category}</div>
                         </div>
-                        {[...Array(12)].map((_, i) => (
-                          <div key={`b${i}`} className={`h-3 rounded-full bg-gray-200 ${i % 3 === 0 ? 'w-full' : i % 2 === 0 ? 'w-4/5' : 'w-11/12'}`} />
-                        ))}
+                        <div className="space-y-3">
+                          {[...Array(18)].map((_, i) => (
+                            <div key={i} className={`h-3 rounded-full bg-gray-200 ${i % 4 === 0 ? 'w-full' : i % 3 === 0 ? 'w-4/5' : i % 2 === 0 ? 'w-3/4' : 'w-11/12'}`} />
+                          ))}
+                          <div className="mt-6 p-4 bg-sky/5 border border-sky/20 rounded">
+                            <div className="h-3 w-1/2 bg-sky/30 rounded mb-2" />
+                            {[...Array(4)].map((_, i) => <div key={i} className="h-2.5 bg-gray-200 rounded mb-1.5" />)}
+                          </div>
+                          {[...Array(12)].map((_, i) => (
+                            <div key={`b${i}`} className={`h-3 rounded-full bg-gray-200 ${i % 3 === 0 ? 'w-full' : i % 2 === 0 ? 'w-4/5' : 'w-11/12'}`} />
+                          ))}
+                        </div>
                       </div>
+                      {!currentVersion && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-white/90 rounded-sm">
+                          <div className="text-center text-gray-400">
+                            <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                            <p className="text-sm font-medium">No rendition available</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    {!currentVersion && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-white/90 rounded-sm">
-                        <div className="text-center text-gray-400">
-                          <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                          <p className="text-sm font-medium">No rendition available</p>
-                        </div>
-                      </div>
-                    )}
                   </div>
+
+                  {/* Persistent annotation rects — hover highlights */}
+                  {annotations.map(ann => (
+                    <div
+                      key={`rect-${ann.id}`}
+                      className="absolute pointer-events-none rounded-sm transition-all duration-150"
+                      style={{
+                        left: ann.rect.x,
+                        top: ann.rect.y,
+                        width: ann.rect.w,
+                        height: ann.rect.h,
+                        border: hoveredAnnotationId === ann.id
+                          ? '2px solid #0ea5e9'
+                          : ann.type === 'link' ? '2px solid #3b82f6' : ann.type === 'comment' ? '2px solid #f59e0b' : '2px solid #8b5cf6',
+                        background: hoveredAnnotationId === ann.id
+                          ? 'rgba(14,165,233,0.18)'
+                          : ann.type === 'link' ? 'rgba(59,130,246,0.07)' : ann.type === 'comment' ? 'rgba(245,158,11,0.07)' : 'rgba(139,92,246,0.07)',
+                        boxShadow: hoveredAnnotationId === ann.id ? '0 0 0 4px rgba(14,165,233,0.2)' : 'none',
+                      }}
+                    />
+                  ))}
+
+                  {/* Drag selection rectangle */}
+                  {isDragging && dragRect && dragRect.w > 2 && dragRect.h > 2 && (
+                    <div
+                      className="absolute border-2 border-sky bg-sky/10 pointer-events-none rounded-sm"
+                      style={{ left: dragRect.x, top: dragRect.y, width: dragRect.w, height: dragRect.h }}
+                    />
+                  )}
+                  {/* Show selection after release */}
+                  {!isDragging && dragRect && selectionPopup && (
+                    <div
+                      className="absolute border-2 border-sky/60 bg-sky/5 pointer-events-none rounded-sm"
+                      style={{ left: dragRect.x, top: dragRect.y, width: dragRect.w, height: dragRect.h }}
+                    />
+                  )}
                 </div>
 
-                {/* Drag selection rectangle */}
-                {isDragging && dragRect && dragRect.w > 2 && dragRect.h > 2 && (
-                  <div
-                    className="absolute border-2 border-sky bg-sky/10 pointer-events-none rounded-sm"
-                    style={{ left: dragRect.x, top: dragRect.y, width: dragRect.w, height: dragRect.h }}
-                  />
-                )}
-                {/* Show selection after release */}
-                {!isDragging && dragRect && selectionPopup && (
-                  <div
-                    className="absolute border-2 border-sky/60 bg-sky/5 pointer-events-none rounded-sm"
-                    style={{ left: dragRect.x, top: dragRect.y, width: dragRect.w, height: dragRect.h }}
-                  />
+                {/* ── Annotations Panel ──────────────────────────────── */}
+                {annotations.length > 0 && (
+                  <div className="w-60 flex-shrink-0 border-l border-white/10 bg-[#12121e] flex flex-col overflow-hidden">
+                    <div className="px-3 py-2.5 border-b border-white/10 flex items-center justify-between flex-shrink-0">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Annotations</span>
+                      <span className="text-[10px] bg-white/10 text-white/50 px-1.5 py-0.5 rounded-full font-bold">{annotations.length}</span>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-2 space-y-2 no-scrollbar">
+                      {annotations.map(ann => (
+                        <div
+                          key={ann.id}
+                          className={`group rounded-xl p-3 border transition-all duration-150 cursor-default ${
+                            hoveredAnnotationId === ann.id
+                              ? 'border-sky/50 bg-sky/10'
+                              : ann.type === 'link'
+                                ? 'border-blue-500/20 bg-blue-500/5 hover:border-blue-400/40'
+                                : ann.type === 'comment'
+                                  ? 'border-amber-400/20 bg-amber-400/5 hover:border-amber-300/40'
+                                  : 'border-purple-400/20 bg-purple-400/5 hover:border-purple-300/40'
+                          }`}
+                          onMouseEnter={() => setHoveredAnnotationId(ann.id)}
+                          onMouseLeave={() => setHoveredAnnotationId(null)}
+                        >
+                          <div className="flex items-start justify-between gap-1 mb-2">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm">
+                                {ann.type === 'link' ? '🔗' : ann.type === 'comment' ? '💬' : '⚓'}
+                              </span>
+                              <span className={`text-[9px] font-bold uppercase tracking-wider ${
+                                ann.type === 'link' ? 'text-blue-400' : ann.type === 'comment' ? 'text-amber-400' : 'text-purple-400'
+                              }`}>
+                                {ann.type === 'link' ? 'Doc Link' : ann.type === 'comment' ? 'Comment' : 'Anchor'}
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => setAnnotations(prev => prev.filter(a => a.id !== ann.id))}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity text-white/30 hover:text-red-400 p-0.5 rounded flex-shrink-0"
+                              title="Remove annotation"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                          {ann.type === 'link' ? (
+                            <div className="space-y-1">
+                              {SAMPLE_LIBRARY_DOCS.filter(d => ann.linkedDocIds?.includes(d.id)).map(d => (
+                                <a
+                                  key={d.id}
+                                  href="#"
+                                  onClick={e => e.preventDefault()}
+                                  className="block text-xs text-blue-400 hover:text-blue-300 underline underline-offset-2 truncate transition-colors leading-relaxed"
+                                  title={d.name}
+                                >
+                                  {d.name}
+                                </a>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-white/60 leading-relaxed line-clamp-4">{ann.label}</p>
+                          )}
+                          <div className="mt-1.5 text-[9px] text-white/20 font-mono">
+                            {Math.round(ann.rect.w)}×{Math.round(ann.rect.h)}px
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
-            </div>
-          </div>
-
-          {/* ── FULL WIDTH SECTIONS (Below Approval Workflow) ── */}
-          <div className="w-full">
-            {ORDERED_ASSET_SECTIONS.slice(5).map((item) => {
-              return (
-                <div
-                  key={item.id}
-                  ref={(el) => { sectionRefs.current[item.id] = el; }}
-                  className="w-full h-[calc(100vh-73px)] flex-shrink-0 snap-start snap-always border-b-2 border-pebble/30 flex flex-col overflow-hidden bg-white/40"
-                >
-                  <div className="flex-1 overflow-y-auto no-scrollbar">
-                    {renderWrappedSection(item.id)}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -1472,10 +1554,13 @@ export default function AssetWorkspace({
                   if (!commentText.trim()) return;
                   const updated: Asset = { ...asset, assetLevelComments: [...asset.assetLevelComments, { id: `ac-${Date.now()}`, author: 'Current User', content: commentText.trim(), createdAt: new Date().toISOString(), mentions: [], isReadOnly: false }] };
                   onAssetSave(updated);
+                  if (dragRect) {
+                    setAnnotations(prev => [...prev, { id: `ann-${Date.now()}`, type: 'comment' as const, label: commentText.trim(), rect: dragRect }]);
+                  }
                   setCommentText('');
                   setCommentModalOpen(false);
                   setDragRect(null);
-                  showToast('Comment created on selection');
+                  showToast('Comment added to annotations panel');
                 }}
                 className="flex-1 px-4 py-2 text-sm text-white bg-sky rounded-xl hover:bg-dark transition-colors font-semibold disabled:opacity-40"
               >Post Comment</button>
@@ -1484,41 +1569,108 @@ export default function AssetWorkspace({
         </div>
       )}
 
-      {/* ── Create Document Link Modal ───────────────────────── */}
+      {/* ── Document Library Picker Modal ─────────────────────── */}
       {linkModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setLinkModalOpen(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden z-10">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-pebble">
-              <div className="flex items-center gap-2">
-                <Link2 className="w-5 h-5 text-sky" />
-                <h3 className="text-sm font-bold text-night">Create Document Link</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => { setLinkModalOpen(false); setSelectedDocIds([]); setDocLibSearch(''); }} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden z-10 flex flex-col max-h-[85vh]">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-pebble flex-shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 bg-sky/10 rounded-lg flex items-center justify-center">
+                  <Link2 className="w-4 h-4 text-sky" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-night">Link Documents</h3>
+                  <p className="text-xs text-gray-400">Select documents from the library to link to this region</p>
+                </div>
               </div>
-              <button onClick={() => setLinkModalOpen(false)} className="text-gray-400 hover:text-night"><X className="w-4 h-4" /></button>
+              <button onClick={() => { setLinkModalOpen(false); setSelectedDocIds([]); setDocLibSearch(''); }} className="text-gray-400 hover:text-night p-1 rounded-lg hover:bg-earth transition-colors">
+                <X className="w-4 h-4" />
+              </button>
             </div>
-            <div className="px-6 py-5 space-y-4">
-              <div>
-                <label className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1 block">Target Document / URL</label>
+            {/* Search bar */}
+            <div className="px-6 py-3 border-b border-pebble bg-earth/40 flex-shrink-0">
+              <div className="relative">
                 <input
-                  value={linkTarget}
-                  onChange={e => setLinkTarget(e.target.value)}
-                  placeholder="Enter document ID or URL…"
-                  className="w-full px-3 py-2 border border-pebble rounded-xl text-sm focus:ring-2 focus:ring-sky outline-none"
+                  value={docLibSearch}
+                  onChange={e => setDocLibSearch(e.target.value)}
+                  placeholder="Search by document name…"
+                  className="w-full pl-9 pr-3 py-2 border border-pebble rounded-xl text-sm focus:ring-2 focus:ring-sky outline-none bg-white"
                   autoFocus
                 />
-              </div>
-              <div className="text-xs text-gray-400 bg-earth rounded-lg px-3 py-2 flex items-center gap-2">
-                <Link2 className="w-3 h-3 flex-shrink-0" />
-                Link will be attached to the selected region
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               </div>
             </div>
-            <div className="flex gap-3 px-6 py-4 border-t border-pebble bg-gray-50">
-              <button onClick={() => setLinkModalOpen(false)} className="flex-1 px-4 py-2 text-sm text-gray-600 border border-pebble rounded-xl hover:bg-earth transition-colors">Cancel</button>
+            {/* Selection count badge */}
+            {selectedDocIds.length > 0 && (
+              <div className="px-6 py-2 bg-sky/5 border-b border-sky/10 flex-shrink-0">
+                <span className="text-xs text-sky font-semibold">{selectedDocIds.length} document{selectedDocIds.length > 1 ? 's' : ''} selected</span>
+              </div>
+            )}
+            {/* Document table */}
+            <div className="flex-1 overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-earth border-b border-pebble z-10">
+                  <tr>
+                    <th className="px-4 py-3 w-10" />
+                    <th className="px-4 py-3 text-left text-xs text-gray-500 uppercase tracking-wide font-semibold">Document Name</th>
+                    <th className="px-4 py-3 text-left text-xs text-gray-500 uppercase tracking-wide font-semibold">Type</th>
+                    <th className="px-4 py-3 text-left text-xs text-gray-500 uppercase tracking-wide font-semibold">SubType</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {SAMPLE_LIBRARY_DOCS.filter(d => d.name.toLowerCase().includes(docLibSearch.toLowerCase())).map(d => (
+                    <tr
+                      key={d.id}
+                      onClick={() => setSelectedDocIds(prev => prev.includes(d.id) ? prev.filter(x => x !== d.id) : [...prev, d.id])}
+                      className={`border-b border-pebble/50 hover:bg-sky/5 cursor-pointer transition-colors ${
+                        selectedDocIds.includes(d.id) ? 'bg-sky/8 border-l-2 border-l-sky' : ''
+                      }`}
+                    >
+                      <td className="px-4 py-3">
+                        <input type="checkbox" readOnly checked={selectedDocIds.includes(d.id)} className="accent-sky w-4 h-4 cursor-pointer" />
+                      </td>
+                      <td className="px-4 py-3 font-medium text-night text-sm">{d.name}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          d.documentType === 'Formulation Document' ? 'bg-purple-50 text-purple-700'
+                          : d.documentType === 'Substantiation Evidence' ? 'bg-sky/10 text-sky'
+                          : 'bg-green-50 text-green-700'
+                        }`}>{d.documentType}</span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-500">{d.subtype || '—'}</td>
+                    </tr>
+                  ))}
+                  {SAMPLE_LIBRARY_DOCS.filter(d => d.name.toLowerCase().includes(docLibSearch.toLowerCase())).length === 0 && (
+                    <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-400">No documents match your search</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {/* Footer */}
+            <div className="flex gap-3 px-6 py-4 border-t border-pebble bg-gray-50 flex-shrink-0">
               <button
-                disabled={!linkTarget.trim()}
-                onClick={() => { setLinkModalOpen(false); setLinkTarget(''); setDragRect(null); showToast('Document link created'); }}
+                onClick={() => { setLinkModalOpen(false); setSelectedDocIds([]); setDocLibSearch(''); }}
+                className="flex-1 px-4 py-2 text-sm text-gray-600 border border-pebble rounded-xl hover:bg-earth transition-colors"
+              >Cancel</button>
+              <button
+                disabled={selectedDocIds.length === 0}
+                onClick={() => {
+                  if (selectedDocIds.length === 0 || !dragRect) return;
+                  const linkedDocs = SAMPLE_LIBRARY_DOCS.filter(d => selectedDocIds.includes(d.id));
+                  const label = linkedDocs.map(d => d.name).join(', ');
+                  setAnnotations(prev => [...prev, { id: `ann-${Date.now()}`, type: 'link' as const, label, rect: dragRect, linkedDocIds: [...selectedDocIds] }]);
+                  setLinkModalOpen(false);
+                  setSelectedDocIds([]);
+                  setDocLibSearch('');
+                  setDragRect(null);
+                  showToast(`${linkedDocs.length} document${linkedDocs.length > 1 ? 's' : ''} linked to region`);
+                }}
                 className="flex-1 px-4 py-2 text-sm text-white bg-sky rounded-xl hover:bg-dark transition-colors font-semibold disabled:opacity-40"
-              >Create Link</button>
+              >
+                {selectedDocIds.length > 0 ? `Link ${selectedDocIds.length} Document${selectedDocIds.length > 1 ? 's' : ''}` : 'Link Documents'}
+              </button>
             </div>
           </div>
         </div>
@@ -1557,6 +1709,9 @@ export default function AssetWorkspace({
               <button
                 disabled={!anchorName.trim()}
                 onClick={() => {
+                  if (dragRect) {
+                    setAnnotations(prev => [...prev, { id: `ann-${Date.now()}`, type: 'anchor' as const, label: anchorName.trim(), rect: dragRect }]);
+                  }
                   const newAnchor = {
                     id: `anc-${Date.now()}`,
                     anchorNumber: asset.anchors.length + 1,
@@ -1569,7 +1724,7 @@ export default function AssetWorkspace({
                   setAnchorModalOpen(false);
                   setAnchorName('');
                   setDragRect(null);
-                  showToast(`Anchor "${anchorName}" created`);
+                  showToast(`Anchor "${anchorName}" added to annotations panel`);
                 }}
                 className="flex-1 px-4 py-2 text-sm text-white bg-sky rounded-xl hover:bg-dark transition-colors font-semibold disabled:opacity-40"
               >Create Anchor</button>

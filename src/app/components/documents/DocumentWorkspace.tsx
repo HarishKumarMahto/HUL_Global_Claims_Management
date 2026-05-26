@@ -13,6 +13,14 @@ import DocumentVersionModal from './DocumentVersionModal';
 import CancelDocumentModal from './CancelDocumentModal';
 import { initialProducts } from '../products/productData';
 
+type RenditionAnnotation = {
+  id: string;
+  type: 'link' | 'comment' | 'anchor';
+  label: string;
+  rect: { x: number; y: number; w: number; h: number };
+  linkedDocIds?: string[];
+};
+
 interface DocumentWorkspaceProps {
   document: DocumentRecord;
   activeSection: string;
@@ -110,10 +118,16 @@ export default function DocumentWorkspace({
   const [commentModalOpen, setCommentModalOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [linkModalOpen, setLinkModalOpen] = useState(false);
-  const [linkTarget, setLinkTarget] = useState('');
   const [anchorModalOpen, setAnchorModalOpen] = useState(false);
   const [anchorName, setAnchorName] = useState('');
   const [toastMsg, setToastMsg] = useState('');
+
+  // Rendition annotations panel
+  const [annotations, setAnnotations] = useState<RenditionAnnotation[]>([]);
+  const [hoveredAnnotationId, setHoveredAnnotationId] = useState<string | null>(null);
+  const [docLibSearch, setDocLibSearch] = useState('');
+  const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
+  const [isRenditionExpanded, setIsRenditionExpanded] = useState(true);
 
   // Infinite scroll refs (matches ProjectWorkspace pattern)
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -520,7 +534,7 @@ export default function DocumentWorkspace({
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         {/* ── LEFT: Infinite scroll content ── */}
         <div
-          className="flex-1 overflow-y-auto min-w-0 snap-y snap-proximity scroll-smooth no-scrollbar md:max-w-[45%] lg:max-w-[42%]"
+          className={`flex-1 overflow-y-auto min-w-0 snap-y snap-proximity scroll-smooth no-scrollbar transition-all duration-300 ${isRenditionExpanded ? 'md:max-w-[45%] lg:max-w-[42%]' : 'max-w-full'}`}
           onScroll={handleScrollLeft}
         >
           {sections.map((sec) => {
@@ -1000,103 +1014,221 @@ export default function DocumentWorkspace({
 
 
         {/* ── RIGHT: Fixed Rendition Viewer ── */}
-        <div className="w-full md:w-[55%] lg:w-[58%] xl:w-[60%] flex-shrink-0 border-l border-pebble bg-[#1e1e2e] flex flex-col overflow-hidden min-h-[400px] md:min-h-0">
-          {/* Viewer toolbar */}
-          <div className="flex items-center justify-between px-4 py-2 bg-[#16162a] border-b border-white/10 flex-shrink-0">
-            <div className="flex items-center gap-1.5">
+        <div className={`flex-shrink-0 border-l border-pebble bg-[#1e1e2e] flex flex-col overflow-hidden min-h-[400px] md:min-h-0 transition-all duration-300 ${
+          isRenditionExpanded ? 'w-full md:w-[55%] lg:w-[58%] xl:w-[60%]' : 'w-10'
+        }`}>
+          {!isRenditionExpanded ? (
+            <div className="flex flex-col items-center py-4 h-full border-l border-white/10 bg-[#16162a]">
               <button
-                onClick={() => setZoom(z => Math.max(25, z - 10))}
-                className="p-1.5 rounded text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-                title="Zoom Out"
-              ><ZoomOut className="w-4 h-4" /></button>
-              <span className="text-xs text-white/50 font-mono w-10 text-center">{zoom}%</span>
-              <button
-                onClick={() => setZoom(z => Math.min(300, z + 10))}
-                className="p-1.5 rounded text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-                title="Zoom In"
-              ><ZoomIn className="w-4 h-4" /></button>
-              <div className="w-px h-4 bg-white/10 mx-1" />
-              <button
-                onClick={() => setZoom(100)}
-                className="p-1.5 rounded text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-                title="Fit to Page"
-              ><Maximize2 className="w-4 h-4" /></button>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-white/30 font-medium uppercase tracking-wider">
-                {currentVer?.fileType?.toUpperCase() || 'PDF'} · v{document.currentVersion}
-              </span>
-              <span className="text-[10px] text-sky/60 bg-sky/10 px-1.5 py-0.5 rounded font-bold">
-                Drag to annotate
-              </span>
-            </div>
-          </div>
-
-          {/* Canvas area — drag-to-select */}
-          <div
-            ref={renditionRef}
-            className="flex-1 overflow-auto relative select-none"
-            style={{ cursor: isDragging ? 'crosshair' : 'default' }}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={() => { if (isDragging) { setIsDragging(false); setDragRect(null); } }}
-          >
-            {/* Document page mock — scaled by zoom */}
-            <div className="min-h-full min-w-full flex items-start justify-center p-6">
-              <div
-                className="bg-white shadow-2xl rounded-sm relative"
-                style={{
-                  width: `${(zoom / 100) * 595}px`,
-                  minHeight: `${(zoom / 100) * 842}px`,
-                  transformOrigin: 'top center',
-                }}
+                onClick={() => setIsRenditionExpanded(true)}
+                className="p-1.5 rounded-lg bg-sky/20 text-sky hover:bg-sky hover:text-white transition-colors"
+                title="Expand Rendition"
               >
-                {/* Simulated document content */}
-                <div className="p-8" style={{ fontSize: `${zoom / 100 * 12}px` }}>
-                  <div className="border-b-2 border-sky/30 pb-4 mb-6">
-                    <div className="text-night font-bold text-xl mb-1">{document.name}</div>
-                    <div className="text-gray-500 text-sm">{document.documentType}</div>
-                  </div>
-                  <div className="space-y-3">
-                    {[...Array(18)].map((_, i) => (
-                      <div key={i} className={`h-3 rounded-full bg-gray-200 ${i % 4 === 0 ? 'w-full' : i % 3 === 0 ? 'w-4/5' : i % 2 === 0 ? 'w-3/4' : 'w-11/12'}`} />
-                    ))}
-                    <div className="mt-6 p-4 bg-sky/5 border border-sky/20 rounded">
-                      <div className="h-3 w-1/2 bg-sky/30 rounded mb-2" />
-                      {[...Array(4)].map((_, i) => <div key={i} className="h-2.5 bg-gray-200 rounded mb-1.5" />)}
-                    </div>
-                    {[...Array(12)].map((_, i) => (
-                      <div key={`b${i}`} className={`h-3 rounded-full bg-gray-200 ${i % 3 === 0 ? 'w-full' : i % 2 === 0 ? 'w-4/5' : 'w-11/12'}`} />
-                    ))}
-                  </div>
-                </div>
-                {!currentVer && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-white/90 rounded-sm">
-                    <div className="text-center text-gray-400">
-                      <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                      <p className="text-sm font-medium">No rendition available</p>
-                    </div>
-                  </div>
-                )}
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <div className="writing-vertical-rl text-white/30 text-xs tracking-widest uppercase font-semibold mt-8 rotate-180">
+                Rendition Viewer
               </div>
             </div>
+          ) : (
+            <>
+              {/* Viewer toolbar */}
+              <div className="flex items-center justify-between px-4 py-2 bg-[#16162a] border-b border-white/10 flex-shrink-0">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setIsRenditionExpanded(false)}
+                    className="p-1.5 rounded text-white/60 hover:text-white hover:bg-white/10 transition-colors mr-2"
+                    title="Collapse Rendition"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setZoom(z => Math.max(25, z - 10))}
+                    className="p-1.5 rounded text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                    title="Zoom Out"
+                  ><ZoomOut className="w-4 h-4" /></button>
+                  <span className="text-xs text-white/50 font-mono w-10 text-center">{zoom}%</span>
+                  <button
+                    onClick={() => setZoom(z => Math.min(300, z + 10))}
+                    className="p-1.5 rounded text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                    title="Zoom In"
+                  ><ZoomIn className="w-4 h-4" /></button>
+                  <div className="w-px h-4 bg-white/10 mx-1" />
+                  <button
+                    onClick={() => setZoom(100)}
+                    className="p-1.5 rounded text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                    title="Fit to Page"
+                  ><Maximize2 className="w-4 h-4" /></button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-white/30 font-medium uppercase tracking-wider">
+                    {currentVer?.fileType?.toUpperCase() || 'PDF'} · v{document.currentVersion}
+                  </span>
+                  <span className="text-[10px] text-sky/60 bg-sky/10 px-1.5 py-0.5 rounded font-bold">
+                    Drag to annotate
+                  </span>
+                </div>
+              </div>
 
-            {/* Drag selection rectangle */}
-            {isDragging && dragRect && dragRect.w > 2 && dragRect.h > 2 && (
-              <div
-                className="absolute border-2 border-sky bg-sky/10 pointer-events-none rounded-sm"
-                style={{ left: dragRect.x, top: dragRect.y, width: dragRect.w, height: dragRect.h }}
-              />
-            )}
-            {/* Show selection after release */}
-            {!isDragging && dragRect && selectionPopup && (
-              <div
-                className="absolute border-2 border-sky/60 bg-sky/5 pointer-events-none rounded-sm"
-                style={{ left: dragRect.x, top: dragRect.y, width: dragRect.w, height: dragRect.h }}
-              />
+              {/* Canvas + Annotations Panel */}
+          <div className="flex-1 flex flex-row overflow-hidden">
+            {/* Canvas area — drag-to-select */}
+            <div
+              ref={renditionRef}
+              className="flex-1 overflow-auto relative select-none"
+              style={{ cursor: isDragging ? 'crosshair' : 'default' }}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={() => { if (isDragging) { setIsDragging(false); setDragRect(null); } }}
+            >
+              {/* Document page mock — scaled by zoom */}
+              <div className="min-h-full min-w-full flex items-start justify-center p-6">
+                <div
+                  className="bg-white shadow-2xl rounded-sm relative"
+                  style={{
+                    width: `${(zoom / 100) * 595}px`,
+                    minHeight: `${(zoom / 100) * 842}px`,
+                    transformOrigin: 'top center',
+                  }}
+                >
+                  {/* Simulated document content */}
+                  <div className="p-8" style={{ fontSize: `${zoom / 100 * 12}px` }}>
+                    <div className="border-b-2 border-sky/30 pb-4 mb-6">
+                      <div className="text-night font-bold text-xl mb-1">{document.name}</div>
+                      <div className="text-gray-500 text-sm">{document.documentType}</div>
+                    </div>
+                    <div className="space-y-3">
+                      {[...Array(18)].map((_, i) => (
+                        <div key={i} className={`h-3 rounded-full bg-gray-200 ${i % 4 === 0 ? 'w-full' : i % 3 === 0 ? 'w-4/5' : i % 2 === 0 ? 'w-3/4' : 'w-11/12'}`} />
+                      ))}
+                      <div className="mt-6 p-4 bg-sky/5 border border-sky/20 rounded">
+                        <div className="h-3 w-1/2 bg-sky/30 rounded mb-2" />
+                        {[...Array(4)].map((_, i) => <div key={i} className="h-2.5 bg-gray-200 rounded mb-1.5" />)}
+                      </div>
+                      {[...Array(12)].map((_, i) => (
+                        <div key={`b${i}`} className={`h-3 rounded-full bg-gray-200 ${i % 3 === 0 ? 'w-full' : i % 2 === 0 ? 'w-4/5' : 'w-11/12'}`} />
+                      ))}
+                    </div>
+                  </div>
+                  {!currentVer && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-white/90 rounded-sm">
+                      <div className="text-center text-gray-400">
+                        <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                        <p className="text-sm font-medium">No rendition available</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Persistent annotation rects — hover highlights */}
+              {annotations.map(ann => (
+                <div
+                  key={`rect-${ann.id}`}
+                  className="absolute pointer-events-none rounded-sm transition-all duration-150"
+                  style={{
+                    left: ann.rect.x,
+                    top: ann.rect.y,
+                    width: ann.rect.w,
+                    height: ann.rect.h,
+                    border: hoveredAnnotationId === ann.id
+                      ? '2px solid #0ea5e9'
+                      : ann.type === 'link' ? '2px solid #3b82f6' : ann.type === 'comment' ? '2px solid #f59e0b' : '2px solid #8b5cf6',
+                    background: hoveredAnnotationId === ann.id
+                      ? 'rgba(14,165,233,0.18)'
+                      : ann.type === 'link' ? 'rgba(59,130,246,0.07)' : ann.type === 'comment' ? 'rgba(245,158,11,0.07)' : 'rgba(139,92,246,0.07)',
+                    boxShadow: hoveredAnnotationId === ann.id ? '0 0 0 4px rgba(14,165,233,0.2)' : 'none',
+                  }}
+                />
+              ))}
+
+              {/* Active drag selection rectangle */}
+              {isDragging && dragRect && dragRect.w > 2 && dragRect.h > 2 && (
+                <div
+                  className="absolute border-2 border-sky bg-sky/10 pointer-events-none rounded-sm"
+                  style={{ left: dragRect.x, top: dragRect.y, width: dragRect.w, height: dragRect.h }}
+                />
+              )}
+              {/* Show selection after release */}
+              {!isDragging && dragRect && selectionPopup && (
+                <div
+                  className="absolute border-2 border-sky/60 bg-sky/5 pointer-events-none rounded-sm"
+                  style={{ left: dragRect.x, top: dragRect.y, width: dragRect.w, height: dragRect.h }}
+                />
+              )}
+            </div>
+
+            {/* ── Annotations Panel ────────────────────────────────────── */}
+            {annotations.length > 0 && (
+              <div className="w-60 flex-shrink-0 border-l border-white/10 bg-[#12121e] flex flex-col overflow-hidden">
+                <div className="px-3 py-2.5 border-b border-white/10 flex items-center justify-between flex-shrink-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Annotations</span>
+                  <span className="text-[10px] bg-white/10 text-white/50 px-1.5 py-0.5 rounded-full font-bold">{annotations.length}</span>
+                </div>
+                <div className="flex-1 overflow-y-auto p-2 space-y-2 no-scrollbar">
+                  {annotations.map(ann => (
+                    <div
+                      key={ann.id}
+                      className={`group rounded-xl p-3 border transition-all duration-150 cursor-default ${
+                        hoveredAnnotationId === ann.id
+                          ? 'border-sky/50 bg-sky/10'
+                          : ann.type === 'link'
+                            ? 'border-blue-500/20 bg-blue-500/5 hover:border-blue-400/40'
+                            : ann.type === 'comment'
+                              ? 'border-amber-400/20 bg-amber-400/5 hover:border-amber-300/40'
+                              : 'border-purple-400/20 bg-purple-400/5 hover:border-purple-300/40'
+                      }`}
+                      onMouseEnter={() => setHoveredAnnotationId(ann.id)}
+                      onMouseLeave={() => setHoveredAnnotationId(null)}
+                    >
+                      <div className="flex items-start justify-between gap-1 mb-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm">
+                            {ann.type === 'link' ? '🔗' : ann.type === 'comment' ? '💬' : '⚓'}
+                          </span>
+                          <span className={`text-[9px] font-bold uppercase tracking-wider ${
+                            ann.type === 'link' ? 'text-blue-400' : ann.type === 'comment' ? 'text-amber-400' : 'text-purple-400'
+                          }`}>
+                            {ann.type === 'link' ? 'Doc Link' : ann.type === 'comment' ? 'Comment' : 'Anchor'}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => setAnnotations(prev => prev.filter(a => a.id !== ann.id))}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-white/30 hover:text-red-400 p-0.5 rounded flex-shrink-0"
+                          title="Remove annotation"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                      {ann.type === 'link' ? (
+                        <div className="space-y-1">
+                          {(allDocuments || []).filter(d => ann.linkedDocIds?.includes(d.id)).map(d => (
+                            <a
+                              key={d.id}
+                              href="#"
+                              onClick={e => { e.preventDefault(); onDocumentSelect?.(d); }}
+                              className="block text-xs text-blue-400 hover:text-blue-300 underline underline-offset-2 truncate transition-colors leading-relaxed"
+                              title={d.name}
+                            >
+                              {d.name}
+                            </a>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-white/60 leading-relaxed line-clamp-4">{ann.label}</p>
+                      )}
+                      <div className="mt-1.5 flex items-center gap-1 text-[9px] text-white/20 font-mono">
+                        <span>{Math.round(ann.rect.w)}×{Math.round(ann.rect.h)}px</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -1173,10 +1305,13 @@ export default function DocumentWorkspace({
                   if (!commentText.trim()) return;
                   const updated: DocumentRecord = { ...document, comments: [...document.comments, { id: `c-${Date.now()}`, author: 'Sarah Johnson', content: commentText.trim(), timestamp: new Date().toISOString() }], modifiedDate: new Date().toISOString() };
                   onDocumentChange(updated);
+                  if (dragRect) {
+                    setAnnotations(prev => [...prev, { id: `ann-${Date.now()}`, type: 'comment' as const, label: commentText.trim(), rect: dragRect }]);
+                  }
                   setCommentText('');
                   setCommentModalOpen(false);
                   setDragRect(null);
-                  showToast('Comment created on selection');
+                  showToast('Comment added to annotations panel');
                 }}
                 className="flex-1 px-4 py-2 text-sm text-white bg-sky rounded-xl hover:bg-dark transition-colors font-semibold disabled:opacity-40"
               >Post Comment</button>
@@ -1185,41 +1320,108 @@ export default function DocumentWorkspace({
         </div>
       )}
 
-      {/* ── Create Document Link Modal ───────────────────────── */}
+      {/* ── Document Library Picker Modal ─────────────────────── */}
       {linkModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setLinkModalOpen(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden z-10">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-pebble">
-              <div className="flex items-center gap-2">
-                <Link2 className="w-5 h-5 text-sky" />
-                <h3 className="text-sm font-bold text-night">Create Document Link</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => { setLinkModalOpen(false); setSelectedDocIds([]); setDocLibSearch(''); }} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden z-10 flex flex-col max-h-[85vh]">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-pebble flex-shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 bg-sky/10 rounded-lg flex items-center justify-center">
+                  <Link2 className="w-4 h-4 text-sky" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-night">Link Documents</h3>
+                  <p className="text-xs text-gray-400">Select documents from the library to link to this region</p>
+                </div>
               </div>
-              <button onClick={() => setLinkModalOpen(false)} className="text-gray-400 hover:text-night"><X className="w-4 h-4" /></button>
+              <button onClick={() => { setLinkModalOpen(false); setSelectedDocIds([]); setDocLibSearch(''); }} className="text-gray-400 hover:text-night p-1 rounded-lg hover:bg-earth transition-colors">
+                <X className="w-4 h-4" />
+              </button>
             </div>
-            <div className="px-6 py-5 space-y-4">
-              <div>
-                <label className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1 block">Target Document / URL</label>
+            {/* Search bar */}
+            <div className="px-6 py-3 border-b border-pebble bg-earth/40 flex-shrink-0">
+              <div className="relative">
                 <input
-                  value={linkTarget}
-                  onChange={e => setLinkTarget(e.target.value)}
-                  placeholder="Enter document ID or URL…"
-                  className="w-full px-3 py-2 border border-pebble rounded-xl text-sm focus:ring-2 focus:ring-sky outline-none"
+                  value={docLibSearch}
+                  onChange={e => setDocLibSearch(e.target.value)}
+                  placeholder="Search by document name…"
+                  className="w-full pl-9 pr-3 py-2 border border-pebble rounded-xl text-sm focus:ring-2 focus:ring-sky outline-none bg-white"
                   autoFocus
                 />
-              </div>
-              <div className="text-xs text-gray-400 bg-earth rounded-lg px-3 py-2 flex items-center gap-2">
-                <Link2 className="w-3 h-3 flex-shrink-0" />
-                Link will be attached to the selected region
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
               </div>
             </div>
-            <div className="flex gap-3 px-6 py-4 border-t border-pebble bg-gray-50">
-              <button onClick={() => setLinkModalOpen(false)} className="flex-1 px-4 py-2 text-sm text-gray-600 border border-pebble rounded-xl hover:bg-earth transition-colors">Cancel</button>
+            {/* Selection count badge */}
+            {selectedDocIds.length > 0 && (
+              <div className="px-6 py-2 bg-sky/5 border-b border-sky/10 flex-shrink-0">
+                <span className="text-xs text-sky font-semibold">{selectedDocIds.length} document{selectedDocIds.length > 1 ? 's' : ''} selected</span>
+              </div>
+            )}
+            {/* Document table */}
+            <div className="flex-1 overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-earth border-b border-pebble z-10">
+                  <tr>
+                    <th className="px-4 py-3 w-10" />
+                    <th className="px-4 py-3 text-left text-xs text-gray-500 uppercase tracking-wide font-semibold">Document Name</th>
+                    <th className="px-4 py-3 text-left text-xs text-gray-500 uppercase tracking-wide font-semibold">Type</th>
+                    <th className="px-4 py-3 text-left text-xs text-gray-500 uppercase tracking-wide font-semibold">SubType</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(allDocuments || []).filter(d => ['Formulation Document', 'Substantiation Evidence', 'Project Document'].includes(d.documentType) && d.name.toLowerCase().includes(docLibSearch.toLowerCase())).map(d => (
+                    <tr
+                      key={d.id}
+                      onClick={() => setSelectedDocIds(prev => prev.includes(d.id) ? prev.filter(x => x !== d.id) : [...prev, d.id])}
+                      className={`border-b border-pebble/50 hover:bg-sky/5 cursor-pointer transition-colors ${
+                        selectedDocIds.includes(d.id) ? 'bg-sky/8 border-l-2 border-l-sky' : ''
+                      }`}
+                    >
+                      <td className="px-4 py-3">
+                        <input type="checkbox" readOnly checked={selectedDocIds.includes(d.id)} className="accent-sky w-4 h-4 cursor-pointer" />
+                      </td>
+                      <td className="px-4 py-3 font-medium text-night text-sm">{d.name}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          d.documentType === 'Formulation Document' ? 'bg-purple-50 text-purple-700'
+                          : d.documentType === 'Substantiation Evidence' ? 'bg-sky/10 text-sky'
+                          : 'bg-green-50 text-green-700'
+                        }`}>{d.documentType}</span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-500">{d.subtype || d.category || '—'}</td>
+                    </tr>
+                  ))}
+                  {(allDocuments || []).filter(d => ['Formulation Document', 'Substantiation Evidence', 'Project Document'].includes(d.documentType) && d.name.toLowerCase().includes(docLibSearch.toLowerCase())).length === 0 && (
+                    <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-400">No documents match your search</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {/* Footer */}
+            <div className="flex gap-3 px-6 py-4 border-t border-pebble bg-gray-50 flex-shrink-0">
               <button
-                disabled={!linkTarget.trim()}
-                onClick={() => { setLinkModalOpen(false); setLinkTarget(''); setDragRect(null); showToast('Document link created'); }}
+                onClick={() => { setLinkModalOpen(false); setSelectedDocIds([]); setDocLibSearch(''); }}
+                className="flex-1 px-4 py-2 text-sm text-gray-600 border border-pebble rounded-xl hover:bg-earth transition-colors"
+              >Cancel</button>
+              <button
+                disabled={selectedDocIds.length === 0}
+                onClick={() => {
+                  if (selectedDocIds.length === 0 || !dragRect) return;
+                  const linkedDocs = (allDocuments || []).filter(d => selectedDocIds.includes(d.id));
+                  const label = linkedDocs.map(d => d.name).join(', ');
+                  setAnnotations(prev => [...prev, { id: `ann-${Date.now()}`, type: 'link' as const, label, rect: dragRect, linkedDocIds: [...selectedDocIds] }]);
+                  setLinkModalOpen(false);
+                  setSelectedDocIds([]);
+                  setDocLibSearch('');
+                  setDragRect(null);
+                  showToast(`${linkedDocs.length} document${linkedDocs.length > 1 ? 's' : ''} linked to region`);
+                }}
                 className="flex-1 px-4 py-2 text-sm text-white bg-sky rounded-xl hover:bg-dark transition-colors font-semibold disabled:opacity-40"
-              >Create Link</button>
+              >
+                {selectedDocIds.length > 0 ? `Link ${selectedDocIds.length} Document${selectedDocIds.length > 1 ? 's' : ''}` : 'Link Documents'}
+              </button>
             </div>
           </div>
         </div>
@@ -1257,7 +1459,15 @@ export default function DocumentWorkspace({
               <button onClick={() => setAnchorModalOpen(false)} className="flex-1 px-4 py-2 text-sm text-gray-600 border border-pebble rounded-xl hover:bg-earth transition-colors">Cancel</button>
               <button
                 disabled={!anchorName.trim()}
-                onClick={() => { setAnchorModalOpen(false); setAnchorName(''); setDragRect(null); showToast(`Anchor "${anchorName}" created`); }}
+                onClick={() => {
+                  if (dragRect) {
+                    setAnnotations(prev => [...prev, { id: `ann-${Date.now()}`, type: 'anchor' as const, label: anchorName.trim(), rect: dragRect }]);
+                  }
+                  setAnchorModalOpen(false);
+                  setAnchorName('');
+                  setDragRect(null);
+                  showToast(`Anchor "${anchorName}" added to annotations panel`);
+                }}
                 className="flex-1 px-4 py-2 text-sm text-white bg-sky rounded-xl hover:bg-dark transition-colors font-semibold disabled:opacity-40"
               >Create Anchor</button>
             </div>
