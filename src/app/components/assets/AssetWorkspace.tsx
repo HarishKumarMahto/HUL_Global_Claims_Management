@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect, Fragment } from 'react';
+import React, { useState, useRef, useEffect, Fragment, useCallback } from 'react';
 import { Asset, AssetLifecycle, AssetRiskRecord, AssetComment, AssetApprovalWorkflow, ASSET_LIFECYCLE_COLORS } from '../../types';
-import { ChevronLeft, ChevronRight, Users, Star, ChevronDown, Plus, Upload, Link2, Shield, History, CheckCircle, CheckCircle2, FileText, Image, Film, Music, Sparkles, X, Download, ArrowRight, MessageSquare, Send, FolderKanban, ExternalLink, Zap, ArrowLeft, Globe, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Users, Star, ChevronDown, Plus, Upload, Link2, Shield, History, CheckCircle, CheckCircle2, FileText, Image, Film, Music, Sparkles, X, Download, ArrowRight, MessageSquare, Send, FolderKanban, ExternalLink, Zap, ArrowLeft, Globe, Search, ZoomIn, ZoomOut, Maximize2, MessageCircle, Anchor } from 'lucide-react';
 import DownloadAssetModal from './DownloadAssetModal';
 import SPARCiPanel from './SPARCiPanel';
 import LifecycleTransitionModal from './LifecycleTransitionModal';
@@ -25,10 +25,10 @@ const ORDERED_ASSET_SECTIONS = [
   { id: 'Support Strategy & Substantiation', label: 'Support Strategy & Substantiation' },
   { id: 'Final Risk Level Summary', label: 'Final Risk Level Summary' },
   { id: 'Risk Level Assessments', label: 'Risk Level Assessments' },
+  { id: 'Approval Workflow', label: 'Approval Workflow' },
   { id: 'Linked Claims', label: 'Linked Claims' },
   { id: 'Related Projects', label: 'Related Projects' },
   { id: 'Related Products', label: 'Related Products' },
-  { id: 'Approval Workflow', label: 'Approval Workflow' },
 ];
 
 export default function AssetWorkspace({
@@ -61,6 +61,30 @@ export default function AssetWorkspace({
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [seModalOpen, setSeModalOpen] = useState(false);
   const [localSEDocs, setLocalSEDocs] = useState<any[]>([]);
+
+  // Rendition viewer state
+  const [zoom, setZoom] = useState(100);
+  const renditionRef = useRef<HTMLDivElement>(null);
+
+  // Drag-select state
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [dragRect, setDragRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const [selectionPopup, setSelectionPopup] = useState<{ x: number; y: number } | null>(null);
+
+  // Action modals
+  const [commentModalOpen, setCommentModalOpen] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [linkModalOpen, setLinkModalOpen] = useState(false);
+  const [linkTarget, setLinkTarget] = useState('');
+  const [anchorModalOpen, setAnchorModalOpen] = useState(false);
+  const [anchorName, setAnchorName] = useState('');
+  const [toastMsg, setToastMsg] = useState('');
+
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(''), 2500);
+  };
 
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const isNavigatingRef = useRef(false);
@@ -246,81 +270,38 @@ export default function AssetWorkspace({
     return `${Math.floor(diffDays / 365)}y ago`;
   };
 
-  const renderRenditionPanel = () => {
-    return (
-      <div className="space-y-4">
-        <h4 className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Rendition</h4>
-        {currentVersion && !asset.isPlaceholder ? (
-          <div className="border border-pebble rounded-xl overflow-hidden">
-            <div className="aspect-video bg-earth flex items-center justify-center">
-              {getFileIcon()}
-              <span className="ml-2 text-sm text-gray-500">Asset Rendition Preview</span>
-            </div>
-            <div className="p-3 bg-white border-t border-pebble">
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                <span>{currentVersion.fileType.toUpperCase()} • {currentVersion.fileSize}</span>
-                <span>Version {asset.currentVersionNumber}</span>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <button
-            onClick={() => {
-              const updated = {
-                ...asset,
-                isPlaceholder: false,
-                currentVersionNumber: 1,
-                versions: [
-                  {
-                    versionNumber: 1,
-                    fileType: 'pdf',
-                    fileSize: '2.4 MB',
-                    uploadDate: new Date().toISOString(),
-                    uploadedBy: 'Current User',
-                    riskRecords: [],
-                    finalRisk: {
-                      finalRiskLevel: null,
-                      marketingRiskSignoff: false,
-                    }
-                  }
-                ]
-              } as Asset;
-              onAssetSave(updated);
-            }}
-            className="w-full border-2 border-dashed border-pebble rounded-xl p-12 text-center hover:bg-earth transition-colors cursor-pointer"
-          >
-            <Upload className="w-10 h-10 text-gray-400 mx-auto mb-2" />
-            <p className="text-sm text-gray-600 font-medium mb-1">Upload Asset file</p>
-            <p className="text-xs text-gray-400">Click to upload your asset rendition</p>
-          </button>
-        )}
+  // Drag handlers on rendition canvas
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!renditionRef.current) return;
+    setSelectionPopup(null);
+    setDragRect(null);
+    const rect = renditionRef.current.getBoundingClientRect();
+    setDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    setIsDragging(true);
+  }, []);
 
-        {/* Anchors */}
-        <div>
-          <h4 className="text-sm text-night font-medium mb-3">Anchors ({asset.anchors.length})</h4>
-          {asset.anchors.length > 0 ? (
-            <div className="space-y-2">
-              {asset.anchors.map(anchor => (
-                <div key={anchor.id} className="p-3 bg-earth rounded-lg border border-pebble">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-sky font-medium">Anchor #{anchor.anchorNumber}</span>
-                    <span className="text-xs text-gray-400">({anchor.x?.toFixed(0) || 0}, {anchor.y?.toFixed(0) || 0})</span>
-                  </div>
-                  {anchor.comments?.map(comment => (
-                    <div key={comment.id} className="text-sm text-gray-700 mb-1">
-                      <span className="font-medium">{comment.author}:</span> {comment.content}
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-400">No anchors yet.</p>
-          )}
-        </div>
-      </div>
-    );
-  };
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDragging || !renditionRef.current) return;
+    const rect = renditionRef.current.getBoundingClientRect();
+    const cx = e.clientX - rect.left;
+    const cy = e.clientY - rect.top;
+    setDragRect({
+      x: Math.min(dragStart.x, cx),
+      y: Math.min(dragStart.y, cy),
+      w: Math.abs(cx - dragStart.x),
+      h: Math.abs(cy - dragStart.y),
+    });
+  }, [isDragging, dragStart]);
+
+  const handleMouseUp = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    if (dragRect && dragRect.w > 10 && dragRect.h > 10) {
+      setSelectionPopup({ x: e.clientX, y: e.clientY });
+    } else {
+      setDragRect(null);
+    }
+  }, [isDragging, dragRect]);
 
   const renderSectionContent = (id: string) => {
     switch (id) {
@@ -1066,17 +1047,21 @@ export default function AssetWorkspace({
     }
     const headerTitle = id === 'Asset Details' ? 'Asset Details' : id;
     return (
-      <div className="bg-white rounded-xl border border-pebble p-6">
-        <h3 className="text-lg text-night mb-5 flex items-center gap-2" style={{ fontWeight: 600 }}>
-          {headerTitle}
-        </h3>
-        {renderSectionContent(id)}
+      <div className="bg-transparent h-full flex flex-col">
+        <div className="bg-white px-6 py-4 border-b border-pebble flex-shrink-0 w-full">
+          <h3 className="text-lg text-night flex items-center gap-2" style={{ fontWeight: 600 }}>
+            {headerTitle}
+          </h3>
+        </div>
+        <div className="p-6">
+          {renderSectionContent(id)}
+        </div>
       </div>
     );
   };
 
   return (
-    <div className="p-6 flex flex-col h-full overflow-hidden relative bg-transparent no-scrollbar">
+    <div className="flex flex-col h-full overflow-hidden relative bg-transparent no-scrollbar">
       {/* Toast */}
       {showCollabToast && (
         <div className="absolute top-4 right-4 z-50 bg-night text-white px-4 py-2.5 rounded-lg shadow-xl text-sm flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
@@ -1270,50 +1255,328 @@ export default function AssetWorkspace({
         </div>
       </div>
 
-      {/* Content */}
+      {/* ── Main Body ────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-hidden flex flex-col bg-transparent">
-        <div 
-          className="flex-1 overflow-y-auto bg-transparent scroll-smooth no-scrollbar p-6 relative"
+        <div
+          className="flex-1 overflow-y-auto bg-transparent scroll-smooth no-scrollbar relative snap-y snap-proximity"
           onScroll={handleScroll}
         >
-          <div className="flex gap-8 items-start relative w-full">
-            {/* LEFT COLUMN: Scrollable Sections */}
-            <div className="w-[40%] flex-shrink-0 space-y-8 min-w-0">
-              {ORDERED_ASSET_SECTIONS.slice(0, 4).map((item) => {
+          <div className="flex flex-col md:flex-row gap-0 items-start relative w-full mb-0">
+            {/* ── LEFT COLUMN: Sections up to Approval Workflow ── */}
+            <div className="flex-1 md:max-w-[45%] lg:max-w-[42%] flex-shrink-0 min-w-0">
+              {ORDERED_ASSET_SECTIONS.slice(0, 5).map((item) => {
                 return (
                   <div
                     key={item.id}
                     ref={(el) => { sectionRefs.current[item.id] = el; }}
-                    className="w-full flex-shrink-0"
+                    className="w-full h-[calc(100vh-73px)] flex-shrink-0 snap-start snap-always border-b-2 border-pebble/30 flex flex-col overflow-hidden bg-white/40"
                   >
-                    {renderWrappedSection(item.id)}
+                    <div className="flex-1 overflow-y-auto no-scrollbar">
+                      {renderWrappedSection(item.id)}
+                    </div>
                   </div>
                 );
               })}
             </div>
 
-            {/* RIGHT COLUMN: Sticky Rendition */}
-            <div className="flex-1 flex-shrink-0 sticky top-0 bg-white rounded-xl border border-pebble p-6 shadow-sm overflow-y-auto max-h-[calc(100vh-160px)] no-scrollbar hidden md:block">
-              {renderRenditionPanel()}
+            {/* ── RIGHT COLUMN: Sticky Rendition Viewer ── */}
+            <div className="w-full md:w-[55%] lg:w-[58%] xl:w-[60%] flex-shrink-0 sticky top-0 border-l border-pebble bg-[#1e1e2e] flex flex-col overflow-hidden h-[calc(100vh-73px)] hidden md:flex">
+              {/* Viewer toolbar */}
+              <div className="flex items-center justify-between px-4 py-2 bg-[#16162a] border-b border-white/10 flex-shrink-0">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setZoom(z => Math.max(25, z - 10))}
+                    className="p-1.5 rounded text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                    title="Zoom Out"
+                  ><ZoomOut className="w-4 h-4" /></button>
+                  <span className="text-xs text-white/50 font-mono w-10 text-center">{zoom}%</span>
+                  <button
+                    onClick={() => setZoom(z => Math.min(300, z + 10))}
+                    className="p-1.5 rounded text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                    title="Zoom In"
+                  ><ZoomIn className="w-4 h-4" /></button>
+                  <div className="w-px h-4 bg-white/10 mx-1" />
+                  <button
+                    onClick={() => setZoom(100)}
+                    className="p-1.5 rounded text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                    title="Fit to Page"
+                  ><Maximize2 className="w-4 h-4" /></button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-white/30 font-medium uppercase tracking-wider">
+                    {currentVersion?.fileType?.toUpperCase() || 'PDF'} · v{asset.currentVersionNumber}
+                  </span>
+                  <span className="text-[10px] text-sky/60 bg-sky/10 px-1.5 py-0.5 rounded font-bold">
+                    Drag to annotate
+                  </span>
+                </div>
+              </div>
+
+              {/* Canvas area — drag-to-select */}
+              <div
+                ref={renditionRef}
+                className="flex-1 overflow-auto relative select-none"
+                style={{ cursor: isDragging ? 'crosshair' : 'default' }}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={() => { if (isDragging) { setIsDragging(false); setDragRect(null); } }}
+              >
+                {/* Document page mock — scaled by zoom */}
+                <div className="min-h-full min-w-full flex items-start justify-center p-6">
+                  <div
+                    className="bg-white shadow-2xl rounded-sm relative"
+                    style={{
+                      width: `${(zoom / 100) * 595}px`,
+                      minHeight: `${(zoom / 100) * 842}px`,
+                      transformOrigin: 'top center',
+                    }}
+                  >
+                    {/* Simulated document content */}
+                    <div className="p-8" style={{ fontSize: `${zoom / 100 * 12}px` }}>
+                      <div className="border-b-2 border-sky/30 pb-4 mb-6">
+                        <div className="text-night font-bold text-xl mb-1">{asset.name}</div>
+                        <div className="text-gray-500 text-sm">{asset.category}</div>
+                      </div>
+                      <div className="space-y-3">
+                        {[...Array(18)].map((_, i) => (
+                          <div key={i} className={`h-3 rounded-full bg-gray-200 ${i % 4 === 0 ? 'w-full' : i % 3 === 0 ? 'w-4/5' : i % 2 === 0 ? 'w-3/4' : 'w-11/12'}`} />
+                        ))}
+                        <div className="mt-6 p-4 bg-sky/5 border border-sky/20 rounded">
+                          <div className="h-3 w-1/2 bg-sky/30 rounded mb-2" />
+                          {[...Array(4)].map((_, i) => <div key={i} className="h-2.5 bg-gray-200 rounded mb-1.5" />)}
+                        </div>
+                        {[...Array(12)].map((_, i) => (
+                          <div key={`b${i}`} className={`h-3 rounded-full bg-gray-200 ${i % 3 === 0 ? 'w-full' : i % 2 === 0 ? 'w-4/5' : 'w-11/12'}`} />
+                        ))}
+                      </div>
+                    </div>
+                    {!currentVersion && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-white/90 rounded-sm">
+                        <div className="text-center text-gray-400">
+                          <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                          <p className="text-sm font-medium">No rendition available</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Drag selection rectangle */}
+                {isDragging && dragRect && dragRect.w > 2 && dragRect.h > 2 && (
+                  <div
+                    className="absolute border-2 border-sky bg-sky/10 pointer-events-none rounded-sm"
+                    style={{ left: dragRect.x, top: dragRect.y, width: dragRect.w, height: dragRect.h }}
+                  />
+                )}
+                {/* Show selection after release */}
+                {!isDragging && dragRect && selectionPopup && (
+                  <div
+                    className="absolute border-2 border-sky/60 bg-sky/5 pointer-events-none rounded-sm"
+                    style={{ left: dragRect.x, top: dragRect.y, width: dragRect.w, height: dragRect.h }}
+                  />
+                )}
+              </div>
             </div>
           </div>
 
-          {/* FULL WIDTH SECTIONS */}
-          <div className="space-y-8 mt-8 w-full">
-            {ORDERED_ASSET_SECTIONS.slice(4).map((item) => {
+          {/* ── FULL WIDTH SECTIONS (Below Approval Workflow) ── */}
+          <div className="w-full">
+            {ORDERED_ASSET_SECTIONS.slice(5).map((item) => {
               return (
                 <div
                   key={item.id}
                   ref={(el) => { sectionRefs.current[item.id] = el; }}
-                  className="w-full flex-shrink-0"
+                  className="w-full h-[calc(100vh-73px)] flex-shrink-0 snap-start snap-always border-b-2 border-pebble/30 flex flex-col overflow-hidden bg-white/40"
                 >
-                  {renderWrappedSection(item.id)}
+                  <div className="flex-1 overflow-y-auto no-scrollbar">
+                    {renderWrappedSection(item.id)}
+                  </div>
                 </div>
               );
             })}
           </div>
         </div>
       </div>
+
+      {/* ── Selection Context Popup ─────────────────────────────── */}
+      {selectionPopup && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => { setSelectionPopup(null); setDragRect(null); }} />
+          <div
+            className="fixed z-50 bg-white border border-pebble rounded-xl shadow-2xl overflow-hidden min-w-[200px]"
+            style={{ left: selectionPopup.x + 8, top: selectionPopup.y - 10 }}
+          >
+            <div className="px-3 py-2 bg-night/5 border-b border-pebble">
+              <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Selection Actions</span>
+            </div>
+            <button
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-night hover:bg-sky/5 transition-colors"
+              onClick={() => { setSelectionPopup(null); setCommentModalOpen(true); }}
+            >
+              <MessageCircle className="w-4 h-4 text-sky flex-shrink-0" />
+              Create Comment
+            </button>
+            <button
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-night hover:bg-sky/5 transition-colors"
+              onClick={() => { setSelectionPopup(null); setLinkModalOpen(true); }}
+            >
+              <Link2 className="w-4 h-4 text-sky flex-shrink-0" />
+              Create Document Link
+            </button>
+            <button
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-night hover:bg-sky/5 transition-colors"
+              onClick={() => { setSelectionPopup(null); setAnchorModalOpen(true); }}
+            >
+              <Anchor className="w-4 h-4 text-sky flex-shrink-0" />
+              Create Anchor
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* ── Create Comment Modal ──────────────────────────────── */}
+      {commentModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setCommentModalOpen(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden z-10">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-pebble">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="w-5 h-5 text-sky" />
+                <h3 className="text-sm font-bold text-night">Create Comment</h3>
+              </div>
+              <button onClick={() => setCommentModalOpen(false)} className="text-gray-400 hover:text-night"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <div>
+                <label className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1 block">Comment</label>
+                <textarea
+                  value={commentText}
+                  onChange={e => setCommentText(e.target.value)}
+                  rows={4}
+                  placeholder="Enter your comment on the selected area…"
+                  className="w-full px-3 py-2 border border-pebble rounded-xl text-sm focus:ring-2 focus:ring-sky outline-none resize-none"
+                  autoFocus
+                />
+              </div>
+              <div className="text-xs text-gray-400 bg-earth rounded-lg px-3 py-2 flex items-center gap-2">
+                <Anchor className="w-3 h-3 flex-shrink-0" />
+                Comment will be anchored to the selected region
+              </div>
+            </div>
+            <div className="flex gap-3 px-6 py-4 border-t border-pebble bg-gray-50">
+              <button onClick={() => setCommentModalOpen(false)} className="flex-1 px-4 py-2 text-sm text-gray-600 border border-pebble rounded-xl hover:bg-earth transition-colors">Cancel</button>
+              <button
+                disabled={!commentText.trim()}
+                onClick={() => {
+                  if (!commentText.trim()) return;
+                  const updated: Asset = { ...asset, assetLevelComments: [...asset.assetLevelComments, { id: `ac-${Date.now()}`, author: 'Current User', content: commentText.trim(), createdAt: new Date().toISOString(), mentions: [], isReadOnly: false }] };
+                  onAssetSave(updated);
+                  setCommentText('');
+                  setCommentModalOpen(false);
+                  setDragRect(null);
+                  showToast('Comment created on selection');
+                }}
+                className="flex-1 px-4 py-2 text-sm text-white bg-sky rounded-xl hover:bg-dark transition-colors font-semibold disabled:opacity-40"
+              >Post Comment</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Create Document Link Modal ───────────────────────── */}
+      {linkModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setLinkModalOpen(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden z-10">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-pebble">
+              <div className="flex items-center gap-2">
+                <Link2 className="w-5 h-5 text-sky" />
+                <h3 className="text-sm font-bold text-night">Create Document Link</h3>
+              </div>
+              <button onClick={() => setLinkModalOpen(false)} className="text-gray-400 hover:text-night"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <div>
+                <label className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1 block">Target Document / URL</label>
+                <input
+                  value={linkTarget}
+                  onChange={e => setLinkTarget(e.target.value)}
+                  placeholder="Enter document ID or URL…"
+                  className="w-full px-3 py-2 border border-pebble rounded-xl text-sm focus:ring-2 focus:ring-sky outline-none"
+                  autoFocus
+                />
+              </div>
+              <div className="text-xs text-gray-400 bg-earth rounded-lg px-3 py-2 flex items-center gap-2">
+                <Link2 className="w-3 h-3 flex-shrink-0" />
+                Link will be attached to the selected region
+              </div>
+            </div>
+            <div className="flex gap-3 px-6 py-4 border-t border-pebble bg-gray-50">
+              <button onClick={() => setLinkModalOpen(false)} className="flex-1 px-4 py-2 text-sm text-gray-600 border border-pebble rounded-xl hover:bg-earth transition-colors">Cancel</button>
+              <button
+                disabled={!linkTarget.trim()}
+                onClick={() => { setLinkModalOpen(false); setLinkTarget(''); setDragRect(null); showToast('Document link created'); }}
+                className="flex-1 px-4 py-2 text-sm text-white bg-sky rounded-xl hover:bg-dark transition-colors font-semibold disabled:opacity-40"
+              >Create Link</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Create Anchor Modal ──────────────────────────────── */}
+      {anchorModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setAnchorModalOpen(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden z-10">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-pebble">
+              <div className="flex items-center gap-2">
+                <Anchor className="w-5 h-5 text-sky" />
+                <h3 className="text-sm font-bold text-night">Create Anchor</h3>
+              </div>
+              <button onClick={() => setAnchorModalOpen(false)} className="text-gray-400 hover:text-night"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <div>
+                <label className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1 block">Anchor Name</label>
+                <input
+                  value={anchorName}
+                  onChange={e => setAnchorName(e.target.value)}
+                  placeholder="e.g. Section 3.1 – Key Claim"
+                  className="w-full px-3 py-2 border border-pebble rounded-xl text-sm focus:ring-2 focus:ring-sky outline-none"
+                  autoFocus
+                />
+              </div>
+              <div className="text-xs text-gray-400 bg-earth rounded-lg px-3 py-2 flex items-center gap-2">
+                <Anchor className="w-3 h-3 flex-shrink-0" />
+                Anchor marks this region for cross-document referencing
+              </div>
+            </div>
+            <div className="flex gap-3 px-6 py-4 border-t border-pebble bg-gray-50">
+              <button onClick={() => setAnchorModalOpen(false)} className="flex-1 px-4 py-2 text-sm text-gray-600 border border-pebble rounded-xl hover:bg-earth transition-colors">Cancel</button>
+              <button
+                disabled={!anchorName.trim()}
+                onClick={() => {
+                  const newAnchor = {
+                    id: `anc-${Date.now()}`,
+                    anchorNumber: asset.anchors.length + 1,
+                    x: dragRect?.x,
+                    y: dragRect?.y,
+                    comments: []
+                  };
+                  const updated: Asset = { ...asset, anchors: [...asset.anchors, newAnchor] };
+                  onAssetSave(updated);
+                  setAnchorModalOpen(false);
+                  setAnchorName('');
+                  setDragRect(null);
+                  showToast(`Anchor "${anchorName}" created`);
+                }}
+                className="flex-1 px-4 py-2 text-sm text-white bg-sky rounded-xl hover:bg-dark transition-colors font-semibold disabled:opacity-40"
+              >Create Anchor</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* F10 - Download Modal */}
       {showDownloadModal && (

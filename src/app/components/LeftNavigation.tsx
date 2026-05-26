@@ -178,6 +178,11 @@ const DOCUMENT_WORKSPACE_SECTIONS = [
     icon: <Package className="w-4 h-4" />,
   },
   {
+    id: "Related Projects",
+    label: "Related Projects",
+    icon: <Layers className="w-4 h-4" />,
+  },
+  {
     id: "Version History",
     label: "Version History",
     icon: <History className="w-4 h-4" />,
@@ -207,6 +212,11 @@ const ASSET_WORKSPACE_SECTIONS = [
     icon: <Shield className="w-4 h-4" />,
   },
   {
+    id: "Approval Workflow",
+    label: "Approval Workflow",
+    icon: <Users className="w-4 h-4" />,
+  },
+  {
     id: "Linked Claims",
     label: "Linked Claims",
     icon: <GitBranch className="w-4 h-4" />,
@@ -220,11 +230,6 @@ const ASSET_WORKSPACE_SECTIONS = [
     id: "Related Products",
     label: "Related Products",
     icon: <Package className="w-4 h-4" />,
-  },
-  {
-    id: "Approval Workflow",
-    label: "Approval Workflow",
-    icon: <Users className="w-4 h-4" />,
   },
 ];
 
@@ -461,6 +466,9 @@ export default function LeftNavigation({
   if (activeModule === "Documents" && isInDocumentWorkspace) {
     const isSubstantiationEvidence =
       selectedDocument?.documentType === "Substantiation Evidence";
+    const isProjectDocument =
+      selectedDocument?.documentType === "Project Document";
+
     const sectionsToRender = DOCUMENT_WORKSPACE_SECTIONS.filter((s) => {
       if (isSubstantiationEvidence) {
         return [
@@ -470,7 +478,15 @@ export default function LeftNavigation({
           "Related Products",
         ].includes(s.id);
       }
-      return true;
+      if (isProjectDocument) {
+        return [
+          "Document Details",
+          "Related Projects",
+          "Version History",
+          "Comments",
+        ].includes(s.id);
+      }
+      return !["Related Projects"].includes(s.id);
     }).map((s) => {
       if (isSubstantiationEvidence && s.id === "Document Details") {
         return { ...s, label: "Substantiation Evidence Details" };

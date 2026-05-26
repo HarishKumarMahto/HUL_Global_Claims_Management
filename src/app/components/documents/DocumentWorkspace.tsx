@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   ArrowLeft, Download, GitBranch, Trash2,
-  FileText, Package, Paperclip, History, MessageSquare,
+  FileText, Package, Paperclip, History, MessageSquare, Layers,
   Info, AlertTriangle, Clock, User, Archive, ChevronDown,
   ZoomIn, ZoomOut, Maximize2, MessageCircle, Link2, Anchor, X,
   ChevronLeft, ChevronRight
@@ -34,6 +34,7 @@ const BASE_SECTIONS = [
   { id: 'Related Claims',   icon: <FileText className="w-4 h-4" /> },
   { id: 'Related Assets',   icon: <Paperclip className="w-4 h-4" /> },
   { id: 'Related Products', icon: <Package className="w-4 h-4" /> },
+  { id: 'Related Projects', icon: <Layers className="w-4 h-4" /> },
   { id: 'Version History',  icon: <History className="w-4 h-4" /> },
   { id: 'Comments',         icon: <MessageSquare className="w-4 h-4" /> },
 ];
@@ -73,7 +74,9 @@ export default function DocumentWorkspace({
 
   const sections = document.documentType === 'Substantiation Evidence'
     ? BASE_SECTIONS.filter(s => ['Document Details', 'Related Claims', 'Related Assets', 'Related Products', 'Version History', 'Comments'].includes(s.id))
-    : BASE_SECTIONS;
+    : document.documentType === 'Project Document'
+    ? BASE_SECTIONS.filter(s => ['Document Details', 'Related Projects', 'Version History', 'Comments'].includes(s.id))
+    : BASE_SECTIONS.filter(s => s.id !== 'Related Projects');
 
   const currentIndex = allDocuments && document ? allDocuments.findIndex(doc => doc.id === document.id) : -1;
   const totalDocuments = allDocuments ? allDocuments.length : 0;
@@ -898,6 +901,18 @@ export default function DocumentWorkspace({
                       </table>
                     </div>
                   )}
+                </div>
+              );
+            }
+
+            if (sec.id === 'Related Projects') {
+              content = (
+                <div>
+                  <h3 className="text-base font-bold text-night border-b border-pebble pb-3 mb-4">Related Projects</h3>
+                  <div className="text-center py-12 text-gray-400">
+                    <Layers className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                    <p className="text-sm">No related projects</p>
+                  </div>
                 </div>
               );
             }
