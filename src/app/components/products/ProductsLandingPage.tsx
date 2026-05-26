@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Search,
   ChevronDown,
@@ -6,6 +6,7 @@ import {
   Star,
   Download,
   MoreHorizontal,
+  MoreVertical,
   Plus,
   X,
   ArrowUpDown,
@@ -20,7 +21,9 @@ import {
   Check,
   Eye,
   EyeOff,
-  GripVertical
+  GripVertical,
+  Settings,
+  RotateCcw
 } from 'lucide-react';
 import {
   ProductItem,
@@ -32,9 +35,11 @@ import AdvancedProductSearch, { AdvancedSearchTrigger } from './AdvancedProductS
 import ProductSavedViewsPanel, { ProductSavedView } from './ProductSavedViewsPanel';
 import { TablePagination, formatDate } from '../ui/tableUtils';
 import AuditLogModal, { AuditLogItem } from '../AuditLogModal';
+import { ColumnConfig, TableState } from '../../types';
 
 interface ProductsLandingPageProps {
   products: ProductItem[];
+  onProductsChange?: (products: ProductItem[]) => void;
   activeView: string;
   favorites: Set<string>;
   recentIds: string[];
@@ -57,17 +62,17 @@ interface ProductsLandingPageProps {
  
 type SortDir = 'asc' | 'desc' | null;
  
-const DEFAULT_COLUMNS = [
-  { id: 'name', label: 'Product Name', sortable: true, width: 280 },
-  { id: 'productId', label: 'Product ID', sortable: true, width: 140 },
-  { id: 'type', label: 'Product Type', sortable: true, width: 160 },
-  { id: 'lifecycleState', label: 'Lifecycle State', sortable: true, width: 170 },
-  { id: 'parentName', label: 'Parent Product', sortable: false, width: 180 },
-  { id: 'childCount', label: 'Children', sortable: true, width: 120 },
-  { id: 'claimsCount', label: 'Claims', sortable: true, width: 120 },
-  { id: 'projectsCount', label: 'Projects', sortable: true, width: 120 },
-  { id: 'createdBy', label: 'Created By', sortable: true, width: 160 },
-  { id: 'createdDate', label: 'Created Date', sortable: true, width: 150 }
+const DEFAULT_COLUMNS: ColumnConfig[] = [
+  { id: 'name', label: 'Product Name', sortable: true, width: 280, visible: true },
+  { id: 'productId', label: 'Product ID', sortable: true, width: 140, visible: true },
+  { id: 'type', label: 'Product Type', sortable: true, width: 160, visible: true },
+  { id: 'lifecycleState', label: 'Lifecycle State', sortable: true, width: 170, visible: true },
+  { id: 'parentName', label: 'Parent Product', sortable: false, width: 180, visible: true },
+  { id: 'childCount', label: 'Children', sortable: true, width: 120, visible: true },
+  { id: 'claimsCount', label: 'Claims', sortable: true, width: 120, visible: true },
+  { id: 'projectsCount', label: 'Projects', sortable: true, width: 120, visible: true },
+  { id: 'createdBy', label: 'Created By', sortable: true, width: 160, visible: true },
+  { id: 'createdDate', label: 'Created Date', sortable: true, width: 150, visible: true }
 ];
  
 const generateProductLogs = (product: ProductItem): AuditLogItem[] => {
@@ -111,8 +116,116 @@ const generateProductLogs = (product: ProductItem): AuditLogItem[] => {
   ];
 };
 
+// Column Config Panel Component for Products
+function ColumnConfigPanel({
+  columns,
+  onToggle,
+  onRestore,
+  onClose,
+  onExport,
+}: {
+  columns: ColumnConfig[];
+  onToggle: (id: string) => void;
+  onRestore: () => void;
+  onClose: () => void;
+  onExport: (format: "pdf" | "excel" | "word" | "csv") => void;
+}) {
+  const visibleCount = columns.filter(
+    (c) => c.visible !== false,
+  ).length;
+  return (
+    <>
+      <div className="fixed inset-0 z-20" onClick={onClose} />
+      <div className="absolute right-0 top-full mt-1 bg-white border border-pebble rounded-xl shadow-xl z-30 w-64 overflow-hidden">
+        <div className="px-4 py-3 border-b border-pebble flex items-center justify-between">
+          <span
+            className="text-sm text-night font-semibold"
+          >
+            Configure Columns
+          </span>
+          <span className="text-xs text-gray-400">
+            {visibleCount} of {columns.length} visible
+          </span>
+        </div>
+        <div className="p-2 max-h-56 overflow-y-auto">
+          {columns.map((col) => {
+            const isVisible = col.visible !== false;
+            return (
+              <button
+                key={col.id}
+                onClick={() => onToggle(col.id)}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-earth transition-colors text-left"
+              >
+                <div
+                  className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${isVisible ? "bg-sky border-sky" : "border-gray-300"}`}
+                >
+                  {isVisible && (
+                    <Check className="w-2.5 h-2.5 text-white" />
+                  )}
+                </div>
+                <GripVertical className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />
+                <span className="text-sm text-night truncate flex-1">
+                  {col.label}
+                </span>
+                <span className="ml-auto">
+                  {isVisible ? (
+                    <Eye className="w-3.5 h-3.5 text-gray-400" />
+                  ) : (
+                    <EyeOff className="w-3.5 h-3.5 text-gray-300" />
+                  )}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Export Options Panel Section */}
+        <div className="px-4 py-3 border-t border-pebble bg-earth/30 font-normal">
+          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+            Export Table
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { label: "Excel", format: "excel", color: "text-green-600 hover:bg-green-50 hover:border-green-300" },
+              { label: "CSV", format: "csv", color: "text-blue-600 hover:bg-blue-50 hover:border-blue-300" },
+              { label: "PDF", format: "pdf", color: "text-red-600 hover:bg-red-50 hover:border-red-300" },
+              { label: "Word", format: "word", color: "text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300" },
+            ].map((item) => (
+              <button
+                key={item.label}
+                onClick={() => onExport(item.format as any)}
+                className={`flex items-center justify-center gap-1.5 py-1.5 px-2 border border-pebble rounded-lg text-xs font-medium transition-colors bg-white ${item.color}`}
+              >
+                <Download className="w-3 h-3 flex-shrink-0" />
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="px-4 py-3 border-t border-pebble flex items-center gap-2 bg-white">
+          <button
+            onClick={onRestore}
+            className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-night transition-colors px-2 py-1 rounded hover:bg-earth"
+          >
+            <RotateCcw className="w-3 h-3" />
+            Restore
+          </button>
+          <button
+            onClick={onClose}
+            className="ml-auto px-3 py-1.5 bg-sky text-white rounded-lg text-xs hover:bg-dark transition-colors font-medium"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function ProductsLandingPage({
   products,
+  onProductsChange,
   activeView,
   favorites,
   recentIds,
@@ -138,6 +251,7 @@ export default function ProductsLandingPage({
   }, [externalSearchQuery]);
 
   const [colSearch, setColSearch] = useState<Record<string, string>>({});
+  const [colCheckboxes, setColCheckboxes] = useState<Record<string, string[]>>({});
   const [sortCol, setSortCol] = useState<string | null>(externalSortCol ?? 'lastModified');
   const [sortDir, setSortDir] = useState<SortDir>(externalSortDir ?? 'desc');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -147,6 +261,61 @@ export default function ProductsLandingPage({
   const [isTableMenuOpen, setIsTableMenuOpen] = useState(false);
   const [activeHeaderDropdown, setActiveHeaderDropdown] = useState<string | null>(null);
   const [isCreateProductDropdownOpen, setIsCreateProductDropdownOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"Obsolete" | "Cancel" | "Audit Log" | "Export to CSV" | "Export to Excel" | "Export to Word" | "Export to PDF" | null>(null);
+  const [columnConfigOpen, setColumnConfigOpen] = useState(false);
+  const [topMenuOpen, setTopMenuOpen] = useState(false);
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
+  const [resizingColumn, setResizingColumn] = useState<string | null>(null);
+  const [exportConfig, setExportConfig] = useState<{
+    isOpen: boolean;
+    format: "pdf" | "excel" | "word" | "csv";
+    selectedColumns: string[];
+    rowsToExport?: Set<string>;
+  } | null>(null);
+
+  const resizeStartX = useRef<number>(0);
+  const resizeStartWidth = useRef<number>(0);
+
+  const handleResizeStart = (
+    e: React.MouseEvent,
+    columnId: string,
+    currentWidth: number,
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setResizingColumn(columnId);
+    resizeStartX.current = e.clientX;
+    resizeStartWidth.current = currentWidth;
+  };
+
+  useEffect(() => {
+    if (!resizingColumn) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      const diff = e.clientX - resizeStartX.current;
+      const newWidth = Math.max(
+        60,
+        resizeStartWidth.current + diff,
+      );
+      setColumnWidths((prev) => ({
+        ...prev,
+        [resizingColumn]: newWidth,
+      }));
+    };
+    const handleMouseUp = () => setResizingColumn(null);
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.removeEventListener(
+        "mousemove",
+        handleMouseMove,
+      );
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [resizingColumn]);
+
+  const getColumnWidth = (col: ColumnConfig) => {
+    return columnWidths[col.id] || col.width || 120;
+  };
  
   const [typeFilter, setTypeFilter] = useState<ProductType | ''>('');
   const [lcFilter, setLcFilter] = useState<LifecycleState | ''>('');
@@ -387,6 +556,27 @@ export default function ProductsLandingPage({
           .sort((a, b) => externalColumnOrder.indexOf(a.id) - externalColumnOrder.indexOf(b.id))
       : DEFAULT_COLUMNS
   );
+  const visibleColumns = columnOrder.filter(c => c.visible !== false);
+
+  const handleToggleColumnVisibility = (id: string) => {
+    setColumnOrder((prev) =>
+      prev.map((col) =>
+        col.id === id
+          ? {
+            ...col,
+            visible: col.visible === false ? true : false,
+          }
+          : col,
+      ),
+    );
+  };
+
+  const handleRestoreDefaults = () => {
+    setColumnOrder(DEFAULT_COLUMNS);
+    setColumnWidths({});
+    setColumnConfigOpen(false);
+  };
+
   const [draggedColumn, setDraggedColumn] = useState<number | null>(null);
 
   // Sync external state when a saved view is applied
@@ -408,6 +598,165 @@ export default function ProductsLandingPage({
     }
   }, [externalColumnOrder]);
 
+
+  const handleExport = (format: "pdf" | "excel" | "word" | "csv", rowsToExport?: Set<string>) => {
+    const initialCols = columnOrder
+      .filter(c => c.visible !== false && c.id !== "actions" && c.label !== "")
+      .map(c => c.id);
+    setExportConfig({
+      isOpen: true,
+      format,
+      selectedColumns: initialCols,
+      rowsToExport,
+    });
+  };
+
+  const executeExport = (format: "pdf" | "excel" | "word" | "csv", selectedColIds: string[]) => {
+    const baseList = filteredProducts;
+    const list = exportConfig?.rowsToExport && exportConfig.rowsToExport.size > 0 
+      ? baseList.filter(p => exportConfig.rowsToExport!.has(p.id)) 
+      : baseList;
+    const activeCols = columnOrder.filter(c => selectedColIds.includes(c.id));
+    const headers = activeCols.map(col => col.label);
+
+    if (format === "csv") {
+      const csvContent = [
+        headers.join(","),
+        ...list.map(p =>
+          activeCols
+            .map(col => {
+              if (col.id === "name") return `"${p.name}"`;
+              if (col.id === "productId") return `"${p.productId}"`;
+              if (col.id === "type") return `"${p.type}"`;
+              if (col.id === "lifecycleState") return `"${p.lifecycleState}"`;
+              if (col.id === "parentName") return `"${p.parentName || ''}"`;
+              if (col.id === "childCount") return `"${p.childCount}"`;
+              if (col.id === "claimsCount") return `"${p.claimsCount}"`;
+              if (col.id === "projectsCount") return `"${p.projectsCount}"`;
+              if (col.id === "createdBy") return `"${p.createdBy}"`;
+              if (col.id === "createdDate") return `"${formatDate(p.createdDate)}"`;
+              return "";
+            })
+            .join(",")
+        )
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `products_export_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else if (format === "excel") {
+      const html = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head><meta charset="utf-8"/></head>
+        <body>
+          <table border="1">
+            <tr style="background-color: #F6F7F0; font-weight: bold;">
+              ${headers.map(h => `<th>${h}</th>`).join("")}
+            </tr>
+            ${list.map(p => `
+              <tr>
+                ${activeCols.map(col => {
+                  if (col.id === "name") return `<td>${p.name}</td>`;
+                  if (col.id === "productId") return `<td>${p.productId}</td>`;
+                  if (col.id === "type") return `<td>${p.type}</td>`;
+                  if (col.id === "lifecycleState") return `<td>${p.lifecycleState}</td>`;
+                  if (col.id === "parentName") return `<td>${p.parentName || ''}</td>`;
+                  if (col.id === "childCount") return `<td>${p.childCount}</td>`;
+                  if (col.id === "claimsCount") return `<td>${p.claimsCount}</td>`;
+                  if (col.id === "projectsCount") return `<td>${p.projectsCount}</td>`;
+                  if (col.id === "createdBy") return `<td>${p.createdBy}</td>`;
+                  if (col.id === "createdDate") return `<td>${formatDate(p.createdDate)}</td>`;
+                  return "";
+                }).join("")}
+              </tr>
+            `).join("")}
+          </table>
+        </body>
+        </html>
+      `;
+      const blob = new Blob([html], { type: "application/vnd.ms-excel" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `products_export_${new Date().toISOString().slice(0, 10)}.xls`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else if (format === "word") {
+      const html = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+        <head><meta charset="utf-8"/><title>Products Export</title></head>
+        <body>
+          <h2>Product list export</h2>
+          <table border="1" style="border-collapse: collapse; width: 100%;">
+            <tr style="background-color: #F6F7F0; font-weight: bold;">
+              ${headers.map(h => `<th>${h}</th>`).join("")}
+            </tr>
+            ${list.map(p => `
+              <tr>
+                ${activeCols.map(col => {
+                  if (col.id === "name") return `<td>${p.name}</td>`;
+                  if (col.id === "productId") return `<td>${p.productId}</td>`;
+                  if (col.id === "type") return `<td>${p.type}</td>`;
+                  if (col.id === "lifecycleState") return `<td>${p.lifecycleState}</td>`;
+                  if (col.id === "parentName") return `<td>${p.parentName || ''}</td>`;
+                  if (col.id === "childCount") return `<td>${p.childCount}</td>`;
+                  if (col.id === "claimsCount") return `<td>${p.claimsCount}</td>`;
+                  if (col.id === "projectsCount") return `<td>${p.projectsCount}</td>`;
+                  if (col.id === "createdBy") return `<td>${p.createdBy}</td>`;
+                  if (col.id === "createdDate") return `<td>${formatDate(p.createdDate)}</td>`;
+                  return "";
+                }).join("")}
+              </tr>
+            `).join("")}
+          </table>
+        </body>
+        </html>
+      `;
+      const blob = new Blob([html], { type: "application/msword" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `products_export_${new Date().toISOString().slice(0, 10)}.doc`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else if (format === "pdf") {
+      let report = `========================================================================================\n`;
+      report += `                                   PRODUCTS REPORT EXPORT                               \n`;
+      report += `                             Generated on: ${new Date().toLocaleDateString()}           \n`;
+      report += `========================================================================================\n\n`;
+
+      list.forEach((p, idx) => {
+        report += `${idx + 1}. PRODUCT NAME: ${p.name}\n`;
+        report += `   ---------------------------------------------------------------------------------\n`;
+        report += `   • ID: ${p.productId}\n`;
+        report += `   • Type: ${p.type}\n`;
+        report += `   • Lifecycle State: ${p.lifecycleState}\n`;
+        report += `   • Parent Product: ${p.parentName || 'None'}\n`;
+        report += `   • Children: ${p.childCount}\n`;
+        report += `   • Claims Count: ${p.claimsCount}\n`;
+        report += `   • Projects Count: ${p.projectsCount}\n`;
+        report += `   • Created By: ${p.createdBy}\n`;
+        report += `   • Created Date: ${formatDate(p.createdDate)}\n`;
+        report += `========================================================================================\n\n`;
+      });
+
+      const blob = new Blob([report], { type: "text/plain;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `products_export_${new Date().toISOString().slice(0, 10)}.txt`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
 
   const handleSort = (col: string) => {
     if (sortCol === col) {
@@ -495,9 +844,10 @@ export default function ProductsLandingPage({
       });
     }
  
-    // Apply column-specific search filters
+    // Apply column-specific search and checkbox filters
     list = list.filter((p) => {
-      return Object.entries(colSearch).every(([colId, query]) => {
+      // 1. Column specific search query filter
+      const searchPassed = Object.entries(colSearch).every(([colId, query]) => {
         if (!query) return true;
         const q = query.toLowerCase();
         switch (colId) {
@@ -525,6 +875,28 @@ export default function ProductsLandingPage({
             return true;
         }
       });
+
+      // 2. Column specific checkboxes filter
+      const checkboxesPassed = Object.entries(colCheckboxes).every(([colId, selectedList]) => {
+        if (!selectedList || selectedList.length === 0) return true;
+        let pVal = "";
+        switch (colId) {
+          case 'name': pVal = p.name; break;
+          case 'productId': pVal = p.productId; break;
+          case 'type': pVal = p.type; break;
+          case 'lifecycleState': pVal = p.lifecycleState; break;
+          case 'parentName': pVal = p.parentName || ""; break;
+          case 'childCount': pVal = String(p.childCount); break;
+          case 'claimsCount': pVal = String(p.claimsCount); break;
+          case 'projectsCount': pVal = String(p.projectsCount); break;
+          case 'createdBy': pVal = p.createdBy; break;
+          case 'createdDate': pVal = formatDate(p.createdDate); break;
+          default: return true;
+        }
+        return selectedList.includes(pVal);
+      });
+
+      return searchPassed && checkboxesPassed;
     });
 
     return list;
@@ -535,6 +907,7 @@ export default function ProductsLandingPage({
     recentIds,
     search,
     colSearch,
+    colCheckboxes,
     typeFilter,
     lcFilter,
     bgFilter,
@@ -606,12 +979,13 @@ export default function ProductsLandingPage({
           : isHovered 
             ? '#EEF4FB' 
             : '#ffffff';
+        const leftOffset = pendingAction ? 80 : 40;
         return (
           <td 
-            className={`px-4 py-3 ${isFrozen ? "sticky left-[80px] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
+            className={`px-4 py-3 ${isFrozen ? "sticky z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
             style={{
               ...cellStyle,
-              ...(isFrozen ? { backgroundColor: nameBg } : {})
+              ...(isFrozen ? { position: "sticky", left: leftOffset, backgroundColor: nameBg } : {})
             }}
           >
             <div
@@ -1003,21 +1377,171 @@ export default function ProductsLandingPage({
         onCreateProduct={onCreateProduct}
       />
  
-      {/* Selection count bar */}
-      {selectedIds.size > 0 && (
-        <div className="bg-pale border-b border-sky/20 px-6 py-2 flex items-center gap-3 flex-shrink-0">
-          <span className="text-sm text-sky font-medium">{selectedIds.size} of {filteredProducts.length} selected</span>
-          <button
-            onClick={() => setSelectedIds(new Set())}
-            className="ml-auto text-xs text-gray-500 hover:text-night transition-colors"
-          >
-            Clear selection
-          </button>
+      {/* Top Toolbar */}
+      <div className="bg-white border-b border-pebble px-4 py-2.5 flex items-center justify-between flex-shrink-0 font-normal">
+        <div className="flex items-center gap-3">
+          {pendingAction ? (
+            <>
+              <span className="text-sm text-sky font-medium bg-sky/10 px-2.5 py-0.5 rounded">
+                Select products to {pendingAction} ({selectedIds.size} selected)
+              </span>
+              <button
+                onClick={() => {
+                  setPendingAction(null);
+                  setSelectedIds(new Set());
+                }}
+                className="text-xs text-gray-500 hover:text-night transition-colors font-medium cursor-pointer"
+              >
+                Cancel
+              </button>
+            </>
+          ) : selectedIds.size > 0 ? (
+            <>
+              <span className="text-sm text-sky font-medium bg-sky/10 px-2.5 py-0.5 rounded">{selectedIds.size} of {filteredProducts.length} selected</span>
+              <button
+                onClick={() => setSelectedIds(new Set())}
+                className="text-xs text-gray-500 hover:text-night transition-colors cursor-pointer"
+              >
+                Clear selection
+              </button>
+            </>
+          ) : (
+            <span className="text-sm text-gray-600 font-medium ml-1">Products Library</span>
+          )}
         </div>
-      )}
+        <div className="flex items-center gap-3">
+          {pendingAction && (
+            <button
+              disabled={selectedIds.size === 0}
+              onClick={() => {
+                const firstId = Array.from(selectedIds)[0];
+                const p = products.find(prod => prod.id === firstId);
+                if (pendingAction === "Audit Log" && p) {
+                  setSelectedProductForAudit(p);
+                } else if (pendingAction === "Obsolete") {
+                  if (onProductsChange) {
+                    const updated = products.map(prod => selectedIds.has(prod.id) ? { ...prod, lifecycleState: 'Obsolete' as const } : prod);
+                    onProductsChange(updated);
+                  }
+                } else if (pendingAction === "Cancel") {
+                  if (onProductsChange) {
+                    const updated = products.map(prod => selectedIds.has(prod.id) ? { ...prod, lifecycleState: 'Cancelled' as const } : prod);
+                    onProductsChange(updated);
+                  }
+                } else if (pendingAction.startsWith("Export")) {
+                  const format = pendingAction === "Export to CSV" ? "csv" :
+                                 pendingAction === "Export to Excel" ? "excel" :
+                                 pendingAction === "Export to Word" ? "word" : "pdf";
+                  handleExport(format, selectedIds);
+                }
+                setPendingAction(null);
+                setSelectedIds(new Set());
+              }}
+              className="px-3 py-1.5 bg-sky text-white rounded-lg text-sm hover:bg-dark transition-colors font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Apply {pendingAction}
+            </button>
+          )}
+
+          <div className="relative">
+            <button
+              onClick={() => setTopMenuOpen(!topMenuOpen)}
+              className="p-1.5 border border-pebble rounded-lg text-gray-500 hover:bg-earth transition-colors hover:text-night shadow-sm bg-white cursor-pointer"
+            >
+              <MoreVertical className="w-4 h-4" />
+            </button>
+            {topMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setTopMenuOpen(false)} />
+                <div className="absolute right-0 top-full mt-1.5 bg-white border border-pebble rounded-xl shadow-xl z-40 min-w-[220px] py-1.5 overflow-hidden text-left font-normal normal-case tracking-normal">
+                  <button
+                    onClick={() => {
+                      setTopMenuOpen(false);
+                      setColumnConfigOpen(true);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors text-left"
+                  >
+                    <Settings className="w-4 h-4 text-gray-400" />
+                    <span>Configure Column</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setIsFrozen(!isFrozen);
+                      setTopMenuOpen(false);
+                    }}
+                    className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <GripVertical className="w-4 h-4 text-gray-400" />
+                      <span>Freeze Column</span>
+                    </div>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${isFrozen ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                      {isFrozen ? "ON" : "OFF"}
+                    </span>
+                  </button>
+
+                  <div className="border-t border-pebble my-1" />
+
+                  <div className="px-4 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Product Actions</div>
+                  {["Audit Log", "Obsolete", "Cancel"].map(action => (
+                    <button
+                      key={action}
+                      onClick={() => {
+                        setTopMenuOpen(false);
+                        setSelectedIds(new Set());
+                        setPendingAction(action as any);
+                      }}
+                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors pl-8 ${action === "Cancel" ? "text-red-600 hover:bg-red-50" : "text-night hover:bg-earth"}`}
+                    >
+                      {action}
+                    </button>
+                  ))}
+
+                  <div className="border-t border-pebble my-1" />
+
+                  <div className="px-4 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Export Functions</div>
+                  {[
+                    { label: "Export to CSV", action: "Export to CSV" },
+                    { label: "Export to Excel", action: "Export to Excel" },
+                    { label: "Export to Word", action: "Export to Word" },
+                    { label: "Export to PDF (Report)", action: "Export to PDF" }
+                  ].map(item => (
+                    <button
+                      key={item.action}
+                      onClick={() => {
+                        setTopMenuOpen(false);
+                        setSelectedIds(new Set());
+                        setPendingAction(item.action as any);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-night hover:bg-earth transition-colors text-left pl-8"
+                    >
+                      <Download className="w-3.5 h-3.5 text-gray-400" />
+                      <span>{item.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {columnConfigOpen && (
+              <ColumnConfigPanel
+                columns={columnOrder}
+                onToggle={handleToggleColumnVisibility}
+                onRestore={handleRestoreDefaults}
+                onClose={() => setColumnConfigOpen(false)}
+                onExport={(format) => {
+                  setColumnConfigOpen(false);
+                  handleExport(format);
+                }}
+              />
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Table */}
-        <div className="flex-1 overflow-hidden p-5 flex flex-col">
+      <div className="flex-1 overflow-hidden p-5 flex flex-col">
         <div className="flex-1 flex flex-col bg-white rounded-xl border border-gray-300 shadow-sm overflow-hidden">
           {/* Active filter chips row */}
           {activeFilterChips.length > 0 && (
@@ -1063,37 +1587,39 @@ export default function ProductsLandingPage({
               <thead className="bg-earth border-b border-gray-300 sticky top-0 z-10">
                 <tr className="border-b border-gray-300">
                   {/* Checkbox FIRST */}
-                  <th
-                    className={`px-3 py-3 ${isFrozen ? "sticky left-0 z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
-                    style={{
-                      width: "40px",
-                      minWidth: "40px",
-                      maxWidth: "40px",
-                      ...(isFrozen ? { backgroundColor: "#F6F7F0" } : {})
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isAllCurrentSelected}
-                      onChange={handleToggleSelectAll}
-                      className="w-4 h-4 rounded border border-gray-400 text-sky focus:ring-2 focus:ring-sky cursor-pointer transition-colors"
-                    />
-                  </th>
+                  {pendingAction && (
+                    <th
+                      className={`px-3 py-3 ${isFrozen ? "sticky left-0 z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
+                      style={{
+                        width: "40px",
+                        minWidth: "40px",
+                        maxWidth: "40px",
+                        ...(isFrozen ? { backgroundColor: "#F6F7F0" } : {})
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isAllCurrentSelected}
+                        onChange={handleToggleSelectAll}
+                        className="w-4 h-4 rounded border border-gray-400 text-sky focus:ring-2 focus:ring-sky cursor-pointer transition-colors"
+                      />
+                    </th>
+                  )}
 
                   {/* Star SECOND */}
                   <th
-                    className={`px-3 py-3 ${isFrozen ? "sticky left-[40px] z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
+                    className={`px-3 py-3 ${isFrozen ? "sticky z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
                     style={{
                       width: "40px",
                       minWidth: "40px",
                       maxWidth: "40px",
-                      ...(isFrozen ? { backgroundColor: "#F6F7F0" } : {})
+                      ...(isFrozen ? { position: "sticky", left: pendingAction ? 40 : 0, backgroundColor: "#F6F7F0" } : {})
                     }}
                   ></th>
    
-                  {columnOrder.map((col, index) => {
+                  {visibleColumns.map((col, index) => {
                     const isSticky = isFrozen && col.id === "name";
-                    const leftOffset = 80;
+                    const leftOffset = pendingAction ? 80 : 40;
                     return (
                       <th
                         key={col.id}
@@ -1102,8 +1628,8 @@ export default function ProductsLandingPage({
                         onDragOver={(e) => handleColumnDragOver(e, index)}
                         onDragEnd={handleColumnDragEnd}
                         style={{
-                          width: col.width || 120,
-                          minWidth: col.width || 120,
+                          width: getColumnWidth(col),
+                          minWidth: getColumnWidth(col),
                           ...(isSticky ? { position: "sticky", left: leftOffset, zIndex: 20, backgroundColor: "#F6F7F0", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {})
                         }}
                         className={`px-4 py-3 text-left relative cursor-move ${draggedColumn === index ? "opacity-50 bg-pale" : ""}`}
@@ -1125,7 +1651,7 @@ export default function ProductsLandingPage({
                                 e.stopPropagation();
                                 setActiveHeaderDropdown(activeHeaderDropdown === col.id ? null : col.id);
                               }}
-                              className={`p-1 rounded hover:bg-pebble/60 transition-colors text-gray-500 hover:text-sky flex items-center justify-center ${activeHeaderDropdown === col.id ? "text-sky bg-pebble/30" : ""} ${colSearch[col.id] ? "text-sky font-semibold" : ""}`}
+                              className={`p-1 rounded hover:bg-pebble/60 transition-colors text-gray-500 hover:text-sky flex items-center justify-center ${activeHeaderDropdown === col.id ? "text-sky bg-pebble/30" : ""} ${(colSearch[col.id] || (colCheckboxes[col.id] && colCheckboxes[col.id].length > 0)) ? "text-sky font-semibold" : ""}`}
                             >
                               <Search className="w-3 h-3" />
                             </button>
@@ -1135,7 +1661,7 @@ export default function ProductsLandingPage({
                                 <div className="fixed inset-0 z-30" onClick={(e) => { e.stopPropagation(); setActiveHeaderDropdown(null); }} />
                                 <div className="absolute right-0 top-full mt-2 bg-white border border-pebble rounded-xl shadow-xl z-40 min-w-[240px] p-3 text-left font-normal normal-case tracking-normal animate-in fade-in duration-100" onClick={(e) => e.stopPropagation()}>
                                   <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Filter {col.label}</div>
-                                  <div className="relative">
+                                  <div className="relative mb-3">
                                     <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2 top-1/2 -translate-y-1/2" />
                                     <input
                                       type="text"
@@ -1150,57 +1676,99 @@ export default function ProductsLandingPage({
                                       className="w-full pl-7 pr-2.5 py-1.5 text-xs border border-pebble rounded-lg focus:outline-none focus:ring-1 focus:ring-sky text-night bg-white font-normal"
                                     />
                                   </div>
+
+                                  {/* Common Categories checklist */}
+                                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Common Categories</div>
+                                  <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1 mb-3">
+                                    {(() => {
+                                      const uniqueValues = products.reduce<string[]>((acc, p) => {
+                                        let val = "";
+                                        if (col.id === "name") val = p.name;
+                                        else if (col.id === "productId") val = p.productId;
+                                        else if (col.id === "type") val = p.type;
+                                        else if (col.id === "lifecycleState") val = p.lifecycleState;
+                                        else if (col.id === "parentName") val = p.parentName || "";
+                                        else if (col.id === "childCount") val = String(p.childCount);
+                                        else if (col.id === "claimsCount") val = String(p.claimsCount);
+                                        else if (col.id === "projectsCount") val = String(p.projectsCount);
+                                        else if (col.id === "createdBy") val = p.createdBy;
+                                        else if (col.id === "createdDate") val = formatDate(p.createdDate);
+
+                                        if (val && val.trim() && !acc.includes(val.trim())) {
+                                          acc.push(val.trim());
+                                        }
+                                        return acc;
+                                      }, []);
+
+                                      const searchQueryLocal = (colSearch[col.id] || "").toLowerCase();
+                                      const filteredVals = uniqueValues.filter(v => v.toLowerCase().includes(searchQueryLocal));
+
+                                      if (filteredVals.length === 0) {
+                                        return <div className="text-xs text-gray-400 py-1 italic font-normal">No options found</div>;
+                                      }
+
+                                      return filteredVals.map(val => {
+                                        const isChecked = (colCheckboxes[col.id] || []).includes(val);
+                                        return (
+                                          <label key={val} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-earth cursor-pointer transition-colors text-xs text-night font-normal">
+                                            <input
+                                              type="checkbox"
+                                              checked={isChecked}
+                                              onChange={() => {
+                                                setColCheckboxes(prev => {
+                                                  const current = prev[col.id] || [];
+                                                  const nextList = current.includes(val)
+                                                    ? current.filter(v => v !== val)
+                                                    : [...current, val];
+                                                  return { ...prev, [col.id]: nextList };
+                                                });
+                                              }}
+                                              className="w-3.5 h-3.5 text-sky rounded border-pebble focus:ring-sky"
+                                            />
+                                            <span className="truncate">{val}</span>
+                                          </label>
+                                        );
+                                      });
+                                    })()}
+                                  </div>
+
+                                  {/* Reset button */}
+                                  <div className="flex justify-end pt-1.5 border-t border-pebble">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setColSearch(prev => ({ ...prev, [col.id]: "" }));
+                                        setColCheckboxes(prev => ({ ...prev, [col.id]: [] }));
+                                      }}
+                                      className="text-[10px] text-gray-500 hover:text-red-500 font-semibold uppercase tracking-wider transition-colors"
+                                    >
+                                      Reset
+                                    </button>
+                                  </div>
                                 </div>
                               </>
                             )}
                           </div>
                         </div>
+
+                        {index < visibleColumns.length - 1 && (
+                          <div
+                            onMouseDown={(e) =>
+                              handleResizeStart(
+                                e,
+                                col.id,
+                                getColumnWidth(col),
+                              )
+                            }
+                            className="absolute right-0 top-2 bottom-2 w-1 cursor-col-resize hover:bg-sky rounded-full transition-colors"
+                            style={{ userSelect: "none" }}
+                          />
+                        )}
                       </th>
                     );
                   })}
 
-                  {/* Table Settings Dropdown Header */}
-                  <th className="w-10 px-3 py-3">
-                    <div className="relative">
-                      <button
-                        onClick={() => setIsTableMenuOpen(!isTableMenuOpen)}
-                        className="p-1 rounded hover:bg-pebble/60 transition-colors text-gray-500 flex items-center justify-center focus:outline-none"
-                        title="Table Settings"
-                      >
-                        <MoreHorizontal className="w-4 h-4" />
-                      </button>
-
-                      {isTableMenuOpen && (
-                        <>
-                          <div className="fixed inset-0 z-30" onClick={() => setIsTableMenuOpen(false)} />
-                          <div className="absolute right-0 top-full mt-2 bg-white border border-pebble rounded-xl shadow-xl z-40 min-w-[200px] py-1.5 overflow-hidden text-left font-normal normal-case tracking-normal">
-                            <button
-                              onClick={() => {
-                                setIsTableMenuOpen(false);
-                                setIsFrozen(!isFrozen);
-                              }}
-                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-night hover:bg-earth transition-colors"
-                            >
-                              {isFrozen ? <EyeOff className="w-4 h-4 text-sky" /> : <Eye className="w-4 h-4 text-sky" />}
-                              {isFrozen ? "Unfreeze Columns" : "Freeze Columns"}
-                            </button>
-                            <button
-                              onClick={() => {
-                                setIsTableMenuOpen(false);
-                                setColumnOrder(DEFAULT_COLUMNS);
-                                setSortCol(null);
-                                setSortDir(null);
-                                setColSearch({});
-                              }}
-                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-night hover:bg-earth transition-colors"
-                            >
-                              <span className="text-gray-400">↺</span> Reset Table State
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </th>
+                  <th className="w-10 px-3 py-3 bg-[#F6F7F0]"></th>
                 </tr>
               </thead>
    
@@ -1223,31 +1791,33 @@ export default function ProductsLandingPage({
                       className={`border-b border-gray-300 transition-colors ${rowBg}`}
                     >
                       {/* Checkbox FIRST */}
-                      <td
-                        className={`px-3 py-3 ${isFrozen ? "sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
-                        style={{
-                          width: "40px",
-                          minWidth: "40px",
-                          maxWidth: "40px",
-                          ...(isFrozen ? { backgroundColor: isSelected ? "#F3F7FC" : isHovered ? "#EEF4FB" : "#ffffff" } : {})
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={(e) => handleToggleRow(product.id, e)}
-                          className="w-4 h-4 rounded border border-gray-400 text-sky focus:ring-2 focus:ring-sky cursor-pointer transition-colors"
-                        />
-                      </td>
+                      {pendingAction && (
+                        <td
+                          className={`px-3 py-3 ${isFrozen ? "sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
+                          style={{
+                            width: "40px",
+                            minWidth: "40px",
+                            maxWidth: "40px",
+                            ...(isFrozen ? { backgroundColor: isSelected ? "#F3F7FC" : isHovered ? "#EEF4FB" : "#ffffff" } : {})
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => handleToggleRow(product.id, e)}
+                            className="w-4 h-4 rounded border border-gray-400 text-sky focus:ring-2 focus:ring-sky cursor-pointer transition-colors"
+                          />
+                        </td>
+                      )}
 
                       {/* Star SECOND */}
                       <td
-                        className={`px-3 py-3 ${isFrozen ? "sticky left-[40px] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
+                        className={`px-3 py-3 ${isFrozen ? "sticky z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
                         style={{
                           width: "40px",
                           minWidth: "40px",
                           maxWidth: "40px",
-                          ...(isFrozen ? { backgroundColor: isSelected ? "#F3F7FC" : isHovered ? "#EEF4FB" : "#ffffff" } : {})
+                          ...(isFrozen ? { position: "sticky", left: pendingAction ? 40 : 0, backgroundColor: isSelected ? "#F3F7FC" : isHovered ? "#EEF4FB" : "#ffffff" } : {})
                         }}
                       >
                         <button
@@ -1266,7 +1836,7 @@ export default function ProductsLandingPage({
                           />
                         </button>
                       </td>
-                      {columnOrder.map((col) => (
+                      {visibleColumns.map((col) => (
                         <React.Fragment key={col.id}>
                           {renderCell(product, col.id, isHovered, isSelected)}
                         </React.Fragment>
@@ -1287,7 +1857,7 @@ export default function ProductsLandingPage({
                               className="fixed inset-0 z-10"
                               onClick={() => setActionMenuOpen(null)}
                             />
-                            <div className="absolute right-0 top-full bg-white border border-pebble rounded-xl shadow-lg z-20 min-w-[160px] overflow-hidden">
+                            <div className="absolute right-0 top-full bg-white border border-pebble rounded-xl shadow-lg z-20 min-w-[160px] overflow-hidden text-left font-normal normal-case tracking-normal">
                               {["Open", "Audit Log", "Obsolete", "Cancel"].map(
                                 (action) => (
                                   <button
@@ -1298,6 +1868,16 @@ export default function ProductsLandingPage({
                                         onProductClick(product);
                                       } else if (action === "Audit Log") {
                                         setSelectedProductForAudit(product);
+                                      } else if (action === "Obsolete") {
+                                        if (onProductsChange) {
+                                          const updated = products.map(prod => prod.id === product.id ? { ...prod, lifecycleState: 'Obsolete' as const } : prod);
+                                          onProductsChange(updated);
+                                        }
+                                      } else if (action === "Cancel") {
+                                        if (onProductsChange) {
+                                          const updated = products.map(prod => prod.id === product.id ? { ...prod, lifecycleState: 'Cancelled' as const } : prod);
+                                          onProductsChange(updated);
+                                        }
                                       }
                                     }}
                                     className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${action === "Cancel" ? "text-red-600 hover:bg-red-50" : "text-night hover:bg-earth"}`}

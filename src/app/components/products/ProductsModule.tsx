@@ -387,6 +387,7 @@ export default function ProductsModule({
     <>
       <ProductsLandingPage
         products={products}
+        onProductsChange={setProducts}
         activeView={productListView}
         favorites={favorites}
         recentIds={recentIds}
