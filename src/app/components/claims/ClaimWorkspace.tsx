@@ -288,12 +288,12 @@ function FinalRiskSummarySection({
   const selectClass = `w-full px-3 py-2 border border-pebble rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky ${isLocked ? "bg-earth text-gray-500 cursor-not-allowed" : "bg-white text-night"}`;
 
   return (
-    <div className="bg-white rounded-xl border border-pebble p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-night font-semibold">
-          Final Risk Summary
-        </h3>
+    <div className="space-y-5">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-night font-semibold text-lg">Final Risk Summary</h2>
+          <p className="text-sm text-gray-500 mt-0.5">Final assessment and categorization for this claim</p>
+        </div>
         {isLocked && (
           <span className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-xs font-medium">
             🔒 Locked — Claim is Assessed
@@ -301,7 +301,8 @@ function FinalRiskSummarySection({
         )}
       </div>
 
-      {/* ── Row 1: Final Risk Level + Classification ── */}
+      <div className="bg-white rounded-xl border border-pebble p-6 space-y-6">
+        {/* ── Row 1: Final Risk Level + Classification ── */}
       <div className="grid grid-cols-2 gap-5">
         {/* Final Risk Level */}
         <div>
@@ -713,6 +714,7 @@ function FinalRiskSummarySection({
           </button>
         </div>
       )}
+      </div>
     </div>
   );
 }
@@ -857,12 +859,11 @@ function SupportStrategySection({
   };
 
   return (
-    <div className="bg-white rounded-xl border border-pebble overflow-hidden">
-      {/* Section header */}
-      <div className="px-6 py-4 border-b border-pebble flex items-center justify-between bg-white">
+    <div className="space-y-5">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-night font-semibold text-base">Support Strategy &amp; Substantiation</h3>
-          <p className="text-xs text-gray-400 mt-0.5">Capture the justification and evidence behind this claim</p>
+          <h2 className="text-night font-semibold text-lg">Support Strategy &amp; Substantiation</h2>
+          <p className="text-sm text-gray-500 mt-0.5">Capture the justification and evidence behind this claim</p>
         </div>
         {savedToast && (
           <span className="flex items-center gap-1.5 text-xs text-green-600 bg-green-50 px-3 py-1 rounded-full border border-green-200 animate-pulse">
@@ -871,7 +872,7 @@ function SupportStrategySection({
         )}
       </div>
 
-      <div className="p-6 space-y-6">
+      <div className="bg-white rounded-xl border border-pebble p-6 space-y-6">
         {/* ── Support Strategy Panel (F04: visually distinct from docs) ── */}
         <div>
           <div className="flex items-center justify-between mb-2">
@@ -1161,11 +1162,10 @@ function RelatedAssetsSection({ claim, onClaimSave }: { claim: Claim; onClaimSav
   };
 
   return (
-    <div className="bg-white rounded-xl border border-pebble overflow-hidden flex flex-col">
-      {/* Header */}
-      <div className="px-5 py-4 border-b border-pebble flex items-center justify-between">
+    <div className="space-y-5">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-night font-semibold text-base">Related Assets</h3>
+          <h2 className="text-night font-semibold text-lg">Related Assets</h2>
           <p className="text-sm text-gray-500 mt-0.5">Documents, studies, certificates, and media linked to this claim</p>
         </div>
         <div className="flex items-center gap-2">
@@ -1211,8 +1211,9 @@ function RelatedAssetsSection({ claim, onClaimSave }: { claim: Claim; onClaimSav
           </div>
         </div>
       </div>
-
-      {/* Toolbar */}
+      
+      <div className="bg-white rounded-xl border border-pebble overflow-hidden flex flex-col min-h-[400px]">
+        {/* Toolbar */}
       <div className="px-4 py-3 border-b border-pebble flex items-center gap-3 flex-wrap bg-white">
         <div className="relative flex-1 max-w-sm">
           <ExternalLink className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ display: 'none' }} />
@@ -1276,7 +1277,7 @@ function RelatedAssetsSection({ claim, onClaimSave }: { claim: Claim; onClaimSav
       </div>
 
       {/* Table */}
-      <div className="overflow-auto">
+      <div className="overflow-auto flex-1 bg-white">
         <table className="w-full">
           <thead className="bg-earth sticky top-0 z-10 border-b border-pebble">
             <tr>
@@ -1386,6 +1387,7 @@ function RelatedAssetsSection({ claim, onClaimSave }: { claim: Claim; onClaimSav
             )}
           </div>
         )}
+      </div>
       </div>
     </div>
   );
@@ -1803,16 +1805,17 @@ export default function ClaimWorkspace({
     switch (id) {
       case "Claim Details":
         return (
-          <div className="space-y-6">
-            {/* Claim Details */}
+          <div className="space-y-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-night font-semibold text-lg">Claim Details</h2>
+                <p className="text-sm text-gray-500 mt-0.5">Core metadata and configuration for this claim</p>
+              </div>
+            </div>
+            
+            {/* Claim Details Body */}
             <div className="bg-white rounded-xl border border-pebble p-6">
-              <h3
-                className="text-night mb-4"
-                style={{ fontWeight: 600 }}
-              >
-                Claim Details
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-6 gap-x-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-6 gap-x-6">
                 <div className="col-span-3">
                   <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
                     Global Statement
@@ -2124,9 +2127,7 @@ export default function ClaimWorkspace({
         );
       case "Risk Level Assessments":
         return (
-          <div className="p-6">
-            <RiskLevelAssessmentsSection claim={claim} onClaimSave={onClaimSave} />
-          </div>
+          <RiskLevelAssessmentsSection claim={claim} onClaimSave={onClaimSave} />
         );
       case "Related Assets":
         return (
@@ -2138,7 +2139,7 @@ export default function ClaimWorkspace({
   };
 
   return (
-    <div className="p-6 flex flex-col h-full overflow-hidden no-scrollbar bg-transparent">
+    <div className="flex flex-col h-full overflow-hidden no-scrollbar bg-transparent">
       {/* M6 iRA Success Toast */}
       {iraSaveSuccess && (
         <div className="fixed top-4 right-4 z-[9999] flex items-center gap-3 bg-green-600 text-white px-5 py-3 rounded-xl shadow-2xl animate-pulse">
@@ -2652,7 +2653,7 @@ export default function ClaimWorkspace({
                     isItemActive ? "opacity-100" : "opacity-80"
                   }`}
                 >
-                  <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
+                  <div className="flex-1 overflow-y-auto p-5 space-y-5 no-scrollbar">
                     {renderSectionContent(item.id)}
                   </div>
                 </div>

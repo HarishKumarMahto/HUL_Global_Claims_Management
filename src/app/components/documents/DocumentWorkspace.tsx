@@ -472,8 +472,10 @@ export default function DocumentWorkspace({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2.5 mb-2 flex-wrap">
               <h2 className="text-night truncate font-bold leading-tight text-lg">{document.name}</h2>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100 flex-shrink-0 font-mono">
+                v{document.currentVersion}
+              </span>
               <DocumentLifecycleBadge state={document.lifecycleState as any} size="sm" />
-              <span className="text-xs text-gray-400 font-mono">v{document.currentVersion}</span>
               {document.versions[0]?.versionedFrom && (
                 <span className="text-[10px] text-sky bg-sky/10 border border-sky/20 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
                   Versioned from v{document.versions[0].versionedFrom}

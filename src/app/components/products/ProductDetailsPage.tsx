@@ -2975,8 +2975,8 @@ export default function ProductDetailsPage({
                 {product.name}
               </h2>
               {product.versionNumber && (
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100 flex-shrink-0">
-                  Version {product.versionNumber}
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100 flex-shrink-0 font-mono">
+                  {product.versionNumber}
                 </span>
               )}
               <span

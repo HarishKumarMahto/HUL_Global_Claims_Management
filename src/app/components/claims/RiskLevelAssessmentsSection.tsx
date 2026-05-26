@@ -137,8 +137,8 @@ export default function RiskLevelAssessmentsSection({
   );
 
   return (
-    <div className="bg-white border border-pebble rounded-xl shadow-sm overflow-hidden mb-6">
-      <div className="px-6 py-4 border-b border-pebble flex items-center justify-between bg-earth/30">
+    <div className="space-y-5">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-sky/10 flex items-center justify-center text-sky">
             <Shield className="w-4 h-4" />
@@ -158,6 +158,8 @@ export default function RiskLevelAssessmentsSection({
           </button>
         )}
       </div>
+
+      <div className="bg-white border border-pebble rounded-xl shadow-sm overflow-hidden mb-6">
 
       {isLocked && (
         <div className="px-6 py-3 bg-amber-50 border-b border-amber-200 text-amber-700 text-sm flex items-center gap-2">
@@ -418,6 +420,7 @@ export default function RiskLevelAssessmentsSection({
             ))}
           </div>
         )}
+      </div>
       </div>
     </div>
   );
