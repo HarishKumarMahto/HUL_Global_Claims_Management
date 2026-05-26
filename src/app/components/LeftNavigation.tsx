@@ -370,7 +370,7 @@ export default function LeftNavigation({
   });
   // US-M4-003: sub-section open state per view
   const [claimSubOpen, setClaimSubOpen] = useState<
-    Record<string, "recents" | "favorites" | null>
+    Record<string, "myProject" | "favorites" | null>
   >({});
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMyAssetDropdownExpanded, setIsMyAssetDropdownExpanded] = useState(false);
@@ -1154,9 +1154,9 @@ export default function LeftNavigation({
                       const typeFilteredClaims = claims.filter(
                         (c) => c.claimType === claimType,
                       );
-                      const recentClaims = typeFilteredClaims
-                        .slice(-3)
-                        .reverse();
+                      const projectClaims = typeFilteredClaims.filter(
+                        (c) => c.relatedProjectIds && c.relatedProjectIds.length > 0,
+                      );
                       const favClaims = typeFilteredClaims.filter(
                         (c) => c.isFavorite,
                       );
@@ -1167,33 +1167,33 @@ export default function LeftNavigation({
                           : c.versions[c.currentVersion]?.localStatement;
                       return (
                         <div className="ml-9 mt-1 space-y-0.5">
-                          {/* Recents toggle */}
+                          {/* My Project Claims toggle */}
                           <button
                             onClick={() =>
                               setClaimSubOpen((p) => ({
                                 ...p,
                                 [view]:
-                                  p[view] === "recents" ? null : "recents",
+                                  p[view] === "myProject" ? null : "myProject",
                               }))
                             }
                             className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-earth hover:text-night transition-all duration-150"
                           >
-                            <Clock className="w-3.5 h-3.5 text-gray-400" />
-                            <span className="flex-1 text-left">Recents</span>
-                            {sub === "recents" ? (
+                            <FolderOpen className="w-3.5 h-3.5 text-gray-400" />
+                            <span className="flex-1 text-left">My Project Claims</span>
+                            {sub === "myProject" ? (
                               <ChevronDown className="w-3 h-3" />
                             ) : (
                               <ChevronRight className="w-3 h-3" />
                             )}
                           </button>
-                          {sub === "recents" && (
+                          {sub === "myProject" && (
                             <div className="ml-5 space-y-0.5">
-                              {recentClaims.length === 0 ? (
+                              {projectClaims.length === 0 ? (
                                 <p className="px-3 py-1.5 text-xs text-gray-400 italic">
-                                  No recent claims
+                                  No project claims
                                 </p>
                               ) : (
-                                recentClaims.map((c) => (
+                                projectClaims.map((c) => (
                                   <button
                                     key={c.id}
                                     onClick={() => onClaimClick?.(c)}
