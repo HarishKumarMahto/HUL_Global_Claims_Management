@@ -370,6 +370,15 @@ export default function AssetWorkspace({
                   {asset.geography.length === 0 && <span className="text-sm text-night">—</span>}
                 </div>
               </div>
+              {asset.copiedFromAssetId && (
+                <div>
+                  <p className="text-xs text-gray-400 font-medium mb-1 uppercase tracking-wide">Copied From</p>
+                  <p className="text-sm text-night flex items-center gap-1 font-medium text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg w-max border border-purple-100">
+                    <Link2 className="w-3.5 h-3.5" />
+                    {assets.find(a => a.id === asset.copiedFromAssetId)?.name || asset.copiedFromAssetId}
+                  </p>
+                </div>
+              )}
 
               <div className="pt-4 border-t border-pebble">
                 <h4 className="text-sm font-bold text-night mb-3">File Info</h4>
@@ -1250,12 +1259,6 @@ export default function AssetWorkspace({
               {asset.isPlaceholder && (
                 <span className="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-xs flex-shrink-0">
                   Placeholder
-                </span>
-              )}
-              {asset.copiedFromAssetId && (
-                <span className="px-2.5 py-1 bg-purple-50 text-purple-700 border border-purple-200 rounded-full text-xs flex-shrink-0 flex items-center gap-1">
-                  <Link2 className="w-3 h-3" />
-                  Copied from: {asset.copiedFromAssetId}
                 </span>
               )}
             </div>

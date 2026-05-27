@@ -58,6 +58,8 @@ interface ProductsLandingPageProps {
   onApplyView?: (view: ProductSavedView) => void;
   onOpenSavedViews?: () => void;
   externalSearchQuery?: string;
+  onOpenFilterPanel?: () => void;
+  quickFiltersToolbar?: React.ReactNode;
 }
  
 type SortDir = 'asc' | 'desc' | null;
@@ -242,6 +244,8 @@ export default function ProductsLandingPage({
   onSavedViewsChange,
   onApplyView,
   externalSearchQuery,
+  onOpenFilterPanel,
+  quickFiltersToolbar,
 }: ProductsLandingPageProps) {
   const [search, setSearch] = useState('');
   useEffect(() => {
@@ -1284,13 +1288,19 @@ export default function ProductsLandingPage({
             title="Advanced Product Search"
           />
 
-          {/* Filter bar — column / condition / value chips */}
-          <div className="flex-shrink-0">
-            <ProductFilterBar
-              filters={[]}
-              onFiltersChange={f => { setProductFilters(f); setCurrentPage(1); }}
-            />
-          </div>
+          {/* Quick Filters trigger button */}
+          {onOpenFilterPanel && (
+            <div className="flex-shrink-0 flex items-center gap-2">
+              <button
+                onClick={() => onOpenFilterPanel()}
+                className="flex items-center gap-2 px-3 py-1.5 border border-pebble text-sm text-gray-600 rounded-lg hover:bg-earth hover:border-sky transition-colors shadow-sm bg-white font-medium"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                <span className="hidden sm:inline">Add Quick Filters</span>
+              </button>
+              {quickFiltersToolbar}
+            </div>
+          )}
 
           {/* Quick Filters - Brand */}
           <div className="relative flex-shrink-0">

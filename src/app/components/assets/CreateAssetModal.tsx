@@ -12,6 +12,22 @@ type CreateMode = 'upload' | 'placeholder';
 const MOCK_PROJECTS = ['Project Alpha', 'Project Beta', 'Global Skincare 2026', 'Dove Hair 2025'];
 const MOCK_PRODUCTS = ['Dove Shampoo', 'Dove Soap', 'Lifebuoy Handwash', 'Sunsilk Black'];
 
+const SUBTYPES_WITH_BRAND_SAY = [
+  'Briefing',
+  'Demo',
+  'Events Report',
+  'External Trainings',
+  'Medical Marketing',
+  'Playbook/Product Guide',
+  'Press Release',
+  'Social Media',
+  'Social Media - Always On',
+  'Social Media - Brand Content',
+  'Social Media - Technology Story',
+  'Social Media - User Generated Content',
+  'Trade Story',
+];
+
 // Full subtype list (alphabetical)
 const ALL_SUBTYPES = [
   'Artwork Master Design',
@@ -74,7 +90,7 @@ export default function CreateAssetModal({ isOpen, onClose, onCreate }: CreateAs
   const [geography, setGeography] = useState<string[]>([]);
   const [otherBrandSay, setOtherBrandSay] = useState<boolean | null>(null);
   const [restrictUse, setRestrictUse] = useState(false);
-  const [version, setVersion] = useState('0.1');
+  const [version, setVersion] = useState('1.0');
   const [errors, setErrors] = useState<string[]>([]);
 
   const [projectSearch, setProjectSearch] = useState('');
@@ -128,7 +144,7 @@ export default function CreateAssetModal({ isOpen, onClose, onCreate }: CreateAs
     setStep(1); setMode(null); setDragActive(false); setUploadedFile(null);
     setAssetName(''); setSubtype(null); setBusinessGroup('');
     setCategories([]); setGeography([]); setErrors([]);
-    setOtherBrandSay(null); setRestrictUse(false); setVersion('0.1');
+    setOtherBrandSay(null); setRestrictUse(false); setVersion('1.0');
     setSubtypeSearch('');
     setSelectedProjects([]); setSelectedProducts([]); setProjectSearch(''); setProductSearch('');
     setConsumerBenefitPlatform([]); setSubstantiationEvidence([]);
@@ -424,15 +440,11 @@ export default function CreateAssetModal({ isOpen, onClose, onCreate }: CreateAs
 
                   {/* Version */}
                   <div>
-                    <label className="block text-sm text-night mb-1.5 font-semibold">
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                       Version <span className="text-red-500">*</span>
-                      <span className="text-gray-400 font-normal ml-1.5 text-xs">decimal format, e.g. 0.1, 1.0</span>
                     </label>
-                    <input type="text" value={version} onChange={e => setVersion(e.target.value)} placeholder="0.1"
-                      className={`w-full px-3.5 py-2.5 border rounded-lg text-sm text-night focus:outline-none focus:ring-2 focus:ring-sky bg-white ${!validateVersion(version) && version ? 'border-red-300 focus:ring-red-300' : 'border-pebble'}`} />
-                    {!validateVersion(version) && version && (
-                      <p className="text-xs text-red-500 mt-1">Enter a valid decimal version (e.g. 0.1, 1.0)</p>
-                    )}
+                    <input type="text" value={version} disabled
+                      className="w-full px-3.5 py-2.5 border border-pebble rounded-lg text-sm text-gray-500 bg-gray-50 cursor-not-allowed focus:outline-none" />
                   </div>
                   
                   {/* Geography — optional multi-select */}
@@ -751,7 +763,6 @@ export default function CreateAssetModal({ isOpen, onClose, onCreate }: CreateAs
             <button onClick={() => setStep(1)} className="px-4 py-2 text-sm text-gray-600 hover:text-night transition-colors">← Back</button>
           ) : <div />}
           <div className="flex items-center gap-3">
-            <button onClick={handleClose} className="px-4 py-2 text-sm text-gray-600 hover:text-night transition-colors">Cancel</button>
             {step === 2 && (
               <button onClick={handleSubmit} className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm bg-sky text-white hover:bg-dark transition-colors">
                 Create Asset

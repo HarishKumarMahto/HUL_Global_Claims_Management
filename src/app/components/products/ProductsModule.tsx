@@ -41,6 +41,8 @@ interface Props {
   documents?: DocumentRecord[];
   onDocumentsChange?: (docs: DocumentRecord[]) => void;
   pendingProductData?: any[] | null;
+  onOpenFilterPanel?: () => void;
+  quickFiltersToolbar?: React.ReactNode;
 }
 
 export default function ProductsModule({
@@ -57,6 +59,8 @@ export default function ProductsModule({
   documents = [],
   onDocumentsChange,
   pendingProductData,
+  onOpenFilterPanel,
+  quickFiltersToolbar,
 }: Props) {
   const [products, setProducts] = useState<ProductItem[]>(initialProducts);
   const [favorites, setFavorites] = useState<Set<string>>(new Set(['fmt-1', 'var-1', 'tech-1', 'fmt-3']));
@@ -404,6 +408,8 @@ export default function ProductsModule({
         onSavedViewsChange={setSavedViews}
         onApplyView={handleApplyView}
         externalSearchQuery={externalSearchQuery}
+        onOpenFilterPanel={onOpenFilterPanel}
+        quickFiltersToolbar={quickFiltersToolbar}
       />
       {isCreateOpen && (
         <CreateProductModal isOpen={isCreateOpen} onClose={handleCloseCreate} onCreate={handleProductCreated} preselectedType={localCreateType} onNavigateToSKU={handleNavigateToSKU} onBack={() => { window.dispatchEvent(new CustomEvent('backToProjectCreation')); handleCloseCreate(); }} initialData={pendingProductData} />

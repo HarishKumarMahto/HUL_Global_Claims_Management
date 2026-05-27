@@ -1328,6 +1328,35 @@ export default function App() {
       setActiveModule("Reports");
     }
   };
+  const quickFiltersToolbar = (
+    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 max-w-[calc(100vw-600px)]">
+      {QUICK_FILTERS.map((filter) => (
+        <FilterDropdown
+          key={filter.label}
+          label={filter.label}
+          category={filter.category}
+          selectedValues={appliedFilters[filter.category] || []}
+          onToggle={(category, value) => {
+            setAppliedFilters((prev) => {
+              const current = prev[category] || [];
+              return {
+                ...prev,
+                [category]: current.includes(value)
+                  ? current.filter((v) => v !== value)
+                  : [...current, value],
+              };
+            });
+          }}
+          onClear={(category) =>
+            setAppliedFilters((prev) => ({
+              ...prev,
+              [category]: [],
+            }))
+          }
+        />
+      ))}
+    </div>
+  );
 
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-background">
@@ -2122,33 +2151,7 @@ export default function App() {
                   </button>
 
                   {/* Quick Filter Dropdowns - Scrollable container */}
-                  <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 max-w-[calc(100vw-600px)]">
-                    {QUICK_FILTERS.map((filter) => (
-                      <FilterDropdown
-                        key={filter.label}
-                        label={filter.label}
-                        category={filter.category}
-                        selectedValues={appliedFilters[filter.category] || []}
-                        onToggle={(category, value) => {
-                          setAppliedFilters((prev) => {
-                            const current = prev[category] || [];
-                            return {
-                              ...prev,
-                              [category]: current.includes(value)
-                                ? current.filter((v) => v !== value)
-                                : [...current, value],
-                            };
-                          });
-                        }}
-                        onClear={(category) =>
-                          setAppliedFilters((prev) => ({
-                            ...prev,
-                            [category]: [],
-                          }))
-                        }
-                      />
-                    ))}
-                  </div>
+                  {quickFiltersToolbar}
                 </div>
               </div>
 
@@ -2275,6 +2278,8 @@ export default function App() {
               externalSearchQuery={productSearchQuery}
               documents={documents}
               onDocumentsChange={setDocuments}
+              onOpenFilterPanel={() => openFilterPanel(null)}
+              quickFiltersToolbar={quickFiltersToolbar}
             />
           ) : activeModule === "Assets" ? (
             selectedAsset && assetsModuleView === "workspace" ? (
