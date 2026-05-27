@@ -1,9 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Upload, FileText, ChevronRight, AlertCircle, ChevronDown, Check, Globe2, Search, Clock } from 'lucide-react';
+import { X, Upload, FileText, ChevronRight, AlertCircle, ChevronDown, Check, Globe2, Search, Clock, Binoculars } from 'lucide-react';
 import type { Asset } from '../../types';
 import { BUSINESS_GROUPS, CATEGORIES, REGIONS } from '../../types';
+import AdvancedProjectSearch from '../AdvancedProjectSearch';
+import AdvancedProductSearch from '../products/AdvancedProductSearch';
+import { initialProducts } from '../products/productData';
+import { initialProjects } from '../../types';
 
 type CreateMode = 'upload' | 'placeholder';
+
+const MOCK_PROJECTS = ['Project Alpha', 'Project Beta', 'Global Skincare 2026', 'Dove Hair 2025'];
+const MOCK_PRODUCTS = ['Dove Shampoo', 'Dove Soap', 'Lifebuoy Handwash', 'Sunsilk Black'];
 
 // Subtypes that carry "(Other/Brand Say)" behaviour
 const SUBTYPES_WITH_BRAND_SAY = new Set([
@@ -91,6 +98,17 @@ export default function CreateAssetModal({ isOpen, onClose, onCreate }: CreateAs
   const [version, setVersion] = useState('0.1');
   const [errors, setErrors] = useState<string[]>([]);
 
+  const [projectSearch, setProjectSearch] = useState('');
+  const [productSearch, setProductSearch] = useState('');
+  const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [projectOpen, setProjectOpen] = useState(false);
+  const [productOpen, setProductOpen] = useState(false);
+
+  // Advanced search modals state
+  const [advancedProjectSearchOpen, setAdvancedProjectSearchOpen] = useState(false);
+  const [advancedProductSearchOpen, setAdvancedProductSearchOpen] = useState(false);
+
   // Dropdown open state
   const [bgOpen, setBgOpen] = useState(false);
   const [catOpen, setCatOpen] = useState(false);
@@ -102,6 +120,8 @@ export default function CreateAssetModal({ isOpen, onClose, onCreate }: CreateAs
   const catRef = useRef<HTMLDivElement>(null);
   const geoRef = useRef<HTMLDivElement>(null);
   const subtypeRef = useRef<HTMLDivElement>(null);
+  const projectRef = useRef<HTMLDivElement>(null);
+  const productRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -109,6 +129,8 @@ export default function CreateAssetModal({ isOpen, onClose, onCreate }: CreateAs
       if (catRef.current && !catRef.current.contains(e.target as Node)) setCatOpen(false);
       if (geoRef.current && !geoRef.current.contains(e.target as Node)) setGeoOpen(false);
       if (subtypeRef.current && !subtypeRef.current.contains(e.target as Node)) setSubtypeOpen(false);
+      if (projectRef.current && !projectRef.current.contains(e.target as Node)) setProjectOpen(false);
+      if (productRef.current && !productRef.current.contains(e.target as Node)) setProductOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -120,6 +142,7 @@ export default function CreateAssetModal({ isOpen, onClose, onCreate }: CreateAs
     setCategories([]); setGeography([]); setErrors([]);
     setOtherBrandSay(null); setRestrictUse(false); setVersion('0.1');
     setSubtypeSearch('');
+    setSelectedProjects([]); setSelectedProducts([]); setProjectSearch(''); setProductSearch('');
     onClose();
   };
 
@@ -144,6 +167,9 @@ export default function CreateAssetModal({ isOpen, onClose, onCreate }: CreateAs
 
   const toggleCategory = (cat: string) =>
     setCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
+
+  const toggleProject = (p: string) => setSelectedProjects(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]);
+  const toggleProduct = (p: string) => setSelectedProducts(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]);
 
   const handleBGSelect = (bg: string) => {
     setBusinessGroup(bg); setCategories([]); setBgOpen(false);
@@ -391,6 +417,51 @@ export default function CreateAssetModal({ isOpen, onClose, onCreate }: CreateAs
                       <p className="text-xs text-red-500 mt-1">Enter a valid decimal version (e.g. 0.1, 1.0)</p>
                     )}
                   </div>
+                  
+                  {/* Geography — optional multi-select */}
+                  <div ref={geoRef} className="relative group">
+                    <label className="block text-sm text-night mb-1.5 font-semibold cursor-help">
+                      Geography
+                    </label>
+                    <div className="absolute z-30 hidden group-hover:block w-72 p-2 mt-1 bg-white border border-pebble text-night text-xs rounded-lg shadow-lg bottom-full mb-2">
+                      <i>Specify the geographies where this document will be used and approved together. For geography specific approvals, create a copy of this asset, add the other geography and get it approved separately.</i>
+                    </div>
+                    <div className="relative">
+                      <button type="button" onClick={() => setGeoOpen(o => !o)}
+                        className="w-full flex items-center justify-between px-3.5 py-2.5 border border-pebble rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky bg-white hover:border-sky/40 transition-colors">
+                        <span className={geography.length ? 'text-night font-medium' : 'text-gray-400'}>
+                          {geography.length === 0 ? 'Select geographies...' : `${geography.length} selected`}
+                        </span>
+                        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${geoOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                      {geoOpen && (
+                        <div className="absolute top-full left-0 right-0 z-20 bg-white border border-pebble rounded-xl shadow-lg mt-1 py-1 max-h-52 overflow-y-auto">
+                          {REGIONS.map(r => {
+                            const sel = geography.includes(r);
+                            return (
+                              <button key={r} type="button" onClick={() => toggleGeo(r)}
+                                className="w-full flex items-center gap-3 px-4 py-2 hover:bg-earth text-left text-sm transition-colors">
+                                <div className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors ${sel ? 'bg-sky border-sky' : 'border-pebble'}`}>
+                                  {sel && <Check className="w-2.5 h-2.5 text-white" />}
+                                </div>
+                                <span className={sel ? 'text-night font-medium' : 'text-gray-600'}>{r}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                    {geography.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {geography.map(geo => (
+                          <span key={geo} className="inline-flex items-center gap-1 px-2.5 py-1 bg-pale border border-sky/30 rounded-full text-xs text-sky">
+                            <Globe2 className="w-3 h-3" />{geo}
+                            <button onClick={() => toggleGeo(geo)} className="ml-0.5 hover:text-red-500 transition-colors"><X className="w-3 h-3" /></button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Right Column */}
@@ -462,59 +533,92 @@ export default function CreateAssetModal({ isOpen, onClose, onCreate }: CreateAs
                     )}
                   </div>
 
-                  {/* Geography — optional multi-select */}
-                  <div ref={geoRef}>
+                  {/* Project — multi-select */}
+                  <div ref={projectRef}>
                     <label className="block text-sm text-night mb-1.5 font-semibold">
-                      Geography
+                      Project
                     </label>
                     <div className="relative">
-                      <button type="button" onClick={() => setGeoOpen(o => !o)}
-                        className="w-full flex items-center justify-between px-3.5 py-2.5 border border-pebble rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky bg-white hover:border-sky/40 transition-colors">
-                        <span className={geography.length ? 'text-night font-medium' : 'text-gray-400'}>
-                          {geography.length === 0 ? 'Select geographies...' : `${geography.length} selected`}
-                        </span>
-                        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${geoOpen ? 'rotate-180' : ''}`} />
-                      </button>
-                      {geoOpen && (
+                      <div className="flex items-center justify-between px-3.5 py-2.5 border border-pebble rounded-xl text-sm focus-within:ring-2 focus-within:ring-sky bg-white transition-colors">
+                        <input type="text" value={projectSearch} onChange={e => { setProjectSearch(e.target.value); setProjectOpen(true); }}
+                          onFocus={() => setProjectOpen(true)}
+                          placeholder={selectedProjects.length ? `${selectedProjects.length} selected...` : "Search projects..."}
+                          className="flex-1 bg-transparent text-night focus:outline-none" />
+                        <button type="button" onClick={() => setAdvancedProjectSearchOpen(true)} className="p-1 hover:bg-earth rounded-md transition-colors" title="Advanced Search">
+                          <Binoculars className="w-4 h-4 text-sky" />
+                        </button>
+                      </div>
+                      {projectOpen && (
                         <div className="absolute top-full left-0 right-0 z-20 bg-white border border-pebble rounded-xl shadow-lg mt-1 py-1 max-h-52 overflow-y-auto">
-                          {REGIONS.map(r => {
-                            const sel = geography.includes(r);
+                          {MOCK_PROJECTS.filter(p => p.toLowerCase().includes(projectSearch.toLowerCase())).map(p => {
+                            const sel = selectedProjects.includes(p);
                             return (
-                              <button key={r} type="button" onClick={() => toggleGeo(r)}
+                              <button key={p} type="button" onClick={() => toggleProject(p)}
                                 className="w-full flex items-center gap-3 px-4 py-2 hover:bg-earth text-left text-sm transition-colors">
                                 <div className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors ${sel ? 'bg-sky border-sky' : 'border-pebble'}`}>
                                   {sel && <Check className="w-2.5 h-2.5 text-white" />}
                                 </div>
-                                <span className={sel ? 'text-night font-medium' : 'text-gray-600'}>{r}</span>
+                                <span className={sel ? 'text-night font-medium' : 'text-gray-600'}>{p}</span>
                               </button>
                             );
                           })}
                         </div>
                       )}
                     </div>
-                    {geography.length > 0 && (
+                    {selectedProjects.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-2">
-                        {geography.map(geo => (
-                          <span key={geo} className="inline-flex items-center gap-1 px-2.5 py-1 bg-pale border border-sky/30 rounded-full text-xs text-sky">
-                            <Globe2 className="w-3 h-3" />{geo}
-                            <button onClick={() => toggleGeo(geo)} className="ml-0.5 hover:text-red-500 transition-colors"><X className="w-3 h-3" /></button>
+                        {selectedProjects.map(p => (
+                          <span key={p} className="inline-flex items-center gap-1 px-2.5 py-1 bg-pale border border-sky/30 rounded-full text-xs text-sky">
+                            {p}
+                            <button onClick={() => toggleProject(p)} className="ml-0.5 hover:text-red-500 transition-colors"><X className="w-3 h-3" /></button>
                           </span>
                         ))}
                       </div>
                     )}
                   </div>
 
-                  {/* Restrict Use toggle */}
-                  <div className="flex items-center justify-between py-2.5 px-4 bg-earth rounded-xl border border-pebble">
-                    <div>
-                      <div className="text-sm text-night font-semibold">Restrict Use?</div>
-                      <div className="text-xs text-gray-500 mt-0.5">Limit usage to authorised users only</div>
+                  {/* Products — multi-select */}
+                  <div ref={productRef}>
+                    <label className="block text-sm text-night mb-1.5 font-semibold">
+                      Products
+                    </label>
+                    <div className="relative">
+                      <div className="flex items-center justify-between px-3.5 py-2.5 border border-pebble rounded-xl text-sm focus-within:ring-2 focus-within:ring-sky bg-white transition-colors">
+                        <input type="text" value={productSearch} onChange={e => { setProductSearch(e.target.value); setProductOpen(true); }}
+                          onFocus={() => setProductOpen(true)}
+                          placeholder={selectedProducts.length ? `${selectedProducts.length} selected...` : "Search products..."}
+                          className="flex-1 bg-transparent text-night focus:outline-none" />
+                        <button type="button" onClick={() => setAdvancedProductSearchOpen(true)} className="p-1 hover:bg-earth rounded-md transition-colors" title="Advanced Search">
+                          <Binoculars className="w-4 h-4 text-sky" />
+                        </button>
+                      </div>
+                      {productOpen && (
+                        <div className="absolute top-full left-0 right-0 z-20 bg-white border border-pebble rounded-xl shadow-lg mt-1 py-1 max-h-52 overflow-y-auto">
+                          {MOCK_PRODUCTS.filter(p => p.toLowerCase().includes(productSearch.toLowerCase())).map(p => {
+                            const sel = selectedProducts.includes(p);
+                            return (
+                              <button key={p} type="button" onClick={() => toggleProduct(p)}
+                                className="w-full flex items-center gap-3 px-4 py-2 hover:bg-earth text-left text-sm transition-colors">
+                                <div className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors ${sel ? 'bg-sky border-sky' : 'border-pebble'}`}>
+                                  {sel && <Check className="w-2.5 h-2.5 text-white" />}
+                                </div>
+                                <span className={sel ? 'text-night font-medium' : 'text-gray-600'}>{p}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                    <button type="button" role="switch" aria-checked={restrictUse}
-                      onClick={() => setRestrictUse(v => !v)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-sky focus:ring-offset-1 ${restrictUse ? 'bg-sky' : 'bg-gray-300'}`}>
-                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${restrictUse ? 'translate-x-6' : 'translate-x-1'}`} />
-                    </button>
+                    {selectedProducts.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {selectedProducts.map(p => (
+                          <span key={p} className="inline-flex items-center gap-1 px-2.5 py-1 bg-pale border border-sky/30 rounded-full text-xs text-sky">
+                            {p}
+                            <button onClick={() => toggleProduct(p)} className="ml-0.5 hover:text-red-500 transition-colors"><X className="w-3 h-3" /></button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -550,6 +654,39 @@ export default function CreateAssetModal({ isOpen, onClose, onCreate }: CreateAs
           </div>
         </div>
       </div>
+      
+      {/* Modals */}
+      <AdvancedProjectSearch 
+        isOpen={advancedProjectSearchOpen}
+        onClose={(selected) => {
+          setAdvancedProjectSearchOpen(false);
+          if (selected.length) {
+            setSelectedProjects(prev => {
+              const next = new Set(prev);
+              selected.forEach(p => next.add(p.name)); // Store project name like the mock list
+              return Array.from(next);
+            });
+          }
+        }}
+        selectionMode="multi"
+        initialProjects={initialProjects}
+      />
+      
+      <AdvancedProductSearch 
+        isOpen={advancedProductSearchOpen}
+        onClose={(selected) => {
+          setAdvancedProductSearchOpen(false);
+          if (selected.length) {
+            setSelectedProducts(prev => {
+              const next = new Set(prev);
+              selected.forEach(p => next.add(p.name)); // Store product name
+              return Array.from(next);
+            });
+          }
+        }}
+        selectionMode="multi"
+        initialProducts={initialProducts}
+      />
     </div>
   );
 }
