@@ -152,6 +152,7 @@ export default function LinkedAssetsTab() {
   const [assetColumns, setAssetColumns] = useState(ASSET_COLUMNS);
   const [colConfigOpen, setColConfigOpen] = useState(false);
   const [addAssetMenuOpen, setAddAssetMenuOpen] = useState(false);
+  const [assetsList, setAssetsList] = useState<Asset[]>(mockAssets);
 
   const isColVisible = (id: string) => assetColumns.find(c => c.id === id)?.visible !== false;
 
@@ -159,14 +160,38 @@ export default function LinkedAssetsTab() {
     setAssetColumns(prev => prev.map(c => c.id === id ? { ...c, visible: !c.visible } : c));
   };
 
-  const assetTypes = ['All', ...Array.from(new Set(mockAssets.map(a => a.type)))];
+  const assetTypes = ['All', ...Array.from(new Set(assetsList.map(a => a.type)))];
 
-  const filtered = mockAssets.filter(a => {
+  const filtered = assetsList.filter(a => {
     const matchesSearch = a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       a.assetNumber.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = filterType === 'All' || a.type === filterType;
     return matchesSearch && matchesType;
   });
+
+  const handleUnlink = (e: React.MouseEvent, assetId: string) => {
+    e.stopPropagation();
+    setAssetsList(prev => prev.filter(a => a.id !== assetId));
+    if (selectedAsset?.id === assetId) setSelectedAsset(null);
+    alert('Asset unlinked successfully.');
+  };
+
+  const handleDownload = (e: React.MouseEvent, asset: Asset) => {
+    e.stopPropagation();
+    const blob = new Blob([`Mock data for ${asset.name}`], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${asset.name.replace(/\s+/g, '_')}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const handleOpen = (e: React.MouseEvent, asset: Asset) => {
+    e.stopPropagation();
+    alert(`Opening asset: ${asset.name} in Asset Workspace...`);
+  };
 
   return (
         <div className="p-0 h-full flex flex-col overflow-hidden no-scrollbar">
@@ -336,13 +361,13 @@ export default function LinkedAssetsTab() {
                     {/* US-M1-109: Asset click handler actions */}
                     <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
-                        <button title="Open asset" className="p-1.5 hover:bg-pale rounded-lg text-gray-400 hover:text-sky transition-colors focus:outline-none focus:ring-2 focus:ring-sky">
+                        <button title="Open asset" onClick={(e) => handleOpen(e, asset)} className="p-1.5 hover:bg-pale rounded-lg text-gray-400 hover:text-sky transition-colors focus:outline-none focus:ring-2 focus:ring-sky">
                           <ExternalLink className="w-3.5 h-3.5" />
                         </button>
-                        <button title="Download" className="p-1.5 hover:bg-earth rounded-lg text-gray-400 hover:text-sky transition-colors">
+                        <button title="Download" onClick={(e) => handleDownload(e, asset)} className="p-1.5 hover:bg-earth rounded-lg text-gray-400 hover:text-sky transition-colors">
                           <Download className="w-3.5 h-3.5" />
                         </button>
-                        <button title="Unlink" className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 transition-colors">
+                        <button title="Unlink" onClick={(e) => handleUnlink(e, asset.id)} className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 transition-colors">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                         <ChevronRight className={`w-3.5 h-3.5 text-gray-400 transition-transform ${selectedAsset?.id === asset.id ? 'rotate-90' : ''}`} />
@@ -361,13 +386,13 @@ export default function LinkedAssetsTab() {
                             {/* {asset.linkedClaim && <div><div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Linked Claim</div><button className="text-sky hover:underline">{asset.linkedClaim}</button></div>} */}
                           </div>
                           <div className="flex gap-2">
-                            <button className="flex items-center gap-1.5 px-3 py-1.5 bg-sky text-white rounded-lg text-xs hover:bg-dark">
+                            <button onClick={(e) => handleOpen(e, asset)} className="flex items-center gap-1.5 px-3 py-1.5 bg-sky text-white rounded-lg text-xs hover:bg-dark">
                               <ExternalLink className="w-3 h-3" /> Open Asset
                             </button>
-                            <button className="flex items-center gap-1.5 px-3 py-1.5 border border-pebble text-night rounded-lg text-xs hover:bg-earth">
+                            <button onClick={(e) => handleDownload(e, asset)} className="flex items-center gap-1.5 px-3 py-1.5 border border-pebble text-night rounded-lg text-xs hover:bg-earth">
                               <Download className="w-3 h-3" /> Download
                             </button>
-                            <button className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 text-red-600 rounded-lg text-xs hover:bg-red-50">
+                            <button onClick={(e) => handleUnlink(e, asset.id)} className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 text-red-600 rounded-lg text-xs hover:bg-red-50">
                               <Trash2 className="w-3 h-3" /> Unlink
                             </button>
                           </div>
