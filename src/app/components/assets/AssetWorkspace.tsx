@@ -7,6 +7,7 @@ import LifecycleTransitionModal from './LifecycleTransitionModal';
 import ApprovalWorkflowModal from './ApprovalWorkflowModal';
 import ApprovalWorkflowPanel from './ApprovalWorkflowPanel';
 import UploadDocumentModal from '../documents/UploadDocumentModal';
+import CopyAssetModal from './CopyAssetModal';
 
 type RenditionAnnotation = {
   id: string;
@@ -38,6 +39,7 @@ interface AssetWorkspaceProps {
   onNavigateToProject?: (projectId: string) => void;
   onNavigateToClaim?: (claimId: string) => void;
   onAssetSelect?: (asset: Asset) => void;
+  onAssetCreate?: (asset: Asset) => void;
 }
 
 const ORDERED_ASSET_SECTIONS = [
@@ -61,6 +63,7 @@ export default function AssetWorkspace({
   onNavigateToProject,
   onNavigateToClaim,
   onAssetSelect,
+  onAssetCreate,
 }: AssetWorkspaceProps) {
   const [isFavorite, setIsFavorite] = useState(asset.isFavorite);
   const [showActionsMenu, setShowActionsMenu] = useState(false);
@@ -68,6 +71,7 @@ export default function AssetWorkspace({
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [showSPARCi, setShowSPARCi] = useState(false);
   const [showLifecycleModal, setShowLifecycleModal] = useState(false);
+  const [showCopyModal, setShowCopyModal] = useState(false);
   const [lifecycleTarget, setLifecycleTarget] = useState<AssetLifecycle>('Assessed');
   const [notUsedReason, setNotUsedReason] = useState('');
   // Comment state (F04)
@@ -507,12 +511,22 @@ export default function AssetWorkspace({
                     </div>
                     <p className="text-sm text-gray-600">No additional notes recorded.</p>
                   </div>
+                  {asset.otherBrandSay && (
+                    <div className="mt-4 bg-sky/10 border border-sky/20 rounded-lg p-3 text-sm text-sky font-medium">
+                      This field is mandatory to move this asset to an assessed state except if "Other Say" field is Yes.
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="text-center py-10">
                   <Shield className="w-12 h-12 text-gray-200 mx-auto mb-3 opacity-30" />
                   <p className="text-sm font-medium text-gray-500">No risk assessment completed</p>
                   <p className="text-xs text-gray-400 mt-1">Complete department risk records first</p>
+                  {asset.otherBrandSay && (
+                    <div className="mt-4 mx-auto max-w-sm bg-sky/10 border border-sky/20 rounded-lg p-3 text-sm text-sky font-medium text-center">
+                      This field is mandatory to move this asset to an assessed state except if "Other Say" field is Yes.
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1163,6 +1177,12 @@ export default function AssetWorkspace({
                     <button className="w-full px-4 py-2 text-sm text-night hover:bg-earth text-left transition-colors">
                       Reclassify
                     </button>
+                    <button 
+                      onClick={() => { setShowActionsMenu(false); setShowCopyModal(true); }}
+                      className="w-full px-4 py-2 text-sm text-night hover:bg-earth text-left transition-colors"
+                    >
+                      Copy Asset
+                    </button>
                     {asset.lifecycleStage !== 'Not Used' && (
                       <button
                         onClick={() => { setShowActionsMenu(false); setLifecycleTarget('Not Used'); setShowLifecycleModal(true); }}
@@ -1230,6 +1250,12 @@ export default function AssetWorkspace({
               {asset.isPlaceholder && (
                 <span className="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-xs flex-shrink-0">
                   Placeholder
+                </span>
+              )}
+              {asset.copiedFromAssetId && (
+                <span className="px-2.5 py-1 bg-purple-50 text-purple-700 border border-purple-200 rounded-full text-xs flex-shrink-0 flex items-center gap-1">
+                  <Link2 className="w-3 h-3" />
+                  Copied from: {asset.copiedFromAssetId}
                 </span>
               )}
             </div>
@@ -1786,6 +1812,19 @@ export default function AssetWorkspace({
           onCreate={(doc) => {
             setLocalSEDocs(prev => [...prev, doc]);
             setSeModalOpen(false);
+          }}
+        />
+      )}
+
+      {/* Copy Asset Modal */}
+      {showCopyModal && (
+        <CopyAssetModal
+          isOpen={showCopyModal}
+          onClose={() => setShowCopyModal(false)}
+          sourceAsset={asset}
+          onCopy={(newAsset) => {
+            if (onAssetCreate) onAssetCreate(newAsset);
+            setShowCopyModal(false);
           }}
         />
       )}

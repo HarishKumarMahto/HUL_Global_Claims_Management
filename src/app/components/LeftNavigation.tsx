@@ -128,6 +128,11 @@ const ASSET_VIEWS = [
     label: "Recent",
     icon: <Clock className="w-4 h-4" />,
   },
+  {
+    id: "Other Say / Brand Say B&W",
+    label: "Other Say B&W",
+    icon: <Star className="w-4 h-4" />,
+  },
 ];
 
 const DOCUMENT_VIEWS = [

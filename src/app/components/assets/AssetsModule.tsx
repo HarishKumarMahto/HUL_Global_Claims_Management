@@ -115,6 +115,12 @@ export default function AssetsModule({
   const [subtypeFilter, setSubtypeFilter] = useState<AssetSubtype[]>([]);
   const [businessGroupFilter, setBusinessGroupFilter] = useState<string[]>([]);
   const [geographyFilter, setGeographyFilter] = useState<string[]>([]);
+  const [cbpFilter, setCbpFilter] = useState<string[]>([]);
+  
+  // Customizable quick filters
+  const [activeQuickFilters, setActiveQuickFilters] = useState<string[]>(['Lifecycle State', 'Subtype', 'Business Group', 'Geography']);
+  const [isQuickFilterMenuOpen, setIsQuickFilterMenuOpen] = useState(false);
+  const AVAILABLE_QUICK_FILTERS = ['Lifecycle State', 'Subtype', 'Business Group', 'Category', 'Geography', 'Consumer Benefit Platform', 'Brand', 'Format', 'Product', 'Language', 'File Format', 'Related Projects', 'Created By'];
 
   // Saved Views state
   const [savedViews, setSavedViews] = useState<AssetSavedView[]>([]);
@@ -172,6 +178,9 @@ export default function AssetsModule({
       const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
       return diffDays <= 30;
     }
+    if (activeLibraryView === 'Other Say / Brand Say B&W') {
+      return asset.otherBrandSay === true;
+    }
     return true; // All Assets
   });
 
@@ -198,11 +207,15 @@ export default function AssetsModule({
     const matchesGeography = geographyFilter.length === 0 ||
       geographyFilter.some(geo => asset.geography.includes(geo));
 
-    return matchesSearch && matchesLifecycle && matchesSubtype && matchesBusinessGroup && matchesGeography;
+    // CBP filter
+    const matchesCbp = cbpFilter.length === 0 || 
+      (asset.consumerBenefitPlatform && cbpFilter.some(cbp => asset.consumerBenefitPlatform?.includes(cbp)));
+
+    return matchesSearch && matchesLifecycle && matchesSubtype && matchesBusinessGroup && matchesGeography && matchesCbp;
   });
 
   const activeFilterCount =
-    lifecycleFilter.length + subtypeFilter.length + businessGroupFilter.length + geographyFilter.length;
+    lifecycleFilter.length + subtypeFilter.length + businessGroupFilter.length + geographyFilter.length + cbpFilter.length;
 
   // Reset to page 1 when filters change
   const totalPages = Math.max(1, Math.ceil(filteredAssets.length / PAGE_SIZE));
@@ -221,6 +234,7 @@ export default function AssetsModule({
     setSubtypeFilter([]);
     setBusinessGroupFilter([]);
     setGeographyFilter([]);
+    setCbpFilter([]);
     setSearchQuery('');
     setActiveViewId(null);
   };
@@ -310,21 +324,25 @@ export default function AssetsModule({
           </div>
 
           {/* Quick Filters */}
-          <QuickFilterDropdown<AssetLifecycle>
-            label="Lifecycle State"
-            options={LIFECYCLE_OPTIONS}
-            selected={lifecycleFilter}
-            onToggle={v => setLifecycleFilter(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v])}
-            onClear={() => setLifecycleFilter([])}
-          />
-          <QuickFilterDropdown<AssetSubtype>
-            label="Subtype"
-            options={SUBTYPE_OPTIONS}
-            selected={subtypeFilter}
-            onToggle={v => setSubtypeFilter(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v])}
-            onClear={() => setSubtypeFilter([])}
-          />
-          {uniqueBusinessGroups.length > 0 && (
+          {activeQuickFilters.includes('Lifecycle State') && (
+            <QuickFilterDropdown<AssetLifecycle>
+              label="Lifecycle State"
+              options={LIFECYCLE_OPTIONS}
+              selected={lifecycleFilter}
+              onToggle={v => setLifecycleFilter(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v])}
+              onClear={() => setLifecycleFilter([])}
+            />
+          )}
+          {activeQuickFilters.includes('Subtype') && (
+            <QuickFilterDropdown<AssetSubtype>
+              label="Subtype"
+              options={SUBTYPE_OPTIONS}
+              selected={subtypeFilter}
+              onToggle={v => setSubtypeFilter(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v])}
+              onClear={() => setSubtypeFilter([])}
+            />
+          )}
+          {activeQuickFilters.includes('Business Group') && uniqueBusinessGroups.length > 0 && (
             <QuickFilterDropdown<string>
               label="Business Group"
               options={uniqueBusinessGroups}
@@ -333,7 +351,7 @@ export default function AssetsModule({
               onClear={() => setBusinessGroupFilter([])}
             />
           )}
-          {uniqueGeographies.length > 0 && (
+          {activeQuickFilters.includes('Geography') && uniqueGeographies.length > 0 && (
             <QuickFilterDropdown<string>
               label="Geography"
               options={uniqueGeographies}
@@ -342,6 +360,57 @@ export default function AssetsModule({
               onClear={() => setGeographyFilter([])}
             />
           )}
+          {activeQuickFilters.includes('Consumer Benefit Platform') && (
+            <QuickFilterDropdown<string>
+              label="CBP"
+              options={['Healthy Hair', 'Skin Brightening', 'Deep Clean', '48h Protection', 'Stain Removal']}
+              selected={cbpFilter}
+              onToggle={v => setCbpFilter(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v])}
+              onClear={() => setCbpFilter([])}
+            />
+          )}
+
+          {/* Add Quick Filters Button */}
+          <div className="relative">
+            <button
+              onClick={() => setIsQuickFilterMenuOpen(!isQuickFilterMenuOpen)}
+              className="flex items-center gap-1.5 px-3 py-2 border border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-sky hover:text-sky transition-colors whitespace-nowrap"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Customize Filters
+            </button>
+            {isQuickFilterMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setIsQuickFilterMenuOpen(false)}></div>
+                <div className="absolute left-0 top-full mt-1 bg-white border border-pebble rounded-xl shadow-xl z-40 min-w-[200px] overflow-hidden">
+                  <div className="px-3 py-2 border-b border-pebble bg-pale">
+                    <span className="text-xs font-semibold text-night">Visible Quick Filters</span>
+                  </div>
+                  <div className="max-h-60 overflow-y-auto py-1">
+                    {AVAILABLE_QUICK_FILTERS.map(filter => {
+                      const isActive = activeQuickFilters.includes(filter);
+                      return (
+                        <button
+                          key={filter}
+                          onClick={() => {
+                            setActiveQuickFilters(prev => 
+                              isActive ? prev.filter(f => f !== filter) : [...prev, filter]
+                            );
+                          }}
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left transition-colors hover:bg-earth ${isActive ? 'text-night' : 'text-gray-500'}`}
+                        >
+                          <div className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors ${isActive ? 'bg-sky border-sky' : 'border-pebble'}`}>
+                            {isActive && <Check className="w-2.5 h-2.5 text-white" />}
+                          </div>
+                          {filter}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
 
           {/* Result count + Clear all + Saved Views */}
           <div className="flex items-center gap-2 ml-auto text-xs text-gray-500">

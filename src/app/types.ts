@@ -1509,6 +1509,10 @@ export const SUPPORT_STRATEGY_EDIT_ROLES: UserRole[] = ['Claims Lead', 'Substant
 export const canEditSupportStrategy = (role: UserRole): boolean =>
   SUPPORT_STRATEGY_EDIT_ROLES.includes(role) || (role as string) === 'TPL';
 
+export const canCopyExtendedAssetData = (role: UserRole): boolean =>
+  // Marketing/Project Lead can only copy claims. Claims Lead/R&D can copy all.
+  !['Project Creator', 'Viewer'].includes(role);
+
 // Tasks: 8 total (to test the max-6 limit), all assigned to Sarah Johnson
 export const mockHomeTasks: HomeTask[] = [
   {
@@ -1942,6 +1946,9 @@ export interface Asset {
   aiRecommendedProducts?: Array<{
     id: string; name: string; context: string; accepted: boolean | null;
   }>;
+  otherBrandSay?: boolean;
+  consumerBenefitPlatform?: string[];
+  substantiationEvidence?: string[];
   whereUsed: {
     projectIds: string[];
     claimIds: string[];
@@ -1950,6 +1957,8 @@ export interface Asset {
   auditLog: Array<{
     id: string; action: string; actor: string; timestamp: string; details?: string;
   }>;
+  copiedFromAssetId?: string;
+  supportStrategy?: string;
 }
 
 // Asset subtype list for dropdowns
@@ -2246,3 +2255,26 @@ export const mockAssets: Asset[] = [
     ],
   },
 ];
+
+export const CONSUMER_BENEFIT_PLATFORMS: Record<string, string[]> = {
+  'Beauty & Wellbeing_Hair Care': ['Healthy Hair', 'Scalp Care', 'Color Protection', 'Damage Repair', 'Volume & Bounce'],
+  'Beauty & Wellbeing_Skin Care': ['Anti-Aging', 'Deep Hydration', 'Acne Control', 'Skin Brightening', 'Sun Protection'],
+  'Personal Care_Skin Cleansing': ['Deep Clean', 'Antibacterial', 'Moisturizing', 'Gentle Care'],
+  'Personal Care_Oral Care': ['Cavity Protection', 'Teeth Whitening', 'Fresh Breath', 'Gum Health'],
+  'Personal Care_Deodorants': ['48h Protection', 'Invisible/No Stains', 'Fresh Fragrance', 'Sensitive Skin'],
+  'Home Care_Fabric Cleaning': ['Stain Removal', 'Color Care', 'Fabric Softness', 'Long-lasting Fragrance'],
+  'Home Care_Home & Hygiene': ['99.9% Germ Kill', 'Surface Shine', 'Odor Elimination'],
+  'Nutrition_Scratch Cooking Aids': ['Authentic Taste', 'Rich Flavor', 'Natural Ingredients'],
+  'Nutrition_Dressings': ['Low Fat', 'Rich Creaminess', 'Vegan Friendly'],
+  'Ice Cream_Ice Cream': ['Indulgence', 'Low Calorie', 'Dairy Free', 'Rich Chocolate'],
+};
+
+export const MOCK_SUBSTANTIATION_EVIDENCE = [
+  'Clinical Study Report 2024-A',
+  'Consumer Panel Results (n=500)',
+  'In-Vitro Lab Test 403-B',
+  'Dermatological Safety Assessment',
+  'Competitor Benchmarking Study',
+  'Ingredient Efficacy Dossier',
+  'Other Say Demo Guidelines',
+];

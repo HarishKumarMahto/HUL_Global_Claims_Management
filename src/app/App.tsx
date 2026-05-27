@@ -2291,6 +2291,10 @@ export default function App() {
                   );
                   setSelectedAsset(updated);
                 }}
+                onAssetCreate={(newAsset) => {
+                  setAssets((prev) => [newAsset, ...prev]);
+                  setSelectedAsset(newAsset);
+                }}
                 activeSection={activeAssetSection}
                 onSectionChange={setActiveAssetSection}
                 onAssetSelect={setSelectedAsset}

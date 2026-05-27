@@ -5,32 +5,12 @@ import { BUSINESS_GROUPS, CATEGORIES, REGIONS } from '../../types';
 import AdvancedProjectSearch from '../AdvancedProjectSearch';
 import AdvancedProductSearch from '../products/AdvancedProductSearch';
 import { initialProducts } from '../products/productData';
-import { initialProjects } from '../../types';
+import { initialProjects, CONSUMER_BENEFIT_PLATFORMS, MOCK_SUBSTANTIATION_EVIDENCE } from '../../types';
 
 type CreateMode = 'upload' | 'placeholder';
 
 const MOCK_PROJECTS = ['Project Alpha', 'Project Beta', 'Global Skincare 2026', 'Dove Hair 2025'];
 const MOCK_PRODUCTS = ['Dove Shampoo', 'Dove Soap', 'Lifebuoy Handwash', 'Sunsilk Black'];
-
-// Subtypes that carry "(Other/Brand Say)" behaviour
-const SUBTYPES_WITH_BRAND_SAY = new Set([
-  'Demo (Other/Brand Say)',
-  'Events Report',
-  'External Trainings',
-  'Image Claim',
-  'Master Text',
-  'Medical Marketing (Other/Brand Say)',
-  'Online Story',
-  'PDV',
-  'Press Release (Other/Brand Say)',
-  'Print AD / KV',
-  'Social Media (Other/Brand Say)',
-  'Social Media - Always On (Other/Brand Say)',
-  'Social Media - Brand Content (Other/Brand Say)',
-  'Social Media - Technology Story (Other/Brand Say)',
-  'Social Media - User Generated Content (Other/Brand Say)',
-  'Trade Story (Other/Brand Say)',
-]);
 
 // Full subtype list (alphabetical)
 const ALL_SUBTYPES = [
@@ -42,31 +22,30 @@ const ALL_SUBTYPES = [
   'B&W - Tailored Global Asset',
   'Briefing',
   'Concepts',
-  'Demo (Other/Brand Say)',
+  'Demo',
   'DU Carton',
   'Events Report',
   'External Trainings',
   'Image Claim',
   'Master Text',
-  'Medical Marketing (Other/Brand Say)',
+  'Medical Marketing',
   'Online Story',
   'PDV',
   'Playbook/Product Guide',
-  'Press Release (Other/Brand Say)',
+  'Press Release',
   'Print AD / KV',
   'Social First',
-  'Social Media (Other/Brand Say)',
-  'Social Media - Always On (Other/Brand Say)',
-  'Social Media - Brand Content (Other/Brand Say)',
-  'Social Media - Technology Story (Other/Brand Say)',
-  'Social Media - User Generated Content (Other/Brand Say)',
+  'Social Media',
+  'Social Media - Always On',
+  'Social Media - Brand Content',
+  'Social Media - Technology Story',
+  'Social Media - User Generated Content',
   'Storyboard',
-  'Trade Story (Other/Brand Say)',
+  'Trade Story',
   'TVC',
 ];
 
-// Strips "(Other/Brand Say)" for display
-const displayLabel = (s: string) => s.replace(' (Other/Brand Say)', '');
+const displayLabel = (s: string) => s;
 
 // Session-scoped recently used list
 let _recentSubtypes: string[] = [];
@@ -109,12 +88,17 @@ export default function CreateAssetModal({ isOpen, onClose, onCreate }: CreateAs
   const [advancedProjectSearchOpen, setAdvancedProjectSearchOpen] = useState(false);
   const [advancedProductSearchOpen, setAdvancedProductSearchOpen] = useState(false);
 
+  const [consumerBenefitPlatform, setConsumerBenefitPlatform] = useState<string[]>([]);
+  const [substantiationEvidence, setSubstantiationEvidence] = useState<string[]>([]);
+  
   // Dropdown open state
   const [bgOpen, setBgOpen] = useState(false);
   const [catOpen, setCatOpen] = useState(false);
   const [geoOpen, setGeoOpen] = useState(false);
   const [subtypeOpen, setSubtypeOpen] = useState(false);
   const [subtypeSearch, setSubtypeSearch] = useState('');
+  const [cbpOpen, setCbpOpen] = useState(false);
+  const [subEvidenceOpen, setSubEvidenceOpen] = useState(false);
 
   const bgRef = useRef<HTMLDivElement>(null);
   const catRef = useRef<HTMLDivElement>(null);
@@ -122,6 +106,8 @@ export default function CreateAssetModal({ isOpen, onClose, onCreate }: CreateAs
   const subtypeRef = useRef<HTMLDivElement>(null);
   const projectRef = useRef<HTMLDivElement>(null);
   const productRef = useRef<HTMLDivElement>(null);
+  const cbpRef = useRef<HTMLDivElement>(null);
+  const subEvidenceRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -131,6 +117,8 @@ export default function CreateAssetModal({ isOpen, onClose, onCreate }: CreateAs
       if (subtypeRef.current && !subtypeRef.current.contains(e.target as Node)) setSubtypeOpen(false);
       if (projectRef.current && !projectRef.current.contains(e.target as Node)) setProjectOpen(false);
       if (productRef.current && !productRef.current.contains(e.target as Node)) setProductOpen(false);
+      if (cbpRef.current && !cbpRef.current.contains(e.target as Node)) setCbpOpen(false);
+      if (subEvidenceRef.current && !subEvidenceRef.current.contains(e.target as Node)) setSubEvidenceOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -143,6 +131,7 @@ export default function CreateAssetModal({ isOpen, onClose, onCreate }: CreateAs
     setOtherBrandSay(null); setRestrictUse(false); setVersion('0.1');
     setSubtypeSearch('');
     setSelectedProjects([]); setSelectedProducts([]); setProjectSearch(''); setProductSearch('');
+    setConsumerBenefitPlatform([]); setSubstantiationEvidence([]);
     onClose();
   };
 
@@ -165,24 +154,41 @@ export default function CreateAssetModal({ isOpen, onClose, onCreate }: CreateAs
   const toggleGeo = (geo: string) =>
     setGeography(prev => prev.includes(geo) ? prev.filter(g => g !== geo) : [...prev, geo]);
 
-  const toggleCategory = (cat: string) =>
-    setCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
+  const toggleCategory = (cat: string) => {
+    setCategories(prev => {
+      const next = prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat];
+      setConsumerBenefitPlatform([]); // Reset CBP when category changes
+      return next;
+    });
+  };
 
   const toggleProject = (p: string) => setSelectedProjects(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]);
   const toggleProduct = (p: string) => setSelectedProducts(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]);
+  const toggleCbp = (p: string) => setConsumerBenefitPlatform(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]);
+  const toggleSubEvidence = (p: string) => setSubstantiationEvidence(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]);
 
   const handleBGSelect = (bg: string) => {
-    setBusinessGroup(bg); setCategories([]); setBgOpen(false);
+    setBusinessGroup(bg); setCategories([]); setConsumerBenefitPlatform([]); setBgOpen(false);
   };
 
   const handleSubtypeSelect = (s: string) => {
     setSubtype(s); setSubtypeOpen(false); setSubtypeSearch('');
     pushRecent(s);
-    if (!SUBTYPES_WITH_BRAND_SAY.has(s)) setOtherBrandSay(null);
+    if (!SUBTYPES_WITH_BRAND_SAY.includes(s)) {
+      setOtherBrandSay(null);
+      setConsumerBenefitPlatform([]);
+      setSubstantiationEvidence([]);
+    }
   };
 
   const availableCategories = businessGroup ? (CATEGORIES[businessGroup] || []) : [];
-  const isSubtypeBrandSay = subtype && SUBTYPES_WITH_BRAND_SAY.has(subtype);
+  
+  // Calculate available CBPs based on selected BG and Categories
+  const availableCBPs = businessGroup && categories.length > 0 
+    ? categories.flatMap(cat => CONSUMER_BENEFIT_PLATFORMS[`${businessGroup}_${cat}`] || [])
+    : [];
+
+  const isSubtypeBrandSay = subtype && SUBTYPES_WITH_BRAND_SAY.includes(subtype);
   const validateVersion = (v: string) => /^\d+\.\d+$/.test(v);
 
   // Subtype filtering
@@ -202,6 +208,14 @@ export default function CreateAssetModal({ isOpen, onClose, onCreate }: CreateAs
     if (isSubtypeBrandSay && otherBrandSay === null) errs.push('Please specify Other / Brand Say?');
     if (!validateVersion(version)) errs.push('Version must be in decimal format (e.g. 0.1, 1.0)');
     if (mode === 'upload' && !uploadedFile) errs.push('File upload is required');
+    
+    // US-M10-F14 Validations
+    if (isSubtypeBrandSay && otherBrandSay === true) {
+      if (selectedProducts.length === 0) errs.push('At least one Related Product is mandatory for Other Say / Brand Say.');
+      if (consumerBenefitPlatform.length === 0) errs.push('Consumer Benefit Platform (CBP) is mandatory for Other Say / Brand Say.');
+      if (subtype === 'Demo' && substantiationEvidence.length === 0) errs.push('Substantiation Evidence is mandatory for Demo subtype when Other Say is Yes.');
+    }
+
     if (errs.length > 0) { setErrors(errs); return; }
 
     if (mode === 'upload' && Math.random() > 0.8) {
@@ -219,9 +233,12 @@ export default function CreateAssetModal({ isOpen, onClose, onCreate }: CreateAs
       lifecycleStage: 'Proposed',
       createdAt: now, modifiedAt: now, createdBy: 'Current User',
       isFavorite: false,
-      linkedClaimIds: [], linkedProjectIds: [], relatedAssetIds: [],
+      linkedClaimIds: [], linkedProjectIds: selectedProjects, relatedAssetIds: [],
       anchors: [], assetLevelComments: [], approvalWorkflow: null,
       currentVersionNumber: version,
+      otherBrandSay: otherBrandSay === true,
+      consumerBenefitPlatform: consumerBenefitPlatform,
+      substantiationEvidence: substantiationEvidence,
       auditLog: [{ id: `audit-${Date.now()}`, timestamp: now, actor: 'Current User', action: mode === 'placeholder' ? 'Created placeholder asset' : 'Created asset with upload' }],
     };
     onCreate(newAsset);
@@ -620,6 +637,95 @@ export default function CreateAssetModal({ isOpen, onClose, onCreate }: CreateAs
                       </div>
                     )}
                   </div>
+
+                  {/* Consumer Benefit Platform (CBP) — conditionally visible and mandatory */}
+                  {isSubtypeBrandSay && otherBrandSay === true && (
+                    <div ref={cbpRef}>
+                      <label className="block text-sm text-night mb-1.5 font-semibold">
+                        Consumer Benefit Platform (CBP) <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <button type="button" onClick={() => availableCBPs.length > 0 && setCbpOpen(o => !o)} disabled={availableCBPs.length === 0}
+                          className={`w-full flex items-center justify-between px-3.5 py-2.5 border border-pebble rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky bg-white transition-colors ${availableCBPs.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:border-sky/40'}`}>
+                          <span className={consumerBenefitPlatform.length ? 'text-night font-medium' : 'text-gray-400'}>
+                            {consumerBenefitPlatform.length === 0 ? (availableCBPs.length > 0 ? 'Select CBP...' : 'Select BG & Category first...') : `${consumerBenefitPlatform.length} selected`}
+                          </span>
+                          <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${cbpOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                        {cbpOpen && availableCBPs.length > 0 && (
+                          <div className="absolute top-full left-0 right-0 z-20 bg-white border border-pebble rounded-xl shadow-lg mt-1 py-1 max-h-52 overflow-y-auto">
+                            {availableCBPs.map(cbp => {
+                              const sel = consumerBenefitPlatform.includes(cbp);
+                              return (
+                                <button key={cbp} type="button" onClick={() => toggleCbp(cbp)}
+                                  className="w-full flex items-center gap-3 px-4 py-2 hover:bg-earth text-left text-sm transition-colors">
+                                  <div className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors ${sel ? 'bg-sky border-sky' : 'border-pebble'}`}>
+                                    {sel && <Check className="w-2.5 h-2.5 text-white" />}
+                                  </div>
+                                  <span className={sel ? 'text-night font-medium' : 'text-gray-600'}>{cbp}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                      {consumerBenefitPlatform.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {consumerBenefitPlatform.map(cbp => (
+                            <span key={cbp} className="inline-flex items-center gap-1 px-2.5 py-1 bg-pale border border-sky/30 rounded-full text-xs text-sky">
+                              {cbp}
+                              <button onClick={() => toggleCbp(cbp)} className="ml-0.5 hover:text-red-500 transition-colors"><X className="w-3 h-3" /></button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Substantiation Evidence */}
+                  {isSubtypeBrandSay && otherBrandSay === true && (
+                    <div ref={subEvidenceRef}>
+                      <label className="block text-sm text-night mb-1.5 font-semibold">
+                        Substantiation Evidence {subtype === 'Demo' && <span className="text-red-500">*</span>}
+                      </label>
+                      <div className="relative">
+                        <button type="button" onClick={() => setSubEvidenceOpen(o => !o)}
+                          className="w-full flex items-center justify-between px-3.5 py-2.5 border border-pebble rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky bg-white hover:border-sky/40 transition-colors">
+                          <span className={substantiationEvidence.length ? 'text-night font-medium' : 'text-gray-400'}>
+                            {substantiationEvidence.length === 0 ? 'Link Evidence...' : `${substantiationEvidence.length} linked`}
+                          </span>
+                          <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${subEvidenceOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                        {subEvidenceOpen && (
+                          <div className="absolute top-full left-0 right-0 z-20 bg-white border border-pebble rounded-xl shadow-lg mt-1 py-1 max-h-52 overflow-y-auto">
+                            {MOCK_SUBSTANTIATION_EVIDENCE.map(ev => {
+                              const sel = substantiationEvidence.includes(ev);
+                              return (
+                                <button key={ev} type="button" onClick={() => toggleSubEvidence(ev)}
+                                  className="w-full flex items-center gap-3 px-4 py-2 hover:bg-earth text-left text-sm transition-colors">
+                                  <div className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors ${sel ? 'bg-sky border-sky' : 'border-pebble'}`}>
+                                    {sel && <Check className="w-2.5 h-2.5 text-white" />}
+                                  </div>
+                                  <span className={sel ? 'text-night font-medium' : 'text-gray-600'}>{ev}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                      {substantiationEvidence.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {substantiationEvidence.map(ev => (
+                            <span key={ev} className="inline-flex items-center gap-1 px-2.5 py-1 bg-pale border border-sky/30 rounded-full text-xs text-sky">
+                              {ev}
+                              <button onClick={() => toggleSubEvidence(ev)} className="ml-0.5 hover:text-red-500 transition-colors"><X className="w-3 h-3" /></button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                 </div>
               </div>
 
