@@ -87,6 +87,7 @@ interface ClaimsModuleProps {
   externalSearchQuery?: string;
   isChainedFlow?: boolean;
   pendingProducts?: any[] | null;
+  activeSubView?: 'all' | 'myProject' | 'favorites';
 }
 
 export default function ClaimsModule({
@@ -100,6 +101,7 @@ export default function ClaimsModule({
   externalSearchQuery,
   isChainedFlow = false,
   pendingProducts = null,
+  activeSubView = 'all',
 }: ClaimsModuleProps) {
   const [searchQuery, setSearchQuery] = useState('');
   useEffect(() => {
@@ -186,7 +188,14 @@ export default function ClaimsModule({
     const matchesGeography = geographyFilter.length === 0 ||
       (claim.geography && geographyFilter.includes(claim.geography));
 
-    return matchesSearch && matchesLifecycle && matchesRisk && matchesChannels && matchesGeography;
+    // Sub-view filter
+    const matchesSubView = activeSubView === 'myProject' 
+      ? claim.relatedProjectIds && claim.relatedProjectIds.length > 0
+      : activeSubView === 'favorites' 
+        ? claim.isFavorite
+        : true;
+
+    return matchesSearch && matchesLifecycle && matchesRisk && matchesChannels && matchesGeography && matchesSubView;
   });
 
   const toggleSelect = (id: string) => {

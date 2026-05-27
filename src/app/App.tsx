@@ -562,6 +562,7 @@ export default function App() {
   const [selectedClaim, setSelectedClaim] = useState<Claim | null>(null);
   const [claimsModuleView, setClaimsModuleView] =
     useState<ClaimsModuleView>("table");
+  const [activeClaimsSubView, setActiveClaimsSubView] = useState<'all' | 'myProject' | 'favorites'>('all');
   const [activeClaimsWorkspaceSection, setActiveClaimsWorkspaceSection] =
     useState("Claim Details");
   const [claims, setClaims] = useState<Claim[]>(mockClaims);
@@ -1740,6 +1741,8 @@ export default function App() {
             onProductSectionChange={setActiveProductSection}
             activeClaimsBaseView={activeClaimsBaseView}
             onClaimsBaseViewChange={setActiveClaimsBaseView}
+            activeClaimsSubView={activeClaimsSubView}
+            onClaimsSubViewChange={setActiveClaimsSubView}
             activeClaimsWorkView={activeClaimsWorkView}
             onClaimsWorkViewChange={setActiveClaimsWorkView}
             isInClaimsWorkspace={activeModule === "Claims" && !!selectedClaim}
@@ -2228,6 +2231,7 @@ export default function App() {
                 onClaimsChange={setClaims}
                 activeBaseView={activeClaimsBaseView}
                 onBaseViewChange={setActiveClaimsBaseView}
+                activeSubView={activeClaimsSubView}
                 activeWorkView={activeClaimsWorkView}
                 onClaimClick={(claim) => {
                   setSelectedClaim(claim);

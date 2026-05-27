@@ -59,6 +59,8 @@ interface LeftNavigationProps {
   isInClaimsWorkspace?: boolean;
   activeClaimsWorkspaceSection?: string;
   onClaimsWorkspaceSectionChange?: (section: string) => void;
+  activeClaimsSubView?: 'all' | 'myProject' | 'favorites';
+  onClaimsSubViewChange?: (view: 'all' | 'myProject' | 'favorites') => void;
   claims?: Claim[];
   onClaimClick?: (claim: Claim) => void;
   // Home module nav
@@ -328,6 +330,8 @@ export default function LeftNavigation({
   isInClaimsWorkspace = false,
   activeClaimsWorkspaceSection = "Claim Details",
   onClaimsWorkspaceSectionChange,
+  activeClaimsSubView = 'all',
+  onClaimsSubViewChange,
   // Home module nav
   onModuleChange,
   claims = [],
@@ -1121,6 +1125,7 @@ export default function LeftNavigation({
                   <button
                     onClick={() => {
                       onClaimsBaseViewChange?.(view);
+                      onClaimsSubViewChange?.('all');
                       setExpandedClaimSections((prev) => ({
                         ...prev,
                         [view]: !prev[view],
@@ -1169,87 +1174,21 @@ export default function LeftNavigation({
                         <div className="ml-9 mt-1 space-y-0.5">
                           {/* My Project Claims toggle */}
                           <button
-                            onClick={() =>
-                              setClaimSubOpen((p) => ({
-                                ...p,
-                                [view]:
-                                  p[view] === "myProject" ? null : "myProject",
-                              }))
-                            }
-                            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-earth hover:text-night transition-all duration-150"
+                            onClick={() => onClaimsSubViewChange?.('myProject')}
+                            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all duration-150 ${activeClaimsBaseView === view && activeClaimsSubView === 'myProject' ? 'bg-sky/10 text-sky font-semibold' : 'text-gray-600 hover:bg-earth hover:text-night'}`}
                           >
-                            <FolderOpen className="w-3.5 h-3.5 text-gray-400" />
+                            <FolderOpen className={`w-3.5 h-3.5 ${activeClaimsBaseView === view && activeClaimsSubView === 'myProject' ? 'text-sky' : 'text-gray-400'}`} />
                             <span className="flex-1 text-left">My Project Claims</span>
-                            {sub === "myProject" ? (
-                              <ChevronDown className="w-3 h-3" />
-                            ) : (
-                              <ChevronRight className="w-3 h-3" />
-                            )}
                           </button>
-                          {sub === "myProject" && (
-                            <div className="ml-5 space-y-0.5">
-                              {projectClaims.length === 0 ? (
-                                <p className="px-3 py-1.5 text-xs text-gray-400 italic">
-                                  No project claims
-                                </p>
-                              ) : (
-                                projectClaims.map((c) => (
-                                  <button
-                                    key={c.id}
-                                    onClick={() => onClaimClick?.(c)}
-                                    className="w-full text-left px-3 py-1.5 text-xs text-gray-600 hover:bg-earth hover:text-night rounded-lg transition-colors truncate"
-                                    title={getPrimaryStatement(c)}
-                                  >
-                                    {getPrimaryStatement(c)?.slice(0, 40) ||
-                                      c.id}
-                                    …
-                                  </button>
-                                ))
-                              )}
-                            </div>
-                          )}
+                          
                           {/* Favorites toggle */}
                           <button
-                            onClick={() =>
-                              setClaimSubOpen((p) => ({
-                                ...p,
-                                [view]:
-                                  p[view] === "favorites" ? null : "favorites",
-                              }))
-                            }
-                            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-earth hover:text-night transition-all duration-150"
+                            onClick={() => onClaimsSubViewChange?.('favorites')}
+                            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all duration-150 ${activeClaimsBaseView === view && activeClaimsSubView === 'favorites' ? 'bg-sky/10 text-sky font-semibold' : 'text-gray-600 hover:bg-earth hover:text-night'}`}
                           >
-                            <Star className="w-3.5 h-3.5 text-gray-400" />
+                            <Star className={`w-3.5 h-3.5 ${activeClaimsBaseView === view && activeClaimsSubView === 'favorites' ? 'text-amber-500 fill-amber-500' : 'text-gray-400'}`} />
                             <span className="flex-1 text-left">Favorites</span>
-                            {sub === "favorites" ? (
-                              <ChevronDown className="w-3 h-3" />
-                            ) : (
-                              <ChevronRight className="w-3 h-3" />
-                            )}
                           </button>
-                          {sub === "favorites" && (
-                            <div className="ml-5 space-y-0.5">
-                              {favClaims.length === 0 ? (
-                                <p className="px-3 py-1.5 text-xs text-gray-400 italic">
-                                  No favorites yet
-                                </p>
-                              ) : (
-                                favClaims.map((c) => (
-                                  <button
-                                    key={c.id}
-                                    onClick={() => onClaimClick?.(c)}
-                                    className="w-full text-left px-3 py-1.5 text-xs text-gray-600 hover:bg-earth hover:text-night rounded-lg transition-colors truncate"
-                                    title={getPrimaryStatement(c)}
-                                  >
-                                    <Star className="w-3 h-3 inline mr-1 text-amber-400" />
-                                    {getPrimaryStatement(c)?.slice(0, 36) ||
-                                      c.id}
-                                    …
-                                  </button>
-                                ))
-                              )}
-                            </div>
-                          )}
                         </div>
                       );
                     })()}
