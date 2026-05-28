@@ -60,6 +60,9 @@ interface ProductsLandingPageProps {
   externalSearchQuery?: string;
   onOpenFilterPanel?: () => void;
   quickFiltersToolbar?: React.ReactNode;
+  appliedFilters?: any;
+  onRemoveFilter?: (category: string, value: string) => void;
+  onClearFilters?: () => void;
 }
  
 type SortDir = 'asc' | 'desc' | null;
@@ -246,6 +249,9 @@ export default function ProductsLandingPage({
   externalSearchQuery,
   onOpenFilterPanel,
   quickFiltersToolbar,
+  appliedFilters,
+  onRemoveFilter,
+  onClearFilters,
 }: ProductsLandingPageProps) {
   const [search, setSearch] = useState('');
   useEffect(() => {
@@ -404,8 +410,39 @@ export default function ProductsLandingPage({
       });
     });
 
+    if (appliedFilters) {
+      const FILTER_NAMES: Record<string, string> = {
+        status: 'Status',
+        lifecycleStage: 'Stage',
+        businessGroup: 'Business Group',
+        projectType: 'Project Type',
+        category: 'Category',
+        scope: 'Project Scope',
+        projectLead: 'Project Creator',
+        claimsLead: 'Claims Lead'
+      };
+
+      Object.entries(appliedFilters).forEach(([key, values]) => {
+        const arr = values as string[];
+        if (!arr || arr.length === 0) return;
+        const filterLabel = FILTER_NAMES[key] || key;
+        
+        list.push({
+          id: `applied-${key}`,
+          category: key,
+          label: filterLabel,
+          value: arr.join(", "),
+          onClear: () => {
+            if (onRemoveFilter) {
+              arr.forEach((val) => onRemoveFilter(key, val));
+            }
+          }
+        });
+      });
+    }
+
     return list;
-  }, [brandFilter, typeFilter, lcFilter, productFilters]);
+  }, [brandFilter, typeFilter, lcFilter, productFilters, appliedFilters, onRemoveFilter]);
 
   const [isViewMenuOpen, setIsViewMenuOpen] = useState(false);
 
@@ -827,6 +864,19 @@ export default function ProductsLandingPage({
     if (lcFilter) list = list.filter((p) => p.lifecycleState === lcFilter);
     if (bgFilter) list = list.filter((p) => p.businessGroup === bgFilter);
 
+    // External quick-filters from App.tsx
+    if (appliedFilters) {
+      if (appliedFilters.businessGroup?.length) {
+        list = list.filter((p) => appliedFilters.businessGroup.includes(p.businessGroup));
+      }
+      if (appliedFilters.category?.length) {
+        list = list.filter((p) => appliedFilters.category.includes(p.category));
+      }
+      if (appliedFilters.lifecycleStage?.length) {
+        list = list.filter((p) => appliedFilters.lifecycleStage.includes(p.lifecycleState));
+      }
+    }
+
     // Advanced filter bar
     if (productFilters.length > 0) {
       list = applyProductFilters(list as unknown as Record<string, unknown>[], productFilters) as unknown as ProductItem[];
@@ -917,7 +967,8 @@ export default function ProductsLandingPage({
     bgFilter,
     productFilters,
     sortCol,
-    sortDir
+    sortDir,
+    appliedFilters
   ]);
  
   const PAGE_SIZE = 10;
@@ -929,7 +980,11 @@ export default function ProductsLandingPage({
     currentPage * PAGE_SIZE
   );
  
-  const activeFilterCount = [brandFilter, typeFilter, lcFilter, bgFilter].filter(Boolean).length + productFilters.length;
+  const appliedCount = appliedFilters 
+    ? Object.values(appliedFilters).reduce((sum: number, arr: any) => sum + (arr?.length || 0), 0)
+    : 0;
+
+  const activeFilterCount = [brandFilter, typeFilter, lcFilter, bgFilter].filter(Boolean).length + productFilters.length + appliedCount;
 
   const isAllCurrentSelected =
     pagedProducts.length > 0 && pagedProducts.every((p) => selectedIds.has(p.id));
@@ -1387,169 +1442,6 @@ export default function ProductsLandingPage({
         onCreateProduct={onCreateProduct}
       />
  
-      {/* Top Toolbar */}
-      <div className="bg-white border-b border-pebble px-4 py-2.5 flex items-center justify-between flex-shrink-0 font-normal">
-        <div className="flex items-center gap-3">
-          {pendingAction ? (
-            <>
-              <span className="text-sm text-sky font-medium bg-sky/10 px-2.5 py-0.5 rounded">
-                Select products to {pendingAction} ({selectedIds.size} selected)
-              </span>
-              <button
-                onClick={() => {
-                  setPendingAction(null);
-                  setSelectedIds(new Set());
-                }}
-                className="text-xs text-gray-500 hover:text-night transition-colors font-medium cursor-pointer"
-              >
-                Cancel
-              </button>
-            </>
-          ) : selectedIds.size > 0 ? (
-            <>
-              <span className="text-sm text-sky font-medium bg-sky/10 px-2.5 py-0.5 rounded">{selectedIds.size} of {filteredProducts.length} selected</span>
-              <button
-                onClick={() => setSelectedIds(new Set())}
-                className="text-xs text-gray-500 hover:text-night transition-colors cursor-pointer"
-              >
-                Clear selection
-              </button>
-            </>
-          ) : (
-            <span className="text-sm text-gray-600 font-medium ml-1">Products Library</span>
-          )}
-        </div>
-        <div className="flex items-center gap-3">
-          {pendingAction && (
-            <button
-              disabled={selectedIds.size === 0}
-              onClick={() => {
-                const firstId = Array.from(selectedIds)[0];
-                const p = products.find(prod => prod.id === firstId);
-                if (pendingAction === "Audit Log" && p) {
-                  setSelectedProductForAudit(p);
-                } else if (pendingAction === "Obsolete") {
-                  if (onProductsChange) {
-                    const updated = products.map(prod => selectedIds.has(prod.id) ? { ...prod, lifecycleState: 'Obsolete' as const } : prod);
-                    onProductsChange(updated);
-                  }
-                } else if (pendingAction === "Cancel") {
-                  if (onProductsChange) {
-                    const updated = products.map(prod => selectedIds.has(prod.id) ? { ...prod, lifecycleState: 'Cancelled' as const } : prod);
-                    onProductsChange(updated);
-                  }
-                } else if (pendingAction.startsWith("Export")) {
-                  const format = pendingAction === "Export to CSV" ? "csv" :
-                                 pendingAction === "Export to Excel" ? "excel" :
-                                 pendingAction === "Export to Word" ? "word" : "pdf";
-                  handleExport(format, selectedIds);
-                }
-                setPendingAction(null);
-                setSelectedIds(new Set());
-              }}
-              className="px-3 py-1.5 bg-sky text-white rounded-lg text-sm hover:bg-dark transition-colors font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Apply {pendingAction}
-            </button>
-          )}
-
-          <div className="relative">
-            <button
-              onClick={() => setTopMenuOpen(!topMenuOpen)}
-              className="p-1.5 border border-pebble rounded-lg text-gray-500 hover:bg-earth transition-colors hover:text-night shadow-sm bg-white cursor-pointer"
-            >
-              <MoreVertical className="w-4 h-4" />
-            </button>
-            {topMenuOpen && (
-              <>
-                <div className="fixed inset-0 z-30" onClick={() => setTopMenuOpen(false)} />
-                <div className="absolute right-0 top-full mt-1.5 bg-white border border-pebble rounded-xl shadow-xl z-40 min-w-[220px] py-1.5 overflow-hidden text-left font-normal normal-case tracking-normal">
-                  <button
-                    onClick={() => {
-                      setTopMenuOpen(false);
-                      setColumnConfigOpen(true);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors text-left"
-                  >
-                    <Settings className="w-4 h-4 text-gray-400" />
-                    <span>Configure Column</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setIsFrozen(!isFrozen);
-                      setTopMenuOpen(false);
-                    }}
-                    className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors text-left"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <GripVertical className="w-4 h-4 text-gray-400" />
-                      <span>Freeze Column</span>
-                    </div>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${isFrozen ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
-                      {isFrozen ? "ON" : "OFF"}
-                    </span>
-                  </button>
-
-                  <div className="border-t border-pebble my-1" />
-
-                  <div className="px-4 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Product Actions</div>
-                  {["Audit Log", "Obsolete", "Cancel"].map(action => (
-                    <button
-                      key={action}
-                      onClick={() => {
-                        setTopMenuOpen(false);
-                        setSelectedIds(new Set());
-                        setPendingAction(action as any);
-                      }}
-                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors pl-8 ${action === "Cancel" ? "text-red-600 hover:bg-red-50" : "text-night hover:bg-earth"}`}
-                    >
-                      {action}
-                    </button>
-                  ))}
-
-                  <div className="border-t border-pebble my-1" />
-
-                  <div className="px-4 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Export Functions</div>
-                  {[
-                    { label: "Export to CSV", action: "Export to CSV" },
-                    { label: "Export to Excel", action: "Export to Excel" },
-                    { label: "Export to Word", action: "Export to Word" },
-                    { label: "Export to PDF (Report)", action: "Export to PDF" }
-                  ].map(item => (
-                    <button
-                      key={item.action}
-                      onClick={() => {
-                        setTopMenuOpen(false);
-                        setSelectedIds(new Set());
-                        setPendingAction(item.action as any);
-                      }}
-                      className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-night hover:bg-earth transition-colors text-left pl-8"
-                    >
-                      <Download className="w-3.5 h-3.5 text-gray-400" />
-                      <span>{item.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {columnConfigOpen && (
-              <ColumnConfigPanel
-                columns={columnOrder}
-                onToggle={handleToggleColumnVisibility}
-                onRestore={handleRestoreDefaults}
-                onClose={() => setColumnConfigOpen(false)}
-                onExport={(format) => {
-                  setColumnConfigOpen(false);
-                  handleExport(format);
-                }}
-              />
-            )}
-          </div>
-        </div>
-      </div>
-
       {/* Table */}
       <div className="flex-1 overflow-hidden p-5 flex flex-col">
         <div className="flex-1 flex flex-col bg-white rounded-xl border border-gray-300 shadow-sm overflow-hidden">
@@ -1583,6 +1475,7 @@ export default function ProductsLandingPage({
                   setTypeFilter('');
                   setLcFilter('');
                   setProductFilters([]);
+                  if (onClearFilters) onClearFilters();
                   setCurrentPage(1);
                 }}
                 className="text-xs text-red-500 hover:text-red-700 transition-colors font-semibold px-2 py-1 hover:bg-red-50 rounded-lg mr-1 cursor-pointer"
@@ -1591,6 +1484,170 @@ export default function ProductsLandingPage({
               </button>
             </div>
           )}
+
+          {/* Top Toolbar */}
+          <div className="bg-white border-b border-pebble px-4 py-2.5 flex items-center justify-between flex-shrink-0 font-normal">
+            <div className="flex items-center gap-3">
+              {pendingAction ? (
+                <>
+                  <span className="text-sm text-sky font-medium bg-sky/10 px-2.5 py-0.5 rounded">
+                    Select products to {pendingAction} ({selectedIds.size} selected)
+                  </span>
+                  <button
+                    onClick={() => {
+                      setPendingAction(null);
+                      setSelectedIds(new Set());
+                    }}
+                    className="text-xs text-gray-500 hover:text-night transition-colors font-medium cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : selectedIds.size > 0 ? (
+                <>
+                  <span className="text-sm text-sky font-medium bg-sky/10 px-2.5 py-0.5 rounded">{selectedIds.size} of {filteredProducts.length} selected</span>
+                  <button
+                    onClick={() => setSelectedIds(new Set())}
+                    className="text-xs text-gray-500 hover:text-night transition-colors cursor-pointer"
+                  >
+                    Clear selection
+                  </button>
+                </>
+              ) : (
+                <span className="text-sm text-gray-600 font-medium ml-1">Products Library</span>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              {pendingAction && (
+                <button
+                  disabled={selectedIds.size === 0}
+                  onClick={() => {
+                    const firstId = Array.from(selectedIds)[0];
+                    const p = products.find(prod => prod.id === firstId);
+                    if (pendingAction === "Audit Log" && p) {
+                      setSelectedProductForAudit(p);
+                    } else if (pendingAction === "Obsolete") {
+                      if (onProductsChange) {
+                        const updated = products.map(prod => selectedIds.has(prod.id) ? { ...prod, lifecycleState: 'Obsolete' as const } : prod);
+                        onProductsChange(updated);
+                      }
+                    } else if (pendingAction === "Cancel") {
+                      if (onProductsChange) {
+                        const updated = products.map(prod => selectedIds.has(prod.id) ? { ...prod, lifecycleState: 'Cancelled' as const } : prod);
+                        onProductsChange(updated);
+                      }
+                    } else if (pendingAction.startsWith("Export")) {
+                      const format = pendingAction === "Export to CSV" ? "csv" :
+                                     pendingAction === "Export to Excel" ? "excel" :
+                                     pendingAction === "Export to Word" ? "word" : "pdf";
+                      handleExport(format, selectedIds);
+                    }
+                    setPendingAction(null);
+                    setSelectedIds(new Set());
+                  }}
+                  className="px-3 py-1.5 bg-sky text-white rounded-lg text-sm hover:bg-dark transition-colors font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Apply {pendingAction}
+                </button>
+              )}
+
+              <div className="relative">
+                <button
+                  onClick={() => setTopMenuOpen(!topMenuOpen)}
+                  className="p-1.5 border border-pebble rounded-lg text-gray-500 hover:bg-earth transition-colors hover:text-night shadow-sm bg-white cursor-pointer"
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </button>
+                {topMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-30" onClick={() => setTopMenuOpen(false)} />
+                    <div className="absolute right-0 top-full mt-1.5 bg-white border border-pebble rounded-xl shadow-xl z-40 min-w-[220px] py-1.5 overflow-hidden text-left font-normal normal-case tracking-normal">
+                      <button
+                        onClick={() => {
+                          setTopMenuOpen(false);
+                          setColumnConfigOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors text-left"
+                      >
+                        <Settings className="w-4 h-4 text-gray-400" />
+                        <span>Configure Column</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setIsFrozen(!isFrozen);
+                          setTopMenuOpen(false);
+                        }}
+                        className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors text-left"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <GripVertical className="w-4 h-4 text-gray-400" />
+                          <span>Freeze Column</span>
+                        </div>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${isFrozen ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                          {isFrozen ? "ON" : "OFF"}
+                        </span>
+                      </button>
+
+                      <div className="border-t border-pebble my-1" />
+
+                      <div className="px-4 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Product Actions</div>
+                      {["Audit Log", "Obsolete", "Cancel"].map(action => (
+                        <button
+                          key={action}
+                          onClick={() => {
+                            setTopMenuOpen(false);
+                            setSelectedIds(new Set());
+                            setPendingAction(action as any);
+                          }}
+                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors pl-8 ${action === "Cancel" ? "text-red-600 hover:bg-red-50" : "text-night hover:bg-earth"}`}
+                        >
+                          {action}
+                        </button>
+                      ))}
+
+                      <div className="border-t border-pebble my-1" />
+
+                      <div className="px-4 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Export Functions</div>
+                      {[
+                        { label: "Export to CSV", action: "Export to CSV" },
+                        { label: "Export to Excel", action: "Export to Excel" },
+                        { label: "Export to Word", action: "Export to Word" },
+                        { label: "Export to PDF (Report)", action: "Export to PDF" }
+                      ].map(item => (
+                        <button
+                          key={item.action}
+                          onClick={() => {
+                            setTopMenuOpen(false);
+                            setSelectedIds(new Set());
+                            setPendingAction(item.action as any);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-night hover:bg-earth transition-colors text-left pl-8"
+                        >
+                          <Download className="w-3.5 h-3.5 text-gray-400" />
+                          <span>{item.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {columnConfigOpen && (
+                  <ColumnConfigPanel
+                    columns={columnOrder}
+                    onToggle={handleToggleColumnVisibility}
+                    onRestore={handleRestoreDefaults}
+                    onClose={() => setColumnConfigOpen(false)}
+                    onExport={(format) => {
+                      setColumnConfigOpen(false);
+                      handleExport(format);
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+
 
           <div className="flex-1 overflow-auto no-scrollbar">
             <table className="w-full border-collapse text-sm min-w-[1100px]">

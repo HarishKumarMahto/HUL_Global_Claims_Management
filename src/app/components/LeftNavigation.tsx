@@ -1005,7 +1005,6 @@ export default function LeftNavigation({
                               setIsProductSavedViewsFolderExpanded(
                                 !isProductSavedViewsFolderExpanded,
                               );
-                              onProductListViewChange?.("Saved Views");
                             }}
                             className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150 text-sm ${
                               isAnyProdSavedActive ||

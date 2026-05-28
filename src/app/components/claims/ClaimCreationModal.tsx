@@ -280,8 +280,10 @@ export default function ClaimCreationModal({
   const [createdChannels, setCreatedChannels] = useState<string[]>([]);
   const [showCreatedChannelsDropdown, setShowCreatedChannelsDropdown] = useState(false);
   const [selectedAvailable, setSelectedAvailable] = useState<Set<string>>(new Set());
+  const [availableSearch, setAvailableSearch] = useState('');
 
   const [copySearch, setCopySearch] = useState('');
+  const [copyProductSearch, setCopyProductSearch] = useState('');
   const [selectedCopy, setSelectedCopy] = useState<Set<string>>(new Set());
   const [copyOptions, setCopyOptions] = useState({ substantiation: true, supportStrategy: true, riskAssessment: true, riskSummaries: true });
 
@@ -934,11 +936,19 @@ export default function ClaimCreationModal({
               {activeTab === 'Available Product Claims' && (
                 <div className="flex flex-col h-full w-full animate-in fade-in slide-in-from-bottom-2 duration-300">
                   <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className="text-base font-bold text-night">Select existing claims of the product(s)</h3>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => setSelectedAvailable(new Set(MOCK_AVAILABLE_CLAIMS.map(c => c.id)))} className="px-3 py-1.5 text-xs font-semibold text-sky bg-sky/10 rounded-lg hover:bg-sky/20 transition-colors">Select All</button>
+                    <div />
+                    <div className="flex items-center gap-2 ml-4 justify-end">
+                      <div className="relative w-64 mr-2">
+                        <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          value={availableSearch}
+                          onChange={e => setAvailableSearch(e.target.value)}
+                          placeholder="Search claims..."
+                          className="w-full pl-9 pr-3 py-1.5 bg-white border border-pebble rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-sky/50 focus:border-sky transition-all shadow-sm"
+                        />
+                      </div>
+                      <button onClick={() => setSelectedAvailable(new Set(MOCK_AVAILABLE_CLAIMS.filter(c => c.text.toLowerCase().includes(availableSearch.toLowerCase())).map(c => c.id)))} className="px-3 py-1.5 text-xs font-semibold text-sky bg-sky/10 rounded-lg hover:bg-sky/20 transition-colors">Select All</button>
                       <button onClick={() => setSelectedAvailable(new Set())} className="px-3 py-1.5 text-xs font-semibold text-gray-500 hover:text-night hover:bg-earth rounded-lg transition-colors">Clear</button>
                       <button
                         onClick={handleSaveAvailable}
@@ -963,7 +973,10 @@ export default function ClaimCreationModal({
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-pebble">
-                          {MOCK_AVAILABLE_CLAIMS.map(claim => {
+                          {MOCK_AVAILABLE_CLAIMS.filter(c => c.text.toLowerCase().includes(availableSearch.toLowerCase())).length === 0 ? (
+                            <tr><td colSpan={5} className="text-center py-10 text-gray-400 text-sm">No claims match your search</td></tr>
+                          ) : null}
+                          {MOCK_AVAILABLE_CLAIMS.filter(c => c.text.toLowerCase().includes(availableSearch.toLowerCase())).map(claim => {
                             const isSel = selectedAvailable.has(claim.id);
                             return (
                               <tr
@@ -1002,23 +1015,49 @@ export default function ClaimCreationModal({
               {activeTab === 'Copy Claims' && (
                 <div className="flex flex-col h-full w-full animate-in fade-in slide-in-from-bottom-2 duration-300">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="relative w-80">
-                      <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        value={copySearch}
-                        onChange={e => setCopySearch(e.target.value)}
-                        placeholder="Find Source Product..."
-                        className="w-full pl-9 pr-4 py-2 bg-white border border-pebble rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky/50 focus:border-sky transition-all shadow-sm"
-                      />
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-bold text-gray-400 uppercase tracking-wider shrink-0">Source Product:</span>
+                      <div className="relative flex items-center bg-white border border-pebble rounded-xl px-3 py-1.5 shadow-sm w-52">
+                        <Search className="w-4 h-4 text-gray-400 mr-2 shrink-0" />
+                        <input
+                          type="text"
+                          value={copyProductSearch}
+                          onChange={e => setCopyProductSearch(e.target.value)}
+                          placeholder="Search product..."
+                          className="w-full bg-transparent text-sm font-bold text-night focus:outline-none placeholder:font-normal placeholder:text-gray-400"
+                        />
+                      </div>
                     </div>
-                    <button
-                      onClick={handleSaveCopy}
-                      disabled={selectedCopy.size === 0}
-                      className="flex items-center gap-2 px-4 py-1.5 bg-sky text-white rounded-lg text-sm font-bold hover:bg-dark disabled:opacity-50 transition-all active:scale-95 shadow-sm shadow-sky/20"
-                    >
-                      <Check className="w-4 h-4" /> Keep Selection {selectedCopy.size > 0 ? `(${selectedCopy.size})` : ''}
-                    </button>
+                    <div className="flex items-center gap-2 ml-4 justify-end">
+                      <div className="relative w-64 mr-2">
+                        <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          value={copySearch}
+                          onChange={e => setCopySearch(e.target.value)}
+                          placeholder="Search claims..."
+                          className="w-full pl-9 pr-3 py-1.5 bg-white border border-pebble rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-sky/50 focus:border-sky transition-all shadow-sm"
+                        />
+                      </div>
+                      <button
+                        onClick={() => setSelectedCopy(new Set(MOCK_SOURCE_CLAIMS.filter(c =>
+                          c.text.toLowerCase().includes(copySearch.toLowerCase()) &&
+                          c.source.toLowerCase().includes(copyProductSearch.toLowerCase())
+                        ).map(c => c.id)))}
+                        className="px-3 py-1.5 text-xs font-semibold text-sky bg-sky/10 rounded-lg hover:bg-sky/20 transition-colors"
+                      >Select All</button>
+                      <button
+                        onClick={() => setSelectedCopy(new Set())}
+                        className="px-3 py-1.5 text-xs font-semibold text-gray-500 hover:text-night hover:bg-earth rounded-lg transition-colors"
+                      >Clear</button>
+                      <button
+                        onClick={handleSaveCopy}
+                        disabled={selectedCopy.size === 0}
+                        className="flex items-center gap-2 px-4 py-1.5 ml-1 bg-sky text-white rounded-lg text-sm font-bold hover:bg-dark disabled:opacity-50 transition-all active:scale-95 shadow-sm shadow-sky/20"
+                      >
+                        <Check className="w-4 h-4" /> Keep Selection {selectedCopy.size > 0 ? `(${selectedCopy.size})` : ''}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="flex-1 border border-pebble rounded-2xl overflow-hidden bg-white shadow-sm flex flex-col mb-4">
@@ -1034,7 +1073,16 @@ export default function ClaimCreationModal({
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-pebble">
-                          {MOCK_SOURCE_CLAIMS.filter(c => c.text.toLowerCase().includes(copySearch.toLowerCase())).map(claim => {
+                          {MOCK_SOURCE_CLAIMS.filter(c =>
+                            c.text.toLowerCase().includes(copySearch.toLowerCase()) &&
+                            c.source.toLowerCase().includes(copyProductSearch.toLowerCase())
+                          ).length === 0 ? (
+                            <tr><td colSpan={5} className="text-center py-10 text-gray-400 text-sm">No source claims match your search</td></tr>
+                          ) : null}
+                          {MOCK_SOURCE_CLAIMS.filter(c =>
+                            c.text.toLowerCase().includes(copySearch.toLowerCase()) &&
+                            c.source.toLowerCase().includes(copyProductSearch.toLowerCase())
+                          ).map(claim => {
                             const isSel = selectedCopy.has(claim.id);
                             return (
                               <tr

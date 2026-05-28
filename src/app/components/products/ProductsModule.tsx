@@ -43,6 +43,9 @@ interface Props {
   pendingProductData?: any[] | null;
   onOpenFilterPanel?: () => void;
   quickFiltersToolbar?: React.ReactNode;
+  appliedFilters?: any;
+  onRemoveFilter?: (category: string, value: string) => void;
+  onClearFilters?: () => void;
 }
 
 export default function ProductsModule({
@@ -61,6 +64,9 @@ export default function ProductsModule({
   pendingProductData,
   onOpenFilterPanel,
   quickFiltersToolbar,
+  appliedFilters,
+  onRemoveFilter,
+  onClearFilters,
 }: Props) {
   const [products, setProducts] = useState<ProductItem[]>(initialProducts);
   const [favorites, setFavorites] = useState<Set<string>>(new Set(['fmt-1', 'var-1', 'tech-1', 'fmt-3']));
@@ -410,6 +416,9 @@ export default function ProductsModule({
         externalSearchQuery={externalSearchQuery}
         onOpenFilterPanel={onOpenFilterPanel}
         quickFiltersToolbar={quickFiltersToolbar}
+        appliedFilters={appliedFilters}
+        onRemoveFilter={onRemoveFilter}
+        onClearFilters={onClearFilters}
       />
       {isCreateOpen && (
         <CreateProductModal isOpen={isCreateOpen} onClose={handleCloseCreate} onCreate={handleProductCreated} preselectedType={localCreateType} onNavigateToSKU={handleNavigateToSKU} onBack={() => { window.dispatchEvent(new CustomEvent('backToProjectCreation')); handleCloseCreate(); }} initialData={pendingProductData} />

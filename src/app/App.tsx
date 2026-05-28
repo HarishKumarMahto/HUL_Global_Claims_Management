@@ -2343,6 +2343,25 @@ export default function App() {
               onDocumentsChange={setDocuments}
               onOpenFilterPanel={() => openFilterPanel(null)}
               quickFiltersToolbar={quickFiltersToolbar}
+              appliedFilters={appliedFilters}
+              onRemoveFilter={(category, value) => {
+                setAppliedFilters((prev) => ({
+                  ...prev,
+                  [category]: (prev[category] || []).filter((v) => v !== value),
+                }));
+              }}
+              onClearFilters={() =>
+                setAppliedFilters({
+                  status: [],
+                  lifecycleStage: [],
+                  businessGroup: [],
+                  projectType: [],
+                  category: [],
+                  scope: [],
+                  projectLead: [],
+                  claimsLead: [],
+                })
+              }
             />
           ) : activeModule === "Assets" ? (
             selectedAsset && assetsModuleView === "workspace" ? (
