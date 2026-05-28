@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, Fragment } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -1123,6 +1123,7 @@ interface ClaimWorkspaceProps {
   activeSection: string;
   onSectionChange: (section: string) => void;
   onClaimSelect?: (claim: Claim) => void;
+  onNavigateToProject?: (projectId: string) => void;
 }
 
 // Related Assets section — mirrors Projects → Linked Assets tab (US-M1-108/109)
@@ -1290,9 +1291,8 @@ function RelatedAssetsSection({ claim, onClaimSave }: { claim: Claim; onClaimSav
           </thead>
           <tbody className="divide-y divide-pebble">
             {filtered.map(asset => (
-              <>
+              <Fragment key={asset.id}>
                 <tr
-                  key={asset.id}
                   onClick={() => setSelectedAsset(prev => prev === asset.id ? null : asset.id)}
                   className={`hover:bg-earth transition-colors cursor-pointer ${selectedAsset === asset.id ? 'bg-pale/30' : ''}`}
                 >
@@ -1369,7 +1369,7 @@ function RelatedAssetsSection({ claim, onClaimSave }: { claim: Claim; onClaimSav
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             ))}
           </tbody>
         </table>
@@ -1399,6 +1399,7 @@ const ORDERED_SECTIONS = [
   { id: "Final Risk Summary", label: "Final Risk Summary" },
   { id: "Risk Level Assessments", label: "Risk Level Assessments" },
   { id: "Related Assets", label: "Related Assets" },
+  { id: "Related Projects", label: "Related Projects" },
 ];
 
 export default function ClaimWorkspace({
@@ -1410,6 +1411,7 @@ export default function ClaimWorkspace({
   activeSection,
   onSectionChange,
   onClaimSelect,
+  onNavigateToProject,
 }: ClaimWorkspaceProps) {
   const [isFavorite, setIsFavorite] = useState(
     claim.isFavorite || false,
@@ -1862,14 +1864,6 @@ export default function ClaimWorkspace({
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
-                    Order
-                  </label>
-                  <div className="text-sm text-night">
-                    {claim.order || "—"}
-                  </div>
-                </div>
-                <div>
                   <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1 flex items-center gap-1">
                     Lifecycle Stage
                     <span
@@ -2133,6 +2127,93 @@ export default function ClaimWorkspace({
         return (
           <RelatedAssetsSection claim={claim} onClaimSave={onClaimSave} />
         );
+      case "Related Projects": {
+        const relatedProjects = initialProjects.filter(p =>
+          claim.relatedProjectIds.includes(p.id)
+        );
+        const STATUS_COLORS: Record<string, string> = {
+          'In Progress': 'bg-blue-50 text-blue-700 border-blue-200',
+          'Under Review': 'bg-amber-50 text-amber-700 border-amber-200',
+          'Completed': 'bg-green-50 text-green-700 border-green-200',
+          'Draft': 'bg-gray-100 text-gray-600 border-gray-200',
+          'Cancelled': 'bg-red-50 text-red-600 border-red-200',
+          'Assessment Complete': 'bg-teal-50 text-teal-700 border-teal-200',
+        };
+        const RISK_DOT: Record<string, string> = {
+          'Low': 'bg-green-500',
+          'Medium': 'bg-amber-500',
+          'High': 'bg-red-500',
+          'Very High': 'bg-red-700',
+        };
+        return (
+          <div className="space-y-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-night font-semibold text-lg">Related Projects</h2>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  {relatedProjects.length} project{relatedProjects.length !== 1 ? 's' : ''} linked to this claim
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-pebble overflow-hidden shadow-sm">
+              {relatedProjects.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                  <Globe className="w-10 h-10 mb-3 text-gray-300" />
+                  <p className="text-sm font-medium">No related projects</p>
+                  <p className="text-xs text-gray-400 mt-1">This claim is not linked to any projects yet</p>
+                </div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead className="bg-earth/60 border-b border-pebble sticky top-0">
+                    <tr>
+                      <th className="px-5 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Project</th>
+                      <th className="px-5 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-5 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Region</th>
+                      <th className="px-5 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Lifecycle</th>
+                      <th className="px-5 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Risk</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-pebble">
+                    {relatedProjects.map(project => (
+                      <tr key={project.id} className="hover:bg-earth/40 transition-colors">
+                        <td className="px-5 py-4">
+                          <button
+                            onClick={() => onNavigateToProject?.(project.id)}
+                            className="font-semibold text-sky hover:underline leading-snug text-left"
+                          >
+                            {project.name}
+                          </button>
+                          <div className="text-xs text-gray-400 mt-0.5">{project.type} · {project.businessGroup}</div>
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${STATUS_COLORS[project.status] ?? 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                            {project.status}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 text-gray-600 text-xs">{project.region}</td>
+                        <td className="px-5 py-4">
+                          <span className="text-xs text-gray-600 bg-earth/50 border border-pebble px-2 py-0.5 rounded">{project.lifecycleStage}</span>
+                        </td>
+                        <td className="px-5 py-4">
+                          {project.finalRiskLevel ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${RISK_DOT[project.finalRiskLevel] ?? 'bg-gray-400'}`} />
+                              <span className="text-xs text-gray-600">{project.finalRiskLevel}</span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        );
+      }
       default:
         return null;
     }

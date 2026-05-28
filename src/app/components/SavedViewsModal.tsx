@@ -56,10 +56,11 @@ interface SavedViewsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectView: (view: SavedView) => void;
+  views: SavedView[];
+  onViewsChange: (views: SavedView[]) => void;
 }
 
-export default function SavedViewsModal({ isOpen, onClose, onSelectView }: SavedViewsModalProps) {
-  const [views, setViews] = useState<SavedView[]>(MOCK_VIEWS);
+export default function SavedViewsModal({ isOpen, onClose, onSelectView, views, onViewsChange }: SavedViewsModalProps) {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'mine' | 'shared'>('all');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -87,7 +88,7 @@ export default function SavedViewsModal({ isOpen, onClose, onSelectView }: Saved
   const handleSelect = (view: SavedView) => { onSelectView(view); onClose(); };
 
   const handleShareViewConfirm = (users: string[]) => {
-    setViews(prev => prev.map(v => {
+    onViewsChange(views.map(v => {
       if (v.id === shareDialogState.viewId) {
         return {
           ...v,
@@ -105,7 +106,7 @@ export default function SavedViewsModal({ isOpen, onClose, onSelectView }: Saved
 
   // US-M1-37: Remove view — now available for all user/shared views
   const handleRemoveView = (id: string) => {
-    setViews(prev => prev.filter(v => v.id !== id));
+    onViewsChange(views.filter(v => v.id !== id));
     setActiveMenu(null);
   };
 
@@ -119,7 +120,7 @@ export default function SavedViewsModal({ isOpen, onClose, onSelectView }: Saved
       type: newViewType,
       filters: {},
     };
-    setViews(prev => [newView, ...prev]);
+    onViewsChange([newView, ...views]);
     setNewViewName('');
     setNewViewDesc('');
     setShowSaveDialog(false);
@@ -132,7 +133,7 @@ export default function SavedViewsModal({ isOpen, onClose, onSelectView }: Saved
   };
 
   const handleRenameConfirm = (id: string) => {
-    setViews(prev => prev.map(v => v.id === id ? { ...v, name: renameValue } : v));
+    onViewsChange(views.map(v => v.id === id ? { ...v, name: renameValue } : v));
     setRenaming(null);
   };
 
@@ -286,7 +287,7 @@ export default function SavedViewsModal({ isOpen, onClose, onSelectView }: Saved
                             {[
                               {
                                 icon: <Star className="w-3.5 h-3.5" />, label: 'Set as Default', action: () => {
-                                  setViews(prev => prev.map(v => ({ ...v, isDefault: v.id === view.id })));
+                                  onViewsChange(views.map(v => ({ ...v, isDefault: v.id === view.id })));
                                   setActiveMenu(null);
                                 }
                               },

@@ -359,7 +359,6 @@ export default function LinkedProductsTab({ project }: LinkedProductsTabProps) {
                         }`}
                       >
                         <div className="flex items-center gap-1.5">
-                          <GripVertical className="w-3.5 h-3.5 text-gray-300" />
                           {col.label}
                         </div>
                       </th>

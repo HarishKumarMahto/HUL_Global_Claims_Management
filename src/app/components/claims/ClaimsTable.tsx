@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, ChevronRight, ChevronUp, Check, Flag, AlertCircle, FileText, Shield, Scale, Plus, Upload, X, Search, Lock, Save, Bold, Italic, List, Link, MoreHorizontal, Eye, EyeOff, ArrowUpDown, GripVertical, MessageSquare, Star, Send } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronUp, Check, Flag, AlertCircle, FileText, Shield, Scale, Plus, Upload, X, Search, Lock, Save, Bold, Italic, List, Link, MoreHorizontal, Eye, EyeOff, ArrowUpDown, MessageSquare, Star, Send } from 'lucide-react';
 import type { Claim, ClaimBaseView, ClaimWorkView, RiskLevel, AuditEntry } from '../../types';
 import { formatDate, RISK_LEVEL_OPTIONS } from '../ui/tableUtils';
 import { CURRENT_USER, CURRENT_USER_ROLE, canEditSupportStrategy, CLAIM_LIFECYCLE_COLORS } from '../../types';
@@ -290,6 +290,17 @@ interface ClaimsTableProps {
   onClaimClick: (claim: Claim) => void;
   activeBaseView: ClaimBaseView;
   onClaimsChange?: (claims: Claim[]) => void;
+  isBulkSelectionEnabled?: boolean;
+  onToggleBulkSelection?: () => void;
+  lifecycleFilter?: ClaimLifecycle[];
+  riskLevelFilter?: RiskLevel[];
+  channelsFilter?: string[];
+  geographyFilter?: string[];
+  onClearLifecycleFilter?: () => void;
+  onClearRiskLevelFilter?: () => void;
+  onClearChannelsFilter?: () => void;
+  onClearGeographyFilter?: () => void;
+  onClearAllFilters?: () => void;
 }
 
 export default function ClaimsTable({
@@ -301,6 +312,17 @@ export default function ClaimsTable({
   onClaimClick,
   activeBaseView,
   onClaimsChange,
+  isBulkSelectionEnabled = false,
+  onToggleBulkSelection,
+  lifecycleFilter = [],
+  riskLevelFilter = [],
+  channelsFilter = [],
+  geographyFilter = [],
+  onClearLifecycleFilter,
+  onClearRiskLevelFilter,
+  onClearChannelsFilter,
+  onClearGeographyFilter,
+  onClearAllFilters,
 }: ClaimsTableProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [expandedSections, setExpandedSections] = useState<Record<string, 'support' | 'final' | 'risk' | 'comments' | null>>({});
@@ -389,6 +411,11 @@ export default function ClaimsTable({
   const [isFrozen, setIsFrozen] = useState(false);
   const [isTableMenuOpen, setIsTableMenuOpen] = useState(false);
   const [activeHeaderDropdown, setActiveHeaderDropdown] = useState<string | null>(null);
+
+  const checkboxWidth = isBulkSelectionEnabled ? 40 : 0;
+  const favoriteLeft = isBulkSelectionEnabled ? 40 : 0;
+  const expandLeft = isBulkSelectionEnabled ? 80 : 40;
+  const claimStatementLeft = isBulkSelectionEnabled ? 120 : 80;
 
   const toggleFavorite = (claim: Claim) => {
     if (!onClaimsChange) return;
@@ -547,9 +574,10 @@ export default function ClaimsTable({
         return (
           <td 
             key={colId} 
-            className={`px-3 py-2 ${isFrozen ? "sticky left-[120px] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
+            className={`px-4 py-3 ${isFrozen ? "sticky z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
             style={{
               ...cellStyle,
+              left: isFrozen ? claimStatementLeft : undefined,
               ...(isFrozen ? { backgroundColor: bgOverride || (isSelected ? "#F3F7FC" : "#ffffff") } : {})
             }}
           >
@@ -574,7 +602,7 @@ export default function ClaimsTable({
         );
       case 'version':
         return (
-          <td key={colId} className="px-3 py-2" style={cellStyle}>
+          <td key={colId} className="px-4 py-3" style={cellStyle}>
             <div className="flex flex-col gap-1 overflow-hidden items-start">
               {claim.versions.length > 1 ? (
                 <button 
@@ -600,12 +628,12 @@ export default function ClaimsTable({
           </td>
         );
       case 'order':
-        return <td key={colId} className="px-3 py-2 text-gray-600 truncate" style={cellStyle}>{claim.order || '—'}</td>;
+        return <td key={colId} className="px-4 py-3 text-gray-600 truncate" style={cellStyle}>{claim.order || '—'}</td>;
       case 'lifecycle':
-        return <td key={colId} className="px-3 py-2 text-night truncate" style={cellStyle}>{claim.lifecycleStage}</td>;
+        return <td key={colId} className="px-4 py-3 text-night truncate" style={cellStyle}>{claim.lifecycleStage}</td>;
       case 'channels':
         return (
-          <td key={colId} className="px-3 py-2" style={cellStyle}>
+          <td key={colId} className="px-4 py-3" style={cellStyle}>
             <div className="flex flex-wrap gap-1 overflow-hidden">
               {claim.marketingChannels.slice(0, 2).map((ch, i) => (
                 <span key={ch} className="text-xs text-gray-600 block truncate">
@@ -620,7 +648,7 @@ export default function ClaimsTable({
         );
       case 'finalRisk':
         return (
-          <td key={colId} className="px-3 py-2" style={cellStyle}>
+          <td key={colId} className="px-4 py-3" style={cellStyle}>
             {claim.finalRiskLevel ? (
               <span className="text-xs font-semibold text-night block truncate">{claim.finalRiskLevel}</span>
             ) : (
@@ -630,15 +658,15 @@ export default function ClaimsTable({
         );
       case 'product':
         return (
-          <td key={colId} className="px-3 py-2" style={cellStyle}>
+          <td key={colId} className="px-4 py-3" style={cellStyle}>
             <span className="text-xs text-gray-700 font-medium block truncate" title={claim.productName}>{claim.productName}</span>
           </td>
         );
       case 'restricted':
         return (
-          <td key={colId} className="px-3 py-2 text-center" style={cellStyle}>
+          <td key={colId} className="px-4 py-3 text-left" style={cellStyle}>
             {claim.restrictedUse ? (
-              <span className="px-1.5 py-0.5 rounded text-[10px] bg-red-100 text-red-700 border border-red-200 uppercase font-bold block truncate">Yes</span>
+              <span className="px-1.5 py-0.5 rounded text-[10px] bg-red-100 text-red-700 border border-red-200 uppercase font-bold block truncate w-fit">Yes</span>
             ) : (
               <span className="text-gray-400 text-xs block truncate">—</span>
             )}
@@ -646,7 +674,7 @@ export default function ClaimsTable({
         );
       case 'identifier':
         return (
-          <td key={colId} className="px-3 py-2" style={cellStyle}>
+          <td key={colId} className="px-4 py-3" style={cellStyle}>
             {claim.claimIdentifier ? (
               <span className="text-xs text-gray-700 font-mono block truncate">{claim.claimIdentifier}</span>
             ) : (
@@ -656,7 +684,7 @@ export default function ClaimsTable({
         );
       case 'category':
         return (
-          <td key={colId} className="px-3 py-2" style={cellStyle}>
+          <td key={colId} className="px-4 py-3" style={cellStyle}>
             {claim.claimCategory ? (
               <span className="text-xs text-gray-700 block truncate">{claim.claimCategory}</span>
             ) : (
@@ -666,7 +694,7 @@ export default function ClaimsTable({
         );
       case 'geography':
         return (
-          <td key={colId} className="px-3 py-2" style={cellStyle}>
+          <td key={colId} className="px-4 py-3" style={cellStyle}>
             {claim.geography ? (
               <span className="text-xs text-gray-700 block truncate">{claim.geography}</span>
             ) : (
@@ -676,7 +704,7 @@ export default function ClaimsTable({
         );
       case 'relatedProjects':
         return (
-          <td key={colId} className="px-3 py-2" style={cellStyle}>
+          <td key={colId} className="px-4 py-3" style={cellStyle}>
             {claim.relatedProjectIds.length > 0 ? (
               <span className="text-xs text-gray-700 block truncate">{claim.relatedProjectIds.length}</span>
             ) : (
@@ -685,60 +713,210 @@ export default function ClaimsTable({
           </td>
         );
       default:
-        return <td key={colId} className="px-3 py-2" style={cellStyle}>—</td>;
+        return <td key={colId} className="px-4 py-3" style={cellStyle}>—</td>;
     }
   };
 
+  const hasActiveFilters = lifecycleFilter.length > 0 || riskLevelFilter.length > 0 || channelsFilter.length > 0 || geographyFilter.length > 0;
+
   return (
     <div className="w-full h-full flex flex-col bg-white rounded-xl border border-gray-300 overflow-hidden shadow-sm">
+      {/* Active filter chips row */}
+      {hasActiveFilters && (
+        <div className="px-4 py-2 bg-earth/30 border-b border-pebble flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs text-gray-500 font-medium mr-1">
+              Active filters:
+            </span>
+            {lifecycleFilter.length > 0 && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-pebble text-sky rounded-full text-xs font-medium shadow-sm">
+                <span className="text-gray-400 font-normal">Lifecycle:</span>
+                <span>{lifecycleFilter.join(", ")}</span>
+                <button
+                  onClick={() => onClearLifecycleFilter?.()}
+                  className="hover:text-red-500 ml-1 text-gray-400 transition-colors"
+                  title="Clear Lifecycle filters"
+                >
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              </span>
+            )}
+            {riskLevelFilter.length > 0 && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-pebble text-sky rounded-full text-xs font-medium shadow-sm">
+                <span className="text-gray-400 font-normal">Risk Level:</span>
+                <span>{riskLevelFilter.join(", ")}</span>
+                <button
+                  onClick={() => onClearRiskLevelFilter?.()}
+                  className="hover:text-red-500 ml-1 text-gray-400 transition-colors"
+                  title="Clear Risk Level filters"
+                >
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              </span>
+            )}
+            {channelsFilter.length > 0 && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-pebble text-sky rounded-full text-xs font-medium shadow-sm">
+                <span className="text-gray-400 font-normal">Channels:</span>
+                <span>{channelsFilter.join(", ")}</span>
+                <button
+                  onClick={() => onClearChannelsFilter?.()}
+                  className="hover:text-red-500 ml-1 text-gray-400 transition-colors"
+                  title="Clear Channels filters"
+                >
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              </span>
+            )}
+            {geographyFilter.length > 0 && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-pebble text-sky rounded-full text-xs font-medium shadow-sm">
+                <span className="text-gray-400 font-normal">Geography:</span>
+                <span>{geographyFilter.join(", ")}</span>
+                <button
+                  onClick={() => onClearGeographyFilter?.()}
+                  className="hover:text-red-500 ml-1 text-gray-400 transition-colors"
+                  title="Clear Geography filters"
+                >
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              </span>
+            )}
+          </div>
+          {onClearAllFilters && (
+            <button
+              onClick={onClearAllFilters}
+              className="text-xs text-red-500 hover:text-red-700 transition-colors font-semibold px-2 py-1 hover:bg-red-50 rounded-lg mr-1"
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Top Toolbar / Header Row */}
+      <div className="bg-white border-b border-pebble px-4 py-2.5 flex items-center justify-between flex-shrink-0">
+        <div className="flex items-center gap-3">
+          {isBulkSelectionEnabled ? (
+            <>
+              <span className="text-sm text-sky font-medium bg-sky/10 px-2.5 py-0.5 rounded">
+                Bulk Action Mode ({selectedIds.length} selected)
+              </span>
+              {selectedIds.length > 0 && (
+                <button
+                  onClick={onSelectAll}
+                  className="text-xs text-sky hover:text-sky/80 transition-colors font-medium border border-sky/30 px-2 py-0.5 rounded hover:bg-sky/5"
+                >
+                  {selectedIds.length === claims.length ? "Deselect All" : "Select All"}
+                </button>
+              )}
+            </>
+          ) : (
+            <span className="text-sm text-gray-600 font-medium ml-1">
+              {activeBaseView} Library
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <button
+              onClick={() => setIsTableMenuOpen(!isTableMenuOpen)}
+              className="p-1.5 border border-pebble rounded-lg text-gray-500 hover:bg-earth transition-colors hover:text-night shadow-sm bg-white"
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
+            {isTableMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setIsTableMenuOpen(false)} />
+                <div className="absolute right-0 top-full mt-1.5 bg-white border border-pebble rounded-xl shadow-xl z-40 min-w-[200px] py-1.5 overflow-hidden text-left font-normal normal-case tracking-normal">
+                  <button
+                    onClick={() => {
+                      setIsTableMenuOpen(false);
+                      onToggleBulkSelection?.();
+                    }}
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors text-left"
+                  >
+                    <span>{isBulkSelectionEnabled ? "Disable Bulk Selection" : "Bulk Action"}</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsTableMenuOpen(false);
+                      setIsFrozen(!isFrozen);
+                    }}
+                    className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors text-left"
+                  >
+                    <span>Freeze Columns</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${isFrozen ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                      {isFrozen ? "ON" : "OFF"}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsTableMenuOpen(false);
+                      setColumnOrder(BASE_COLUMNS);
+                      setSortCol(null);
+                      setSortDir(null);
+                      setColSearch({});
+                    }}
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors"
+                  >
+                    ↺ Reset Table State
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div className="flex-1 overflow-auto no-scrollbar">
         <table className="w-full border-collapse text-sm" style={{ minWidth: "1200px" }}>
           <thead className="bg-earth sticky top-0 z-10">
             <tr className="border-b border-gray-300">
               {/* Checkbox */}
-              <th
-                className={`px-3 py-3 ${isFrozen ? "sticky left-0 z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
-                style={{
-                  width: "40px",
-                  minWidth: "40px",
-                  maxWidth: "40px",
-                  ...(isFrozen ? { backgroundColor: "#F6F7F0" } : {})
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={allSelected}
-                  onChange={onSelectAll}
-                  className="w-4 h-4 rounded border border-gray-400 text-sky focus:ring-2 focus:ring-sky cursor-pointer transition-colors"
-                />
-              </th>
+              {isBulkSelectionEnabled && (
+                <th
+                  className={`px-4 py-3 ${isFrozen ? "sticky left-0 z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
+                  style={{
+                    width: "40px",
+                    minWidth: "40px",
+                    maxWidth: "40px",
+                    ...(isFrozen ? { backgroundColor: "#F6F7F0" } : {})
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={onSelectAll}
+                    className="w-4 h-4 rounded border border-gray-400 text-sky focus:ring-2 focus:ring-sky cursor-pointer transition-colors"
+                  />
+                </th>
+              )}
 
               {/* Favorite */}
               <th
-                className={`px-3 py-3 ${isFrozen ? "sticky left-[40px] z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
+                className="px-4 py-3"
                 style={{
                   width: "40px",
                   minWidth: "40px",
                   maxWidth: "40px",
-                  ...(isFrozen ? { backgroundColor: "#F6F7F0" } : {})
+                  ...(isFrozen ? { position: "sticky", left: favoriteLeft, zIndex: 20, backgroundColor: "#F6F7F0", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {})
                 }}
               ></th>
 
               {/* Expand */}
               <th
-                className={`px-3 py-3 ${isFrozen ? "sticky left-[80px] z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
+                className="px-4 py-3"
                 style={{
                   width: "40px",
                   minWidth: "40px",
                   maxWidth: "40px",
-                  ...(isFrozen ? { backgroundColor: "#F6F7F0" } : {})
+                  ...(isFrozen ? { position: "sticky", left: expandLeft, zIndex: 20, backgroundColor: "#F6F7F0", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {})
                 }}
               ></th>
 
               {/* Draggable columns */}
               {columnOrder.map((col, index) => {
                 const isSticky = isFrozen && col.id === "claimStatement";
-                const leftOffset = 120;
+                const leftOffset = claimStatementLeft;
                 return (
                   <th
                     key={col.id}
@@ -758,7 +936,6 @@ export default function ClaimsTable({
                         onClick={() => handleSort(col.id)}
                         className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-night transition-colors uppercase tracking-wide focus:outline-none focus:ring-2 focus:ring-sky rounded text-left truncate flex-1"
                       >
-                        <GripVertical className="w-3.5 h-3.5 text-gray-300 cursor-move flex-shrink-0" />
                         <span className="truncate">{col.label}</span>
                         {renderSortIcon(col.id)}
                       </button>
@@ -803,49 +980,6 @@ export default function ClaimsTable({
                   </th>
                 );
               })}
-
-              {/* Table Level Actions Dropdown Header */}
-              <th className="w-10 px-3 py-3">
-                <div className="relative">
-                  <button
-                    onClick={() => setIsTableMenuOpen(!isTableMenuOpen)}
-                    className="p-1 rounded hover:bg-pebble/60 transition-colors text-gray-500 flex items-center justify-center focus:outline-none"
-                    title="Table Settings"
-                  >
-                    <MoreHorizontal className="w-4 h-4" />
-                  </button>
-
-                  {isTableMenuOpen && (
-                    <>
-                      <div className="fixed inset-0 z-30" onClick={() => setIsTableMenuOpen(false)} />
-                      <div className="absolute right-0 top-full mt-2 bg-white border border-pebble rounded-xl shadow-xl z-40 min-w-[200px] py-1.5 overflow-hidden text-left font-normal normal-case tracking-normal">
-                        <button
-                          onClick={() => {
-                            setIsTableMenuOpen(false);
-                            setIsFrozen(!isFrozen);
-                          }}
-                          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-night hover:bg-earth transition-colors"
-                        >
-                          {isFrozen ? <EyeOff className="w-4 h-4 text-sky" /> : <Eye className="w-4 h-4 text-sky" />}
-                          {isFrozen ? "Unfreeze Columns" : "Freeze Columns"}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setIsTableMenuOpen(false);
-                            setColumnOrder(BASE_COLUMNS);
-                            setSortCol(null);
-                            setSortDir(null);
-                            setColSearch({});
-                          }}
-                          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-night hover:bg-earth transition-colors"
-                        >
-                          <span className="text-gray-400">↺</span> Reset Table State
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-300">
@@ -866,31 +1000,33 @@ export default function ClaimsTable({
                     style={{ height: 48 }}
                   >
                     {/* Checkbox */}
-                    <td
-                      className={`px-3 py-3 ${isFrozen ? "sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
-                      style={{
-                        width: "40px",
-                        minWidth: "40px",
-                        maxWidth: "40px",
-                        ...(isFrozen ? { backgroundColor: "#ffffff" } : {})
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => onSelectId(claim.id)}
-                        className="w-4 h-4 rounded border border-gray-400 text-sky focus:ring-2 focus:ring-sky cursor-pointer transition-colors"
-                      />
-                    </td>
+                    {isBulkSelectionEnabled && (
+                      <td
+                        className="px-4 py-3"
+                        style={{
+                          width: "40px",
+                          minWidth: "40px",
+                          maxWidth: "40px",
+                          ...(isFrozen ? { position: "sticky", left: 0, zIndex: 10, backgroundColor: "#ffffff", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {})
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => onSelectId(claim.id)}
+                          className="w-4 h-4 rounded border border-gray-400 text-sky focus:ring-2 focus:ring-sky cursor-pointer transition-colors"
+                        />
+                      </td>
+                    )}
 
                     {/* Favorite */}
                     <td
-                      className={`px-3 py-3 ${isFrozen ? "sticky left-[40px] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
+                      className="px-4 py-3"
                       style={{
                         width: "40px",
                         minWidth: "40px",
                         maxWidth: "40px",
-                        ...(isFrozen ? { backgroundColor: "#ffffff" } : {})
+                        ...(isFrozen ? { position: "sticky", left: favoriteLeft, zIndex: 10, backgroundColor: "#ffffff", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {})
                       }}
                     >
                       <button
@@ -909,12 +1045,12 @@ export default function ClaimsTable({
 
                     {/* Expand chevron */}
                     <td
-                      className={`px-3 py-3 ${isFrozen ? "sticky left-[80px] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
+                      className="px-4 py-3"
                       style={{
                         width: "40px",
                         minWidth: "40px",
                         maxWidth: "40px",
-                        ...(isFrozen ? { backgroundColor: "#ffffff" } : {})
+                        ...(isFrozen ? { position: "sticky", left: expandLeft, zIndex: 10, backgroundColor: "#ffffff", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {})
                       }}
                     >
                       <button
@@ -927,9 +1063,6 @@ export default function ClaimsTable({
 
                     {/* Draggable data cells */}
                     {columnOrder.map((col) => renderClaimCell(claim, col.id, primaryStatement, isLatest, isSelected))}
-
-                    {/* Actions column cell */}
-                    <td className="px-3 py-3 w-10"></td>
                   </tr>
 
                   {/* Version History Expansion */}
@@ -944,13 +1077,15 @@ export default function ClaimsTable({
                         style={{ height: 48 }}
                       >
                         {/* Checkbox */}
-                        <td className={`px-3 py-3 ${isFrozen ? "sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`} style={{ width: "40px", minWidth: "40px", maxWidth: "40px", ...(isFrozen ? { backgroundColor: "#f9fafb" } : {}) }}></td>
+                        {isBulkSelectionEnabled && (
+                          <td className="px-4 py-3" style={{ width: "40px", minWidth: "40px", maxWidth: "40px", ...(isFrozen ? { position: "sticky", left: 0, zIndex: 10, backgroundColor: "#f9fafb", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {}) }}></td>
+                        )}
                         
                         {/* Favorite */}
-                        <td className={`px-3 py-3 ${isFrozen ? "sticky left-[40px] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`} style={{ width: "40px", minWidth: "40px", maxWidth: "40px", ...(isFrozen ? { backgroundColor: "#f9fafb" } : {}) }}></td>
+                        <td className="px-4 py-3" style={{ width: "40px", minWidth: "40px", maxWidth: "40px", ...(isFrozen ? { position: "sticky", left: favoriteLeft, zIndex: 10, backgroundColor: "#f9fafb", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {}) }}></td>
                         
                         {/* Expand chevron */}
-                        <td className={`px-3 py-3 ${isFrozen ? "sticky left-[80px] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`} style={{ width: "40px", minWidth: "40px", maxWidth: "40px", ...(isFrozen ? { backgroundColor: "#f9fafb" } : {}) }}>
+                        <td className="px-4 py-3" style={{ width: "40px", minWidth: "40px", maxWidth: "40px", ...(isFrozen ? { position: "sticky", left: expandLeft, zIndex: 10, backgroundColor: "#f9fafb", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {}) }}>
                           <span className="text-gray-400 flex justify-center text-lg">↳</span>
                         </td>
 
@@ -958,9 +1093,6 @@ export default function ClaimsTable({
                         {columnOrder.map((col) => {
                           return renderClaimCell(oldClaim, col.id, verStatement, ver.isLatest, false, "#f9fafb");
                         })}
-
-                        {/* Actions column cell */}
-                        <td className="px-3 py-3 w-10"></td>
                       </tr>
                     );
                   })}
@@ -968,7 +1100,7 @@ export default function ClaimsTable({
                   {/* Inline Expanded Workbench */}
                   {isExpanded && (
                     <tr>
-                      <td colSpan={columnOrder.length + 3} className="p-0">
+                      <td colSpan={columnOrder.length + (isBulkSelectionEnabled ? 3 : 2)} className="p-0">
                         <div className="border-b-2 border-sky/20" style={{ background: '#EEF4FB' }}>
                           <div className="p-4 space-y-2">
                           {/* Collapsible Accordion Sections (Substantiations, Final Risk) */}
@@ -1216,7 +1348,7 @@ export default function ClaimsTable({
             })}
             {claims.length === 0 && (
               <tr>
-              <td colSpan={columnOrder.length + 3} className="px-0 py-0">
+                <td colSpan={columnOrder.length + (isBulkSelectionEnabled ? 3 : 2)} className="px-0 py-0">
                   <EmptyState
                     icon={FileText}
                     title="No claims found"

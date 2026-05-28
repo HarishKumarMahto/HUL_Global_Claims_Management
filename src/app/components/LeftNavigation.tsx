@@ -1129,6 +1129,7 @@ export default function LeftNavigation({
           icon: <Shield className="w-4 h-4" />,
         },
         { label: "Related Assets", icon: <Paperclip className="w-4 h-4" /> },
+        { label: "Related Projects", icon: <Globe className="w-4 h-4" /> },
       ];
       return (
         <aside className={sidebarClass}>

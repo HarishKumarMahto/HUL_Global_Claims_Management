@@ -2288,6 +2288,18 @@ export default function App() {
                 activeSection={activeClaimsWorkspaceSection}
                 onSectionChange={setActiveClaimsWorkspaceSection}
                 onClaimSelect={setSelectedClaim}
+                onNavigateToProject={(projectId) => {
+                  const project = projects.find(
+                    (p) => p.id === projectId || p.projectId === projectId,
+                  );
+                  if (project) {
+                    setSelectedProject(project);
+                    setActiveModule("Projects");
+                    setActiveWorkspaceSection("Project Details");
+                    setSelectedClaim(null);
+                    setClaimsModuleView("table");
+                  }
+                }}
               />
             ) : (
               <ClaimsModule
@@ -2530,6 +2542,8 @@ export default function App() {
         isOpen={isSavedViewsModalOpen}
         onClose={() => setIsSavedViewsModalOpen(false)}
         onSelectView={handleSelectSavedView}
+        views={projectSavedViews}
+        onViewsChange={setProjectSavedViews}
       />
       <FilterPanel
         isOpen={isFilterPanelOpen}

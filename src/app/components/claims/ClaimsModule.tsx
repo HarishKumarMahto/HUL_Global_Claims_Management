@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Plus, Search, Filter, X, ChevronDown, MoreHorizontal, AlertCircle, Check, XCircle, Archive, FileText, Sparkles, ChevronUp } from 'lucide-react';
+import { Plus, Search, Filter, X, ChevronDown, MoreHorizontal, AlertCircle, Check, XCircle, Archive, FileText, Sparkles, ChevronUp, RotateCcw } from 'lucide-react';
 import type { Claim, ClaimBaseView, ClaimWorkView, ClaimLifecycle, RiskLevel, ClaimType, Project } from '../../types';
 import { initialProjects, MARKETING_CHANNELS, CLAIM_CATEGORIES, REGIONS } from '../../types';
 import ClaimsTable from './ClaimsTable';
@@ -123,6 +123,7 @@ export default function ClaimsModule({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [creationConfig, setCreationConfig] = useState<{ open: boolean; type?: ClaimType; initialTabs?: any[]; initialStep?: 1 | 2 }>({ open: false });
   const [isBulkMenuOpen, setIsBulkMenuOpen] = useState(false);
+  const [isBulkSelectionEnabled, setIsBulkSelectionEnabled] = useState(false);
   
   // Quick Filter State (US-M4-030)
   const [activeFiltersConfig, setActiveFiltersConfig] = useState<string[]>(() => {
@@ -130,26 +131,41 @@ export default function ClaimsModule({
     return saved ? JSON.parse(saved) : ['Lifecycle', 'Risk Level', 'Channels', 'Geography'];
   });
   const [isFilterConfigOpen, setIsFilterConfigOpen] = useState(false);
+  const [tempFiltersConfig, setTempFiltersConfig] = useState<string[]>([]);
 
   const [lifecycleFilter, setLifecycleFilter] = useState<ClaimLifecycle[]>([]);
   const [riskLevelFilter, setRiskLevelFilter] = useState<RiskLevel[]>([]);
   const [channelsFilter, setChannelsFilter] = useState<string[]>([]);
   const [geographyFilter, setGeographyFilter] = useState<string[]>([]);
 
-  const toggleFilterConfig = (filterName: string) => {
-    const next = activeFiltersConfig.includes(filterName) 
-      ? activeFiltersConfig.filter(f => f !== filterName)
-      : [...activeFiltersConfig, filterName];
-    setActiveFiltersConfig(next);
-    localStorage.setItem('claimsQuickFilters', JSON.stringify(next));
+  const handleOpenFilterConfig = () => {
+    setTempFiltersConfig(activeFiltersConfig);
+    setIsFilterConfigOpen(true);
+  };
+
+  const toggleTempFilterConfig = (filterName: string) => {
+    setTempFiltersConfig(prev => 
+      prev.includes(filterName) 
+        ? prev.filter(f => f !== filterName)
+        : [...prev, filterName]
+    );
+  };
+
+  const handleApplyFilterConfig = () => {
+    setActiveFiltersConfig(tempFiltersConfig);
+    localStorage.setItem('claimsQuickFilters', JSON.stringify(tempFiltersConfig));
     
-    // Clear filter values if hidden
-    if (activeFiltersConfig.includes(filterName)) {
-      if (filterName === 'Lifecycle') setLifecycleFilter([]);
-      if (filterName === 'Risk Level') setRiskLevelFilter([]);
-      if (filterName === 'Channels') setChannelsFilter([]);
-      if (filterName === 'Geography') setGeographyFilter([]);
-    }
+    // Clear filter values for any filters that were removed
+    activeFiltersConfig.forEach(f => {
+      if (!tempFiltersConfig.includes(f)) {
+        if (f === 'Lifecycle') setLifecycleFilter([]);
+        if (f === 'Risk Level') setRiskLevelFilter([]);
+        if (f === 'Channels') setChannelsFilter([]);
+        if (f === 'Geography') setGeographyFilter([]);
+      }
+    });
+    
+    setIsFilterConfigOpen(false);
   };
   // Bulk action modals
   const [bulkLifecycleModal, setBulkLifecycleModal] = useState<{ open: boolean; target: ClaimLifecycle | ''; reason: string; errors: string[] }>({ open: false, target: '', reason: '', errors: [] });
@@ -443,6 +459,97 @@ export default function ClaimsModule({
             )}
           </div>
 
+          {/* Add Filter Menu */}
+          <div className="relative">
+            <button 
+              onClick={handleOpenFilterConfig}
+              className="flex items-center gap-2 px-3 py-2 border border-pebble text-sm text-gray-600 rounded-lg hover:bg-earth hover:border-sky transition-colors bg-white shadow-sm"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Add Quick Filters
+            </button>
+            {isFilterConfigOpen && (
+              <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
+                  {/* Header */}
+                  <div className="px-6 py-4 border-b border-pebble flex items-center justify-between flex-shrink-0">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-pale rounded-lg">
+                        <Filter className="w-4 h-4 text-sky" />
+                      </div>
+                      <div>
+                        <h2 className="text-night font-bold text-base">Add Quick Filters</h2>
+                        {tempFiltersConfig.length > 0 && (
+                          <p className="text-xs text-sky mt-0.5">
+                            {tempFiltersConfig.length} quick filter{tempFiltersConfig.length !== 1 ? 's' : ''} active
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => setIsFilterConfigOpen(false)} 
+                      className="p-2 hover:bg-earth rounded-lg transition-colors"
+                    >
+                      <X className="w-5 h-5 text-gray-500" />
+                    </button>
+                  </div>
+
+                  {/* Body */}
+                  <div className="flex-1 overflow-auto p-6 text-left">
+                    <div className="space-y-3">
+                      {['Lifecycle', 'Risk Level', 'Channels', 'Geography'].map(f => {
+                        const isChecked = tempFiltersConfig.includes(f);
+                        return (
+                          <label 
+                            key={f} 
+                            className={`flex items-center justify-between p-4 rounded-xl border border-pebble shadow-sm hover:bg-earth cursor-pointer transition-colors bg-white ${
+                              isChecked ? 'border-sky/30 bg-pale/5' : ''
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <input 
+                                type="checkbox" 
+                                checked={isChecked}
+                                onChange={() => toggleTempFilterConfig(f)}
+                                className="w-4 h-4 text-sky rounded border-pebble focus:ring-sky cursor-pointer"
+                              />
+                              <span className={`text-sm font-semibold ${isChecked ? 'text-sky' : 'text-night'}`}>{f}</span>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="px-6 py-4 border-t border-pebble flex items-center justify-between flex-shrink-0 bg-gray-50/50">
+                    <button
+                      onClick={() => setTempFiltersConfig([])}
+                      className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-night hover:bg-earth rounded-lg text-sm font-semibold transition-colors"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      Clear All Filters
+                    </button>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setIsFilterConfigOpen(false)}
+                        className="px-4 py-2 border border-pebble text-night rounded-lg text-sm hover:bg-earth font-semibold transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleApplyFilterConfig}
+                        className="px-6 py-2 bg-sky text-white rounded-lg text-sm font-bold hover:bg-dark shadow-md active:scale-95 transition-all"
+                      >
+                        Done
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Quick Filters */}
           {activeFiltersConfig.includes('Lifecycle') && (
             <QuickFilterDropdown<ClaimLifecycle>
@@ -480,46 +587,6 @@ export default function ClaimsModule({
               onClear={() => setGeographyFilter([])}
             />
           )}
-
-          {/* Add Filter Menu */}
-          <div className="relative ml-2">
-            <button 
-              onClick={() => setIsFilterConfigOpen(!isFilterConfigOpen)}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-500 border border-dashed border-gray-300 rounded-lg hover:border-sky hover:text-sky transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Add Filter
-            </button>
-            {isFilterConfigOpen && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setIsFilterConfigOpen(false)} />
-                <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-pebble rounded-xl shadow-xl z-20 py-1">
-                  <div className="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-pebble mb-1">
-                    Toggle Quick Filters
-                  </div>
-                  {['Lifecycle', 'Risk Level', 'Channels', 'Geography'].map(f => (
-                    <label key={f} className="flex items-center gap-2 px-3 py-2 hover:bg-earth cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={activeFiltersConfig.includes(f)}
-                        onChange={() => toggleFilterConfig(f)}
-                        className="rounded border-gray-300 text-sky focus:ring-sky"
-                      />
-                      <span className="text-sm text-night">{f}</span>
-                    </label>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Result count + Clear all (US-M4-033) */}
-          <div className="flex items-center gap-2 ml-auto text-xs text-gray-500">
-            <span>Filters applied across all claims · <strong className="text-night">{filteredClaims.length}</strong> match{filteredClaims.length !== 1 ? 'es' : ''}</span>
-            {activeFilterCount > 0 && (
-              <button onClick={clearAllFilters} className="text-red-400 hover:text-red-600 transition-colors font-medium">Clear all</button>
-            )}
-          </div>
         </div>
       </div>
 
@@ -587,6 +654,22 @@ export default function ClaimsModule({
               return u ? { ...c, ...u } : c;
             }));
           }}
+          isBulkSelectionEnabled={isBulkSelectionEnabled}
+          onToggleBulkSelection={() => {
+            setIsBulkSelectionEnabled(!isBulkSelectionEnabled);
+            if (isBulkSelectionEnabled) {
+              setSelectedIds([]);
+            }
+          }}
+          lifecycleFilter={lifecycleFilter}
+          riskLevelFilter={riskLevelFilter}
+          channelsFilter={channelsFilter}
+          geographyFilter={geographyFilter}
+          onClearLifecycleFilter={() => setLifecycleFilter([])}
+          onClearRiskLevelFilter={() => setRiskLevelFilter([])}
+          onClearChannelsFilter={() => setChannelsFilter([])}
+          onClearGeographyFilter={() => setGeographyFilter([])}
+          onClearAllFilters={clearAllFilters}
         />
       </div>
 

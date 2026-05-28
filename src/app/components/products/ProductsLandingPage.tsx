@@ -1097,21 +1097,21 @@ export default function ProductsLandingPage({
 
       case 'childCount':
         return (
-          <td className="px-4 py-3 text-sm text-gray-700 text-center truncate" style={cellStyle}>
+          <td className="px-4 py-3 text-sm text-gray-700 text-left truncate" style={cellStyle}>
             {product.childCount}
           </td>
         );
 
       case 'claimsCount':
         return (
-          <td className="px-4 py-3 text-sm text-gray-700 text-center truncate" style={cellStyle}>
+          <td className="px-4 py-3 text-sm text-gray-700 text-left truncate" style={cellStyle}>
             {product.claimsCount}
           </td>
         );
 
       case 'projectsCount':
         return (
-          <td className="px-4 py-3 text-sm text-gray-700 text-center truncate" style={cellStyle}>
+          <td className="px-4 py-3 text-sm text-gray-700 text-left truncate" style={cellStyle}>
             {product.projectsCount}
           </td>
         );
@@ -1706,7 +1706,6 @@ export default function ProductsLandingPage({
                             onClick={() => col.sortable && handleSort(col.id)}
                             className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-night transition-colors uppercase tracking-wide focus:outline-none focus:ring-2 focus:ring-sky rounded text-left truncate flex-1 font-semibold"
                           >
-                            <GripVertical className="w-3.5 h-3.5 text-gray-300 cursor-move flex-shrink-0" />
                             <span className="truncate">{col.label}</span>
                             {col.sortable && <SortIcon col={col.id} />}
                           </button>

@@ -10,9 +10,13 @@ interface Toast {
 export function useToast() {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const showToast = useCallback((type: ToastType, message: string) => {
+  const showToast = useCallback((args: { type: ToastType; title?: string; message: string } | ToastType, messageStr?: string) => {
     const id = `toast-${Date.now()}-${Math.random()}`;
-    setToasts(prev => [...prev, { id, type, message }]);
+    if (typeof args === 'object') {
+      setToasts(prev => [...prev, { id, type: args.type, message: args.message }]);
+    } else {
+      setToasts(prev => [...prev, { id, type: args, message: messageStr || '' }]);
+    }
   }, []);
 
   const removeToast = useCallback((id: string) => {
@@ -26,6 +30,7 @@ export function useToast() {
 
   return {
     toasts,
+    showToast,
     removeToast,
     success,
     error,
