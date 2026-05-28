@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Plus, Search, Filter, X, ChevronDown, MoreHorizontal, AlertCircle, Check, XCircle, Archive, FileText, Sparkles, ChevronUp } from 'lucide-react';
-import type { Claim, ClaimBaseView, ClaimWorkView, ClaimLifecycle, RiskLevel, ClaimType } from '../../types';
+import type { Claim, ClaimBaseView, ClaimWorkView, ClaimLifecycle, RiskLevel, ClaimType, Project } from '../../types';
 import { initialProjects, MARKETING_CHANNELS, CLAIM_CATEGORIES, REGIONS } from '../../types';
 import ClaimsTable from './ClaimsTable';
 import ClaimCreationModal from './ClaimCreationModal';
@@ -88,6 +88,8 @@ interface ClaimsModuleProps {
   isChainedFlow?: boolean;
   pendingProducts?: any[] | null;
   activeSubView?: 'all' | 'myProject' | 'favorites';
+  contextProject?: Project | null;
+  contextProduct?: string | null;
 }
 
 export default function ClaimsModule({
@@ -102,6 +104,8 @@ export default function ClaimsModule({
   isChainedFlow = false,
   pendingProducts = null,
   activeSubView = 'all',
+  contextProject = null,
+  contextProduct = null,
 }: ClaimsModuleProps) {
   const [searchQuery, setSearchQuery] = useState('');
   useEffect(() => {
@@ -195,7 +199,11 @@ export default function ClaimsModule({
         ? claim.isFavorite
         : true;
 
-    return matchesSearch && matchesLifecycle && matchesRisk && matchesChannels && matchesGeography && matchesSubView;
+    // Project and Product context filters
+    const matchesProjectContext = !contextProject || (claim.relatedProjectIds && claim.relatedProjectIds.includes(contextProject.id));
+    const matchesProductContext = !contextProduct || claim.productName === contextProduct;
+
+    return matchesSearch && matchesLifecycle && matchesRisk && matchesChannels && matchesGeography && matchesSubView && matchesProjectContext && matchesProductContext;
   });
 
   const toggleSelect = (id: string) => {

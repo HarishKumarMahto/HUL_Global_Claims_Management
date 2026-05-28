@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import AddClaimModal from "../claims/AddClaimModal";
 import ClaimCreationModal from "../claims/ClaimCreationModal";
-import { CURRENT_USER, CURRENT_USER_ROLE, canEditSupportStrategy } from "../../types";
+import { CURRENT_USER, CURRENT_USER_ROLE, canEditSupportStrategy, type Project } from "../../types";
 
 export type RiskLevel = "Low" | "Medium" | "High" | "Very High";
 export type ClaimStatus =
@@ -663,6 +663,7 @@ interface ClaimSectionProps {
   selectedClaimIds: Set<string>;
   onToggleSelectClaim: (id: string) => void;
   onSelectAllClaims: (ids: string[], select: boolean) => void;
+  project?: Project;
 }
 
 function ClaimSectionBlock({
@@ -676,6 +677,7 @@ function ClaimSectionBlock({
   selectedClaimIds,
   onToggleSelectClaim,
   onSelectAllClaims,
+  project,
 }: ClaimSectionProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [expandedClaim, setExpandedClaim] = useState<
@@ -772,7 +774,7 @@ function ClaimSectionBlock({
             onClick={(e) => {
               e.stopPropagation();
               const targetView = SECTION_VIEW_MAP[section.id] || "Global Claims";
-              window.dispatchEvent(new CustomEvent('navigateToClaimsView', { detail: { view: targetView } }));
+              window.dispatchEvent(new CustomEvent('navigateToClaimsView', { detail: { view: targetView, project: project } }));
             }}
             className="flex items-center gap-1 text-xs px-2.5 py-1.5 border border-sky/30 text-sky bg-sky/5 rounded-lg hover:bg-sky/10 transition-colors mr-1 font-medium"
           >
@@ -1052,7 +1054,7 @@ function ClaimSectionBlock({
   );
 }
 
-export default function RelatedClaimsTab({ subFilter = "all", hideOuterHeader = false }: { subFilter?: string; hideOuterHeader?: boolean }) {
+export default function RelatedClaimsTab({ subFilter = "all", hideOuterHeader = false, project }: { subFilter?: string; hideOuterHeader?: boolean; project?: Project }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<
     ClaimStatus | ""
@@ -1186,7 +1188,7 @@ export default function RelatedClaimsTab({ subFilter = "all", hideOuterHeader = 
               <button
                 onClick={() => {
                   const targetView = SECTION_VIEW_MAP[subFilter] || "Global Claims";
-                  window.dispatchEvent(new CustomEvent('navigateToClaimsView', { detail: { view: targetView } }));
+                  window.dispatchEvent(new CustomEvent('navigateToClaimsView', { detail: { view: targetView, project: project } }));
                 }}
                 className="flex items-center gap-2 px-3 py-2 border border-sky/30 text-sky bg-sky/5 rounded-lg text-sm hover:bg-sky/10 transition-colors cursor-pointer"
               >
@@ -1294,6 +1296,7 @@ export default function RelatedClaimsTab({ subFilter = "all", hideOuterHeader = 
               selectedClaimIds={selectedClaimIds}
               onToggleSelectClaim={handleToggleSelectClaim}
               onSelectAllClaims={handleSelectAllClaims}
+              project={project}
             />
           ))}
       </div>

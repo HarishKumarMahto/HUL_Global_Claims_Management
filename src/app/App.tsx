@@ -603,6 +603,8 @@ export default function App() {
   const [selectedClaim, setSelectedClaim] = useState<Claim | null>(null);
   const [claimsModuleView, setClaimsModuleView] =
     useState<ClaimsModuleView>("table");
+  const [claimsContextProject, setClaimsContextProject] = useState<Project | null>(null);
+  const [claimsContextProduct, setClaimsContextProduct] = useState<string | null>(null);
   const [activeClaimsSubView, setActiveClaimsSubView] = useState<'all' | 'myProject' | 'favorites'>('all');
   const [activeClaimsWorkspaceSection, setActiveClaimsWorkspaceSection] =
     useState("Claim Details");
@@ -754,10 +756,16 @@ export default function App() {
   // Listen for navigateToClaimsView custom events to switch the module tab to specific claims base views
   useEffect(() => {
     const handler = (e: Event) => {
-      const ev = e as CustomEvent<{ view: ClaimBaseView }>;
+      const ev = e as CustomEvent<{ view: ClaimBaseView; project?: Project }>;
       const targetView = ev.detail?.view || "Global Claims";
       setActiveModule("Claims");
       setActiveClaimsBaseView(targetView);
+      if (ev.detail?.project) {
+        setClaimsContextProject(ev.detail.project);
+      } else {
+        setClaimsContextProject(null);
+      }
+      setClaimsContextProduct(null);
       setSelectedProject(null);
       setSelectedProduct(null);
       setSelectedClaim(null);
@@ -1810,14 +1818,20 @@ export default function App() {
             activeProductSection={activeProductSection}
             onProductSectionChange={setActiveProductSection}
             activeClaimsBaseView={activeClaimsBaseView}
-            onClaimsBaseViewChange={setActiveClaimsBaseView}
+            onClaimsBaseViewChange={(view) => {
+              setActiveClaimsBaseView(view);
+              setClaimsModuleView("table");
+            }}
             activeClaimsSubView={activeClaimsSubView}
             onClaimsSubViewChange={setActiveClaimsSubView}
             activeClaimsWorkView={activeClaimsWorkView}
             onClaimsWorkViewChange={setActiveClaimsWorkView}
-            isInClaimsWorkspace={activeModule === "Claims" && !!selectedClaim}
+            isInClaimsWorkspace={claimsModuleView === "workspace"}
             activeClaimsWorkspaceSection={activeClaimsWorkspaceSection}
             onClaimsWorkspaceSectionChange={setActiveClaimsWorkspaceSection}
+            claimsContextProject={claimsContextProject}
+            claimsContextProduct={claimsContextProduct}
+            onClaimsContextProductChange={setClaimsContextProduct}
             claims={claims}
             onClaimClick={(claim) => {
               setSelectedClaim(claim);
@@ -2293,6 +2307,8 @@ export default function App() {
                 externalSearchQuery={claimSearchQuery}
                 isChainedFlow={!!pendingChainedProject}
                 pendingProducts={pendingChainedProduct}
+                contextProject={claimsContextProject}
+                contextProduct={claimsContextProduct}
               />
             )
           ) : activeModule === "Products" ? (

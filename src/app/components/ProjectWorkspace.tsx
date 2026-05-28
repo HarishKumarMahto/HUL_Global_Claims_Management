@@ -1721,14 +1721,14 @@ export default function ProjectWorkspace({
       case "Related Products":
         return <LinkedProductsTab project={project} />;
       case "Related Claims - Global":
-        return <RelatedClaimsTab subFilter="global" hideOuterHeader={true} />;
+        return <RelatedClaimsTab subFilter="global" hideOuterHeader={true} project={project} />;
       case "Related Claims - Regional":
-        return <RelatedClaimsTab subFilter="regional" hideOuterHeader={true} />;
+        return <RelatedClaimsTab subFilter="regional" hideOuterHeader={true} project={project} />;
       case "Related Claims - Local":
-        return <RelatedClaimsTab subFilter="local" hideOuterHeader={true} />;
+        return <RelatedClaimsTab subFilter="local" hideOuterHeader={true} project={project} />;
       case "Related Claims - SKU":
         return (
-          <RelatedClaimsTab subFilter="local_sku" hideOuterHeader={true} />
+          <RelatedClaimsTab subFilter="local_sku" hideOuterHeader={true} project={project} />
         );
       case "Related Assets":
         return <LinkedAssetsTab />;

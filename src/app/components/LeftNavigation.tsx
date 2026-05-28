@@ -23,7 +23,8 @@ import {
 import type { ReactElement } from "react";
 import type { ProductModuleView } from "./products/ProductsModule";
 import type { ProductSection } from "./products/ProductDetailsPage";
-import type { ClaimBaseView, ClaimWorkView, Claim, ClaimType } from "../types";
+import type { ClaimBaseView, ClaimWorkView, Claim, ClaimType, Project } from "../types";
+import { initialProducts } from "./products/productData";
 import type { SavedView } from "./SavedViewsModal";
 import type { AssetSavedView } from "./assets/AssetsModule";
 
@@ -62,6 +63,9 @@ interface LeftNavigationProps {
   onClaimsWorkspaceSectionChange?: (section: string) => void;
   activeClaimsSubView?: 'all' | 'myProject' | 'favorites';
   onClaimsSubViewChange?: (view: 'all' | 'myProject' | 'favorites') => void;
+  claimsContextProject?: Project | null;
+  claimsContextProduct?: string | null;
+  onClaimsContextProductChange?: (productId: string | null) => void;
   claims?: Claim[];
   onClaimClick?: (claim: Claim) => void;
   // Home module nav
@@ -345,6 +349,9 @@ export default function LeftNavigation({
   onClaimsWorkspaceSectionChange,
   activeClaimsSubView = 'all',
   onClaimsSubViewChange,
+  claimsContextProject,
+  claimsContextProduct,
+  onClaimsContextProductChange,
   // Home module nav
   onModuleChange,
   claims = [],
@@ -1212,10 +1219,12 @@ export default function LeftNavigation({
                     onClick={() => {
                       onClaimsBaseViewChange?.(view);
                       onClaimsSubViewChange?.('all');
-                      setExpandedClaimSections((prev) => ({
-                        ...prev,
-                        [view]: !prev[view],
-                      }));
+                      if (!claimsContextProject) {
+                        setExpandedClaimSections((prev) => ({
+                          ...prev,
+                          [view]: !prev[view],
+                        }));
+                      }
                     }}
                     className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-150 text-sm ${
                       isActive
@@ -1223,10 +1232,12 @@ export default function LeftNavigation({
                         : "text-gray-600 hover:bg-earth hover:text-night"
                     }`}
                   >
-                    {isExpanded ? (
-                      <ChevronDown className="w-3.5 h-3.5" />
-                    ) : (
-                      <ChevronRight className="w-3.5 h-3.5" />
+                    {!claimsContextProject && (
+                      isExpanded ? (
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      ) : (
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      )
                     )}
                     <FileText className="w-4 h-4" />
                     <span
@@ -1239,7 +1250,7 @@ export default function LeftNavigation({
                       <div className="w-1.5 h-1.5 rounded-full bg-sky" />
                     )}
                   </button>
-                  {isExpanded &&
+                  {!claimsContextProject && isExpanded &&
                     (() => {
                       const claimType = CLAIM_TYPE_MAP[view];
                       const typeFilteredClaims = claims.filter(
@@ -1281,6 +1292,47 @@ export default function LeftNavigation({
                 </div>
               );
             })}
+
+            {claimsContextProject && (
+              <>
+                <div className="my-3 border-t border-pebble" />
+                <div
+                  className="px-3 py-2 text-xs text-gray-400 uppercase tracking-wider"
+                  style={{ fontWeight: 500 }}
+                >
+                  Project Products
+                </div>
+                <div className="space-y-0.5">
+                  {/* Simulate related products: we'll just show all formats/subranges for simplicity or those with projectsCount > 0 */}
+                  {initialProducts.filter(p => p.projectsCount > 0 && p.type === 'Format').map((product) => {
+                    const isActive = claimsContextProduct === product.name;
+                    return (
+                      <button
+                        key={product.id}
+                        onClick={() => onClaimsContextProductChange?.(isActive ? null : product.name)}
+                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-150 text-sm ${
+                          isActive
+                            ? "bg-pale text-sky"
+                            : "text-gray-600 hover:bg-earth hover:text-night"
+                        }`}
+                      >
+                        <Package className={`w-4 h-4 ${isActive ? 'text-sky' : 'text-gray-400'}`} />
+                        <span
+                          className="flex-1 text-left truncate"
+                          style={{ fontWeight: isActive ? 500 : 400 }}
+                          title={product.name}
+                        >
+                          {product.name}
+                        </span>
+                        {isActive && (
+                          <div className="w-1.5 h-1.5 rounded-full bg-sky flex-shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
 
             <div className="my-3 border-t border-pebble" />
 
