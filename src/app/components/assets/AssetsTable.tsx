@@ -1,11 +1,22 @@
-import { useState, Fragment, useMemo } from 'react';
+import { useState, Fragment, useMemo, useEffect } from 'react';
 import {
   Check, ChevronDown, ChevronRight, Star, GripVertical,
   Link2, Shield, MessageSquare, History, X, Plus,
-  FileText, Image, Film, Music, Package, Eye, EyeOff, MoreHorizontal, Search, ArrowUpDown, ChevronUp
+  FileText, Image, Film, Music, Package, Eye, EyeOff, MoreHorizontal, MoreVertical, Search, ArrowUpDown, ChevronUp, Archive, Sparkles
 } from 'lucide-react';
 import { Asset, ASSET_LIFECYCLE_COLORS } from '../../types';
 import EmptyState from '../ui/EmptyState';
+import { TablePagination } from '../ui/tableUtils';
+
+const FILTER_NAMES: Record<string, string> = {
+  lifecycle: 'Lifecycle State',
+  subtype: 'Subtype',
+  businessGroup: 'Business Group',
+  geography: 'Geography',
+  cbp: 'CBP',
+  category: 'Category',
+  createdBy: 'Created By',
+};
 
 const BASE_COLUMNS = [
   { id: 'name', label: 'Asset Name', width: 280 },
@@ -25,6 +36,17 @@ interface AssetsTableProps {
   selectedIds: string[];
   onSelectionChange: (ids: string[]) => void;
   onAssetsChange: (assets: Asset[]) => void;
+  onBulkAction: (action: string) => void;
+  appliedFilters?: {
+    lifecycle?: string[];
+    subtype?: string[];
+    businessGroup?: string[];
+    geography?: string[];
+    cbp?: string[];
+  };
+  onRemoveFilter?: (category: string, value: string) => void;
+  onClearFilters?: () => void;
+  activeLibraryView?: string;
 }
 
 const getFileIcon = (fileType: string) => {
@@ -57,7 +79,13 @@ export default function AssetsTable({
   selectedIds,
   onSelectionChange,
   onAssetsChange,
+  onBulkAction,
+  appliedFilters = {},
+  onRemoveFilter,
+  onClearFilters,
+  activeLibraryView = "All Assets",
 }: AssetsTableProps) {
+  const [isBulkMode, setIsBulkMode] = useState(false);
   const [columnOrder, setColumnOrder] = useState(BASE_COLUMNS);
   const [draggedCol, setDraggedCol] = useState<number | null>(null);
   const [expandedAssetId, setExpandedAssetId] = useState<string | null>(null);
@@ -72,6 +100,12 @@ export default function AssetsTable({
   const [isFrozen, setIsFrozen] = useState(false);
   const [isTableMenuOpen, setIsTableMenuOpen] = useState(false);
   const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset page when search/filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [assets, appliedFilters]);
 
   const handleSort = (colId: string) => {
     if (sortCol === colId) {
@@ -308,34 +342,222 @@ export default function AssetsTable({
     }
   };
 
+  const activeFilters = Object.entries(appliedFilters || {}).filter(([_, values]) => values && values.length > 0);
+  const activeFiltersCount = activeFilters.length;
+
+  const itemsPerPage = 10;
+  const totalRecords = filteredAndSortedAssets.length;
+  const totalPages = Math.max(1, Math.ceil(totalRecords / itemsPerPage));
+  const safePage = Math.min(currentPage, totalPages);
+  const startIndex = (safePage - 1) * itemsPerPage;
+  const paginatedAssets = useMemo(() => {
+    return filteredAndSortedAssets.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredAndSortedAssets, startIndex]);
+
   return (
     <div className="w-full h-full flex flex-col bg-white rounded-xl border border-gray-300 overflow-hidden shadow-sm">
-      <div className="flex-1 overflow-auto no-scrollbar">
-        <table className="w-full border-collapse" style={{ minWidth: "1200px" }}>
+      {/* Active filter chips row - styled identically to Projects */}
+      {appliedFilters &&
+        Object.values(appliedFilters).some(
+          (v) => v.length > 0,
+        ) && (
+          <div className="px-4 py-2 bg-earth/30 border-b border-pebble flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs text-gray-500 font-medium mr-1">
+                Active filters:
+              </span>
+              {Object.entries(appliedFilters).map(([key, values]) => {
+                const arr = values as string[];
+                if (!arr || arr.length === 0) return null;
+                const filterLabel = FILTER_NAMES[key] || key;
+                return (
+                  <span
+                    key={key}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-pebble text-sky rounded-full text-xs font-medium shadow-sm"
+                  >
+                    <span className="text-gray-400 font-normal">{filterLabel}:</span>
+                    <span>{arr.join(", ")}</span>
+                    {onRemoveFilter && (
+                      <button
+                        onClick={() => {
+                          arr.forEach((val) => onRemoveFilter(key, val));
+                        }}
+                        className="hover:text-red-500 ml-1 text-gray-400 transition-colors"
+                        title={`Clear all ${filterLabel} filters`}
+                      >
+                        <X className="w-2.5 h-2.5" />
+                      </button>
+                    )}
+                  </span>
+                );
+              })}
+            </div>
+            {onClearFilters && (
+              <button
+                onClick={onClearFilters}
+                className="text-xs text-red-500 hover:text-red-700 transition-colors font-semibold px-2 py-1 hover:bg-red-50 rounded-lg mr-1"
+              >
+                Clear all
+              </button>
+            )}
+          </div>
+        )}
+
+      {/* Top Toolbar / Header Row */}
+      <div className="bg-white border-b border-pebble px-4 py-2.5 flex items-center justify-between flex-shrink-0">
+        <div className="flex items-center gap-3">
+          {isBulkMode && selectedIds.length > 0 ? (
+            <>
+              <span className="text-sm text-sky font-medium bg-sky/10 px-2.5 py-0.5 rounded">
+                {selectedIds.length} of {assets.length} selected
+              </span>
+              <button
+                onClick={() => onSelectionChange([])}
+                className="text-xs text-gray-500 hover:text-night transition-colors font-medium"
+              >
+                Clear selection
+              </button>
+            </>
+          ) : (
+            <span className="text-sm text-gray-600 font-medium ml-1">
+              {activeLibraryView.endsWith("Assets") ? `${activeLibraryView} Library` : activeLibraryView}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <button
+              onClick={() => setIsTableMenuOpen(!isTableMenuOpen)}
+              className="p-1.5 border border-pebble rounded-lg text-gray-500 hover:bg-earth transition-colors hover:text-night shadow-sm bg-white"
+              title="Table Settings"
+            >
+              <MoreVertical className="w-4 h-4" />
+            </button>
+
+              {isTableMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setIsTableMenuOpen(false)} />
+                  <div className="absolute right-0 top-full mt-1.5 bg-white border border-pebble rounded-xl shadow-xl z-40 min-w-[220px] py-1.5 overflow-hidden text-left font-normal normal-case tracking-normal">
+                    <button
+                      onClick={() => {
+                        setIsTableMenuOpen(false);
+                        setIsFrozen(!isFrozen);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors text-left"
+                    >
+                      {isFrozen ? <EyeOff className="w-4 h-4 text-sky" /> : <Eye className="w-4 h-4 text-sky" />}
+                      <span>{isFrozen ? "Unfreeze Columns" : "Freeze Columns"}</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsTableMenuOpen(false);
+                        setColumnOrder(BASE_COLUMNS);
+                        setSortCol(null);
+                        setSortDir(null);
+                        setColSearch({});
+                      }}
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors text-left"
+                    >
+                      <span className="text-gray-400">↺</span>
+                      <span>Reset Table State</span>
+                    </button>
+                    
+                    <div className="border-t border-pebble my-1" />
+                    <button
+                      onClick={() => {
+                        setIsTableMenuOpen(false);
+                        setIsBulkMode(!isBulkMode);
+                        if (isBulkMode) onSelectionChange([]);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors font-medium text-left"
+                    >
+                      <MoreHorizontal className="w-4 h-4 text-sky" />
+                      <span>{isBulkMode ? "Disable Bulk Actions" : "Enable Bulk Actions"}</span>
+                    </button>
+
+                    {isBulkMode && selectedIds.length > 0 && (
+                      <>
+                        <div className="border-t border-pebble my-1" />
+                        <div className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase">Bulk Actions ({selectedIds.length} selected)</div>
+                        <button
+                          onClick={() => {
+                            setIsTableMenuOpen(false);
+                            onBulkAction('reclassify');
+                          }}
+                          className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-night hover:bg-earth transition-colors text-left pl-8"
+                        >
+                          <Check className="w-4 h-4 text-sky" />
+                          <span>Reclassify Assets</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setIsTableMenuOpen(false);
+                            onBulkAction('change-lifecycle');
+                          }}
+                          className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-night hover:bg-earth transition-colors text-left pl-8"
+                        >
+                          <Check className="w-4 h-4 text-sky" />
+                          <span>Change Lifecycle</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setIsTableMenuOpen(false);
+                            onBulkAction('run-sparci');
+                          }}
+                          className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-night hover:bg-earth transition-colors text-left pl-8"
+                        >
+                          <Sparkles className="w-4 h-4 text-sky animate-pulse" />
+                          <span>Run SPARCi Review</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setIsTableMenuOpen(false);
+                            onBulkAction('archive');
+                          }}
+                          className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors text-left pl-8 border-t border-pebble"
+                        >
+                          <Archive className="w-4 h-4" />
+                          <span>Mark as Not Used</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Scrollable table container */}
+        <div className="flex-1 overflow-auto no-scrollbar">
+          <table className="w-full border-collapse" style={{ minWidth: "1200px" }}>
           <thead className="bg-earth sticky top-0 z-10">
             <tr className="border-b border-gray-300">
               {/* Checkbox */}
-              <th
-                className={`px-3 py-3 ${isFrozen ? "sticky left-0 z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
-                style={{
-                  width: "40px",
-                  minWidth: "40px",
-                  maxWidth: "40px",
-                  ...(isFrozen ? { backgroundColor: "#F6F7F0" } : {})
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={allSelected}
-                  onChange={toggleSelectAll}
-                  className="w-4 h-4 rounded border border-gray-400 text-sky focus:ring-2 focus:ring-sky cursor-pointer transition-colors"
-                />
-              </th>
+              {isBulkMode && (
+                <th
+                  className={`px-3 py-3 ${isFrozen ? "sticky left-0 z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
+                  style={{
+                    width: "40px",
+                    minWidth: "40px",
+                    maxWidth: "40px",
+                    ...(isFrozen ? { backgroundColor: "#F6F7F0" } : {})
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 rounded border border-gray-400 text-sky focus:ring-2 focus:ring-sky cursor-pointer transition-colors"
+                  />
+                </th>
+              )}
 
               {/* Star */}
               <th
-                className={`px-3 py-3 ${isFrozen ? "sticky left-[40px] z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
+                className={`px-3 py-3 ${isFrozen ? "sticky z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
                 style={{
+                  left: isFrozen ? (isBulkMode ? 40 : 0) : undefined,
                   width: "48px",
                   minWidth: "48px",
                   maxWidth: "48px",
@@ -345,8 +567,9 @@ export default function AssetsTable({
 
               {/* Expand */}
               <th
-                className={`px-3 py-3 ${isFrozen ? "sticky left-[88px] z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
+                className={`px-3 py-3 ${isFrozen ? "sticky z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
                 style={{
+                  left: isFrozen ? (isBulkMode ? 88 : 48) : undefined,
                   width: "40px",
                   minWidth: "40px",
                   maxWidth: "40px",
@@ -357,7 +580,7 @@ export default function AssetsTable({
               {/* Draggable columns */}
               {columnOrder.map((col, index) => {
                 const isSticky = isFrozen && col.id === "name";
-                const leftOffset = 128;
+                const leftOffset = isBulkMode ? 128 : 88;
                 return (
                   <th
                     key={col.id}
@@ -424,51 +647,11 @@ export default function AssetsTable({
               })}
 
               {/* Table Level Actions Dropdown Header */}
-              <th className="w-10 px-3 py-3">
-                <div className="relative">
-                  <button
-                    onClick={() => setIsTableMenuOpen(!isTableMenuOpen)}
-                    className="p-1 rounded hover:bg-pebble/60 transition-colors text-gray-500 flex items-center justify-center focus:outline-none"
-                    title="Table Settings"
-                  >
-                    <MoreHorizontal className="w-4 h-4" />
-                  </button>
-
-                  {isTableMenuOpen && (
-                    <>
-                      <div className="fixed inset-0 z-30" onClick={() => setIsTableMenuOpen(false)} />
-                      <div className="absolute right-0 top-full mt-2 bg-white border border-pebble rounded-xl shadow-xl z-40 min-w-[200px] py-1.5 overflow-hidden text-left font-normal normal-case tracking-normal">
-                        <button
-                          onClick={() => {
-                            setIsTableMenuOpen(false);
-                            setIsFrozen(!isFrozen);
-                          }}
-                          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-night hover:bg-earth transition-colors"
-                        >
-                          {isFrozen ? <EyeOff className="w-4 h-4 text-sky" /> : <Eye className="w-4 h-4 text-sky" />}
-                          {isFrozen ? "Unfreeze Columns" : "Freeze Columns"}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setIsTableMenuOpen(false);
-                            setColumnOrder(BASE_COLUMNS);
-                            setSortCol(null);
-                            setSortDir(null);
-                            setColSearch({});
-                          }}
-                          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-night hover:bg-earth transition-colors"
-                        >
-                          <span className="text-gray-400">↺</span> Reset Table State
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </th>
+              <th className="w-10 px-3 py-3"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-300">
-            {filteredAndSortedAssets.map(asset => {
+            {paginatedAssets.map(asset => {
               const isSelected = selectedIds.includes(asset.id);
               const isExpanded = expandedAssetId === asset.id;
               const rowBg = isSelected
@@ -481,27 +664,30 @@ export default function AssetsTable({
                 <Fragment key={asset.id}>
                   <tr className={`border-b border-gray-300 transition-colors ${rowBg}`}>
                     {/* Checkbox */}
-                    <td
-                      className={`px-3 py-3 ${isFrozen ? "sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
-                      style={{
-                        width: "40px",
-                        minWidth: "40px",
-                        maxWidth: "40px",
-                        ...(isFrozen ? { backgroundColor: isSelected ? "#F3F7FC" : "#ffffff" } : {})
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => toggleSelection(asset.id)}
-                        className="w-4 h-4 rounded border border-gray-400 text-sky focus:ring-2 focus:ring-sky cursor-pointer transition-colors"
-                      />
-                    </td>
+                    {isBulkMode && (
+                      <td
+                        className={`px-3 py-3 ${isFrozen ? "sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
+                        style={{
+                          width: "40px",
+                          minWidth: "40px",
+                          maxWidth: "40px",
+                          ...(isFrozen ? { backgroundColor: isSelected ? "#F3F7FC" : "#ffffff" } : {})
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelection(asset.id)}
+                          className="w-4 h-4 rounded border border-gray-400 text-sky focus:ring-2 focus:ring-sky cursor-pointer transition-colors"
+                        />
+                      </td>
+                    )}
 
                     {/* Star */}
                     <td
-                      className={`px-3 py-3 ${isFrozen ? "sticky left-[40px] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
+                      className={`px-3 py-3 ${isFrozen ? "sticky z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
                       style={{
+                        left: isFrozen ? (isBulkMode ? 40 : 0) : undefined,
                         width: "48px",
                         minWidth: "48px",
                         maxWidth: "48px",
@@ -524,8 +710,9 @@ export default function AssetsTable({
 
                     {/* Expand */}
                     <td
-                      className={`px-3 py-3 ${isFrozen ? "sticky left-[88px] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
+                      className={`px-3 py-3 ${isFrozen ? "sticky z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
                       style={{
+                        left: isFrozen ? (isBulkMode ? 88 : 48) : undefined,
                         width: "40px",
                         minWidth: "40px",
                         maxWidth: "40px",
@@ -591,7 +778,7 @@ export default function AssetsTable({
                 {/* Inline Workbench */}
                 {expandedAssetId === asset.id && (
                   <tr>
-                    <td colSpan={columnOrder.length + 4} className="px-0 py-0">
+                    <td colSpan={columnOrder.length + (isBulkMode ? 4 : 3)} className="px-0 py-0">
                       <div className="border-b-2 border-sky/20" style={{ background: '#EEF4FB' }}>
                         <div className="p-4 space-y-2">
                         {/* Section 1: Substantiations */}
@@ -727,13 +914,15 @@ export default function AssetsTable({
                       style={{ height: 48 }}
                     >
                       {/* Checkbox */}
-                      <td className={`px-3 py-3 ${isFrozen ? "sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`} style={{ width: "40px", minWidth: "40px", maxWidth: "40px", ...(isFrozen ? { backgroundColor: "#f9fafb" } : {}) }}></td>
+                      {isBulkMode && (
+                        <td className={`px-3 py-3 ${isFrozen ? "sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`} style={{ width: "40px", minWidth: "40px", maxWidth: "40px", ...(isFrozen ? { backgroundColor: "#f9fafb" } : {}) }}></td>
+                      )}
                       
                       {/* Favorite */}
-                      <td className={`px-3 py-3 ${isFrozen ? "sticky left-[40px] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`} style={{ width: "40px", minWidth: "40px", maxWidth: "40px", ...(isFrozen ? { backgroundColor: "#f9fafb" } : {}) }}></td>
+                      <td className={`px-3 py-3 ${isFrozen ? "sticky z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`} style={{ left: isFrozen ? (isBulkMode ? 40 : 0) : undefined, width: "40px", minWidth: "40px", maxWidth: "40px", ...(isFrozen ? { backgroundColor: "#f9fafb" } : {}) }}></td>
 
                       {/* Expand chevron */}
-                      <td className={`px-3 py-3 ${isFrozen ? "sticky left-[88px] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`} style={{ width: "40px", minWidth: "40px", maxWidth: "40px", ...(isFrozen ? { backgroundColor: "#f9fafb" } : {}) }}>
+                      <td className={`px-3 py-3 ${isFrozen ? "sticky z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`} style={{ left: isFrozen ? (isBulkMode ? 88 : 48) : undefined, width: "40px", minWidth: "40px", maxWidth: "40px", ...(isFrozen ? { backgroundColor: "#f9fafb" } : {}) }}>
                         <span className="text-gray-400 flex justify-center text-lg">↳</span>
                       </td>
 
@@ -834,6 +1023,19 @@ export default function AssetsTable({
           />
         )}
       </div>
+
+      {/* Pagination Footer */}
+      <TablePagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalRecords={totalRecords}
+        startIndex={startIndex}
+        itemsPerPage={itemsPerPage}
+        label="assets"
+        onPrev={() => setCurrentPage(p => Math.max(1, p - 1))}
+        onNext={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+        onPageSelect={(p) => setCurrentPage(p)}
+      />
     </div>
   );
 }

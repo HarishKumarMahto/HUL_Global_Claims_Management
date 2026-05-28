@@ -2248,7 +2248,7 @@ export default function ClaimWorkspace({
                       className="w-full text-left px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors flex items-center gap-2.5"
                     >
                       <FileText className="w-4 h-4 text-sky" />
-                      Edit &amp; Create New Version
+                      Create New Version
                     </button>
                     <button
                       onClick={() => {

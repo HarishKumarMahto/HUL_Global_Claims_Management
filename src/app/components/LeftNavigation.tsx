@@ -25,6 +25,7 @@ import type { ProductModuleView } from "./products/ProductsModule";
 import type { ProductSection } from "./products/ProductDetailsPage";
 import type { ClaimBaseView, ClaimWorkView, Claim, ClaimType } from "../types";
 import type { SavedView } from "./SavedViewsModal";
+import type { AssetSavedView } from "./assets/AssetsModule";
 
 type WorkspaceSection =
   | "Project Details"
@@ -71,11 +72,13 @@ interface LeftNavigationProps {
   isInAssetWorkspace?: boolean;
   activeAssetSection?: string;
   onAssetSectionChange?: (section: string) => void;
-  // Project & Product Saved Views additions
+  // Project, Product & Asset Saved Views additions
   projectSavedViews?: SavedView[];
   onSelectProjectSavedView?: (view: SavedView) => void;
   productSavedViews?: any[];
   onSelectProductSavedView?: (view: any) => void;
+  assetSavedViews?: AssetSavedView[];
+  onSelectAssetSavedView?: (view: AssetSavedView) => void;
   relatedClaimsSubFilter?: string;
   onRelatedClaimsSubFilterChange?: (filter: string) => void;
   // Documents module nav
@@ -132,6 +135,11 @@ const ASSET_VIEWS = [
     id: "Other Say / Brand Say B&W",
     label: "Other Say B&W",
     icon: <Star className="w-4 h-4" />,
+  },
+  {
+    id: "Saved Views",
+    label: "Saved Views",
+    icon: <Bookmark className="w-4 h-4" />,
   },
 ];
 
@@ -351,6 +359,8 @@ export default function LeftNavigation({
   onSelectProjectSavedView,
   productSavedViews = [],
   onSelectProductSavedView,
+  assetSavedViews = [],
+  onSelectAssetSavedView,
   relatedClaimsSubFilter = "all",
   onRelatedClaimsSubFilterChange,
   activeDocumentsLibraryView = "My Documents",
@@ -363,6 +373,8 @@ export default function LeftNavigation({
   const [isProjectsExpanded, setIsProjectsExpanded] = useState(true);
   const [isProductsExpanded, setIsProductsExpanded] = useState(true);
   const [isSavedViewsFolderExpanded, setIsSavedViewsFolderExpanded] =
+    useState(true);
+  const [isAssetSavedViewsFolderExpanded, setIsAssetSavedViewsFolderExpanded] =
     useState(true);
   const [
     isProductSavedViewsFolderExpanded,
@@ -570,6 +582,75 @@ export default function LeftNavigation({
           <nav className="p-3 flex-1 overflow-y-auto">
             <div className="space-y-0.5">
               {ASSET_VIEWS.map((view) => {
+                if (view.id === "Saved Views") {
+                  const isAnySavedViewActive = activeAssetsLibraryView.startsWith("Saved View:");
+                  return (
+                    <div key={view.id} className="space-y-0.5">
+                      <button
+                        onClick={() => {
+                          setIsAssetSavedViewsFolderExpanded(
+                            !isAssetSavedViewsFolderExpanded,
+                          );
+                        }}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150 text-sm ${
+                          isAnySavedViewActive || activeAssetsLibraryView === "Saved Views"
+                            ? "bg-pale text-sky"
+                            : "text-gray-600 hover:bg-earth hover:text-night"
+                        }`}
+                      >
+                        <span
+                          className={
+                            isAnySavedViewActive || activeAssetsLibraryView === "Saved Views"
+                              ? "text-sky"
+                              : "text-gray-400"
+                          }
+                        >
+                          {view.icon}
+                        </span>
+                        <span
+                          className="flex-1 text-left"
+                          style={{
+                            fontWeight:
+                              isAnySavedViewActive || activeAssetsLibraryView === "Saved Views"
+                                ? 500
+                                : 400,
+                          }}
+                        >
+                          {view.label}
+                        </span>
+                        {isAssetSavedViewsFolderExpanded ? (
+                          <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+                        ) : (
+                          <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
+                        )}
+                      </button>
+                      {isAssetSavedViewsFolderExpanded &&
+                        assetSavedViews &&
+                        assetSavedViews.map((sv) => {
+                          const isSvActive = activeAssetsLibraryView === `Saved View: ${sv.name}`;
+                          return (
+                            <button
+                              key={sv.id}
+                              onClick={() => onSelectAssetSavedView?.(sv)}
+                              className={`w-full flex items-center gap-2 pl-8 pr-3 py-1.5 rounded-lg transition-all duration-150 text-xs ${
+                                isSvActive
+                                  ? "bg-sky/5 text-sky font-medium"
+                                  : "text-gray-500 hover:bg-earth hover:text-night"
+                              }`}
+                            >
+                              <span className="truncate flex-1 text-left">
+                                {sv.name}
+                              </span>
+                              {isSvActive && (
+                                <div className="w-1 h-1 rounded-full bg-sky flex-shrink-0" />
+                              )}
+                            </button>
+                          );
+                        })}
+                    </div>
+                  );
+                }
+
                 const isActive = activeAssetsLibraryView === view.id;
                 return (
                   <button

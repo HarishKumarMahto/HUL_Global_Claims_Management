@@ -1181,7 +1181,7 @@ export default function AssetWorkspace({
                       Edit Details
                     </button>
                     <button className="w-full px-4 py-2 text-sm text-night hover:bg-earth text-left transition-colors">
-                      Add Version
+                      Create New Version
                     </button>
                     <button className="w-full px-4 py-2 text-sm text-night hover:bg-earth text-left transition-colors">
                       Reclassify

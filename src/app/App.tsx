@@ -77,7 +77,7 @@ import { initialProducts } from "./components/products/productData";
 import ClaimsModule from "./components/claims/ClaimsModule";
 import ClaimWorkspace from "./components/claims/ClaimWorkspace";
 import HomePage from "./components/home/HomePage";
-import AssetsModule from "./components/assets/AssetsModule";
+import AssetsModule, { AssetSavedView } from "./components/assets/AssetsModule";
 import AssetWorkspace from "./components/assets/AssetWorkspace";
 import { ToastContainer } from "./components/ui/Toast";
 import { useToast } from "./hooks/useToast";
@@ -437,6 +437,47 @@ export default function App() {
       ];
     },
   );
+
+  const [assetSavedViews, setAssetSavedViews] = useState<AssetSavedView[]>([
+    {
+      id: "asv-1",
+      name: "TV Commercials In Progress",
+      owner: "Current User",
+      isShared: false,
+      filters: {
+        lifecycle: ["Proposed", "Assessed"],
+        subtype: ["TV Commercial"],
+        businessGroup: [],
+        geography: [],
+        category: [],
+        createdBy: [],
+        searchQuery: "",
+      },
+      columns: [],
+      sortBy: null,
+      sortDir: null,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "asv-2",
+      name: "Global Digital Banners",
+      owner: "Sarah Johnson",
+      isShared: true,
+      filters: {
+        lifecycle: [],
+        subtype: ["Digital Banner"],
+        businessGroup: [],
+        geography: ["Global"],
+        category: [],
+        createdBy: [],
+        searchQuery: "",
+      },
+      columns: [],
+      sortBy: null,
+      sortDir: null,
+      createdAt: new Date().toISOString(),
+    }
+  ]);
 
   const [isViewMenuOpen, setIsViewMenuOpen] = useState(false);
   const [saveDialogState, setSaveDialogState] = useState<{
@@ -1798,6 +1839,10 @@ export default function App() {
             onSelectProjectSavedView={handleSelectSavedView}
             productSavedViews={productSavedViews}
             onSelectProductSavedView={handleSelectProductSavedView}
+            assetSavedViews={assetSavedViews}
+            onSelectAssetSavedView={(view) => {
+              setActiveAssetsLibraryView(`Saved View: ${view.name}`);
+            }}
             activeDocumentsLibraryView={activeDocumentsView}
             onDocumentsLibraryViewChange={setActiveDocumentsView}
             isInDocumentWorkspace={
@@ -1861,6 +1906,8 @@ export default function App() {
                   setActiveModule("Assets");
                 }}
                 externalSearchQuery={assetSearchQuery}
+                savedViews={assetSavedViews}
+                onSavedViewsChange={setAssetSavedViews}
               />
             ) : activeView === "My Tasks" ? (
               <div className="flex-1 flex flex-col overflow-hidden bg-sky-50/20">
@@ -2345,6 +2392,8 @@ export default function App() {
                   setAssetsModuleView("workspace");
                 }}
                 externalSearchQuery={assetSearchQuery}
+                savedViews={assetSavedViews}
+                onSavedViewsChange={setAssetSavedViews}
               />
             )
           ) : activeModule === "Documents" ? (

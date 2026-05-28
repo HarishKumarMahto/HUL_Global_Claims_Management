@@ -1,10 +1,27 @@
 import { useState, useRef, useEffect } from 'react';
-import { Plus, Search, X, ChevronDown, ChevronUp, Check, MoreHorizontal, Archive, Sparkles, ChevronLeft, ChevronRight, Bookmark } from 'lucide-react';
+import { Plus, Search, X, ChevronDown, ChevronUp, Check, MoreHorizontal, Archive, Sparkles, ChevronLeft, ChevronRight, Bookmark, Lock, Globe, Trash2, Edit2, Save, RotateCcw, Filter } from 'lucide-react';
+import FilterListIcon from "@mui/icons-material/FilterList";
 import type { Asset, AssetLifecycle, AssetSubtype } from '../../types';
 import { CURRENT_USER } from '../../types';
 import AssetsTable from './AssetsTable';
 import CreateAssetModal from './CreateAssetModal';
-import SavedAssetViewsModal, { type AssetSavedView } from './SavedAssetViewsModal';
+export interface AssetSavedView {
+  id: string;
+  name: string;
+  owner: string;
+  isShared: boolean;
+  filters: {
+    lifecycle: string[];
+    subtype: string[];
+    businessGroup: string[];
+    geography: string[];
+    searchQuery: string;
+  };
+  columns: string[];
+  sortBy: string | null;
+  sortDir: 'asc' | 'desc' | null;
+  createdAt: string;
+}
 
 const LIFECYCLE_OPTIONS: AssetLifecycle[] = ['Proposed', 'Assessed', 'Not Used'];
 const SUBTYPE_OPTIONS: AssetSubtype[] = [
@@ -88,6 +105,8 @@ interface AssetsModuleProps {
   onLibraryViewChange: (view: string) => void;
   onAssetClick: (asset: Asset) => void;
   externalSearchQuery?: string;
+  savedViews: AssetSavedView[];
+  onSavedViewsChange: (views: AssetSavedView[]) => void;
 }
 
 export default function AssetsModule({
@@ -97,10 +116,12 @@ export default function AssetsModule({
   onLibraryViewChange,
   onAssetClick,
   externalSearchQuery,
+  savedViews,
+  onSavedViewsChange,
 }: AssetsModuleProps) {
   const [searchQuery, setSearchQuery] = useState('');
   useEffect(() => {
-    if (externalSearchQuery !== undefined && externalSearchQuery !== '') {
+    if (externalSearchQuery !== undefined) {
       setSearchQuery(externalSearchQuery);
     }
   }, [externalSearchQuery]);
@@ -108,28 +129,77 @@ export default function AssetsModule({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isBulkMenuOpen, setIsBulkMenuOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 10;
 
   const [lifecycleFilter, setLifecycleFilter] = useState<AssetLifecycle[]>([]);
   const [subtypeFilter, setSubtypeFilter] = useState<AssetSubtype[]>([]);
   const [businessGroupFilter, setBusinessGroupFilter] = useState<string[]>([]);
   const [geographyFilter, setGeographyFilter] = useState<string[]>([]);
   const [cbpFilter, setCbpFilter] = useState<string[]>([]);
+  const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
+  const [createdByFilter, setCreatedByFilter] = useState<string[]>([]);
   
   // Customizable quick filters
   const [activeQuickFilters, setActiveQuickFilters] = useState<string[]>(['Lifecycle State', 'Subtype', 'Business Group', 'Geography']);
   const [isQuickFilterMenuOpen, setIsQuickFilterMenuOpen] = useState(false);
-  const AVAILABLE_QUICK_FILTERS = ['Lifecycle State', 'Subtype', 'Business Group', 'Category', 'Geography', 'Consumer Benefit Platform', 'Brand', 'Format', 'Product', 'Language', 'File Format', 'Related Projects', 'Created By'];
+  const [localQuickFilters, setLocalQuickFilters] = useState<string[]>([]);
+  const AVAILABLE_QUICK_FILTERS = ['Lifecycle State', 'Subtype', 'Business Group', 'Category', 'Geography', 'Consumer Benefit Platform', 'Created By'];
 
   // Saved Views state
-  const [savedViews, setSavedViews] = useState<AssetSavedView[]>([]);
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
   const [showSavedViews, setShowSavedViews] = useState(false);
+  const [dropdownMode, setDropdownMode] = useState<'list' | 'create' | 'rename' | 'delete-confirm'>('list');
+  const [newName, setNewName] = useState('');
+  const [newShared, setNewShared] = useState(false);
+  const [nameError, setNameError] = useState('');
+  const savedViewsDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (savedViewsDropdownRef.current && !savedViewsDropdownRef.current.contains(e.target as Node)) {
+        setShowSavedViews(false);
+        setDropdownMode('list');
+        setNewName('');
+        setNameError('');
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // Synchronize view selection and filters (resetting when appropriate)
+  useEffect(() => {
+    if (activeLibraryView.startsWith('Saved View: ')) {
+      const viewName = activeLibraryView.replace('Saved View: ', '');
+      const found = savedViews.find(v => v.name === viewName);
+      if (found) {
+        if (activeViewId !== found.id) {
+          setLifecycleFilter(found.filters.lifecycle as AssetLifecycle[] || []);
+          setSubtypeFilter(found.filters.subtype as AssetSubtype[] || []);
+          setBusinessGroupFilter(found.filters.businessGroup || []);
+          setGeographyFilter(found.filters.geography || []);
+          setCategoryFilter(found.filters.category || []);
+          setCreatedByFilter(found.filters.createdBy || []);
+          if (found.filters.searchQuery !== undefined) setSearchQuery(found.filters.searchQuery);
+          setActiveViewId(found.id);
+        }
+      }
+    } else {
+      setActiveViewId(null);
+      setLifecycleFilter([]);
+      setSubtypeFilter([]);
+      setBusinessGroupFilter([]);
+      setGeographyFilter([]);
+      setCategoryFilter([]);
+      setCreatedByFilter([]);
+      setSearchQuery('');
+    }
+  }, [activeLibraryView, savedViews]);
 
   // Extract unique values from assets
   const uniqueBusinessGroups = Array.from(new Set(assets.map(a => a.businessGroup))).sort();
   const uniqueGeographies = Array.from(new Set(assets.flatMap(a => a.geography))).sort();
+  const uniqueCategories = Array.from(new Set(assets.map(a => a.category))).filter(Boolean).sort();
+  const uniqueCreatedBy = Array.from(new Set(assets.map(a => a.createdBy))).filter(Boolean).sort();
 
   // Filter by active library view
   const viewFilteredAssets = assets.filter(asset => {
@@ -211,16 +281,14 @@ export default function AssetsModule({
     const matchesCbp = cbpFilter.length === 0 || 
       (asset.consumerBenefitPlatform && cbpFilter.some(cbp => asset.consumerBenefitPlatform?.includes(cbp)));
 
-    return matchesSearch && matchesLifecycle && matchesSubtype && matchesBusinessGroup && matchesGeography && matchesCbp;
+    // Category filter
+    const matchesCategory = categoryFilter.length === 0 || categoryFilter.includes(asset.category);
+
+    // Created By filter
+    const matchesCreatedBy = createdByFilter.length === 0 || createdByFilter.includes(asset.createdBy);
+
+    return matchesSearch && matchesLifecycle && matchesSubtype && matchesBusinessGroup && matchesGeography && matchesCbp && matchesCategory && matchesCreatedBy;
   });
-
-  const activeFilterCount =
-    lifecycleFilter.length + subtypeFilter.length + businessGroupFilter.length + geographyFilter.length + cbpFilter.length;
-
-  // Reset to page 1 when filters change
-  const totalPages = Math.max(1, Math.ceil(filteredAssets.length / PAGE_SIZE));
-  const safePage = Math.min(currentPage, totalPages);
-  const paginatedAssets = filteredAssets.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const getPageHeading = () => {
     if (activeLibraryView === 'My Assets') return 'My Assets';
@@ -229,32 +297,51 @@ export default function AssetsModule({
     return 'Assets';
   };
 
+  const handleRemoveFilter = (category: string, value: string) => {
+    if (category === 'lifecycle') setLifecycleFilter(prev => prev.filter(x => x !== value));
+    if (category === 'subtype') setSubtypeFilter(prev => prev.filter(x => x !== value));
+    if (category === 'businessGroup') setBusinessGroupFilter(prev => prev.filter(x => x !== value));
+    if (category === 'geography') setGeographyFilter(prev => prev.filter(x => x !== value));
+    if (category === 'cbp') setCbpFilter(prev => prev.filter(x => x !== value));
+    if (category === 'category') setCategoryFilter(prev => prev.filter(x => x !== value));
+    if (category === 'createdBy') setCreatedByFilter(prev => prev.filter(x => x !== value));
+  };
+
   const clearAllFilters = () => {
     setLifecycleFilter([]);
     setSubtypeFilter([]);
     setBusinessGroupFilter([]);
     setGeographyFilter([]);
     setCbpFilter([]);
+    setCategoryFilter([]);
+    setCreatedByFilter([]);
     setSearchQuery('');
     setActiveViewId(null);
+    onLibraryViewChange('All Assets');
   };
 
   const handleApplyView = (view: AssetSavedView) => {
-    setLifecycleFilter(view.filters.lifecycle as AssetLifecycle[]);
-    setSubtypeFilter(view.filters.subtype as AssetSubtype[]);
-    setBusinessGroupFilter(view.filters.businessGroup);
-    setGeographyFilter(view.filters.geography);
-    if (view.filters.searchQuery) setSearchQuery(view.filters.searchQuery);
+    setLifecycleFilter(view.filters.lifecycle as AssetLifecycle[] || []);
+    setSubtypeFilter(view.filters.subtype as AssetSubtype[] || []);
+    setBusinessGroupFilter(view.filters.businessGroup || []);
+    setGeographyFilter(view.filters.geography || []);
+    setCategoryFilter(view.filters.category || []);
+    setCreatedByFilter(view.filters.createdBy || []);
+    if (view.filters.searchQuery !== undefined) setSearchQuery(view.filters.searchQuery);
     setActiveViewId(view.id);
+    onLibraryViewChange('Saved View: ' + view.name);
   };
 
   const handleSaveView = (view: AssetSavedView) => {
-    setSavedViews(prev => [...prev, view]);
+    onSavedViewsChange([...savedViews, view]);
   };
 
   const handleDeleteView = (id: string) => {
-    setSavedViews(prev => prev.filter(v => v.id !== id));
-    if (activeViewId === id) setActiveViewId(null);
+    onSavedViewsChange(savedViews.filter(v => v.id !== id));
+    if (activeViewId === id) {
+      setActiveViewId(null);
+      onLibraryViewChange('All Assets');
+    }
   };
 
   const handleBulkAction = (action: string) => {
@@ -294,7 +381,371 @@ export default function AssetsModule({
       <div className="bg-white border-b border-pebble px-6 py-4 flex-shrink-0">
         {/* Row 1: Title + Create button */}
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-night">{getPageHeading()}</h1>
+          <div className="flex items-center gap-3 relative">
+            <h1 className="text-night flex items-center gap-2">
+              {activeViewId
+                ? savedViews.find(v => v.id === activeViewId)?.name || 'Saved View'
+                : getPageHeading()}
+            </h1>
+
+            {activeViewId && (
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                  savedViews.find(v => v.id === activeViewId)?.owner === 'Current User'
+                    ? 'bg-green-100 text-green-700 border-green-200'
+                    : 'bg-blue-100 text-blue-700 border-blue-200'
+                }`}
+              >
+                {savedViews.find(v => v.id === activeViewId)?.owner === 'Current User'
+                  ? 'My View'
+                  : 'Shared View'}
+              </span>
+            )}
+
+            <div className="relative" ref={savedViewsDropdownRef}>
+              <button
+                onClick={() => {
+                  setShowSavedViews(prev => !prev);
+                  setDropdownMode('list');
+                }}
+                className={`p-1.5 border rounded-lg transition-colors hover:bg-earth hover:border-sky flex items-center justify-center ${showSavedViews || activeViewId ? 'border-sky text-sky bg-pale' : 'border-pebble text-gray-500 hover:text-night'}`}
+                title="Saved Views"
+              >
+                <ChevronDown className="w-4 h-4" />
+              </button>
+
+              {showSavedViews && (
+                <div className="absolute left-0 mt-1.5 w-72 bg-white border border-pebble rounded-xl shadow-xl z-40 py-1.5 overflow-hidden">
+                  {dropdownMode === 'list' && (
+                    <div className="py-1">
+                      {/* Active View options */}
+                      {activeViewId && (
+                        <>
+                          <button
+                            onClick={() => {
+                              const activeView = savedViews.find(v => v.id === activeViewId);
+                              if (activeView && activeView.owner === 'Current User') {
+                                onSavedViewsChange(savedViews.map(v => v.id === activeViewId ? {
+                                  ...v,
+                                  filters: {
+                                    lifecycle: lifecycleFilter,
+                                    subtype: subtypeFilter,
+                                    businessGroup: businessGroupFilter,
+                                    geography: geographyFilter,
+                                    category: categoryFilter,
+                                    createdBy: createdByFilter,
+                                    searchQuery
+                                  }
+                                } : v));
+                                alert('View updated with current filters');
+                              } else {
+                                alert('Cannot overwrite shared view. Use Save as New View.');
+                              }
+                              setShowSavedViews(false);
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-night hover:bg-earth transition-colors text-left"
+                          >
+                            <Save className="w-4 h-4 text-gray-400" />
+                            Save Current View
+                          </button>
+                          
+                          {savedViews.find(v => v.id === activeViewId)?.owner === 'Current User' && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  const activeView = savedViews.find(v => v.id === activeViewId);
+                                  setNewName(activeView?.name || '');
+                                  setNewShared(activeView?.isShared || false);
+                                  setDropdownMode('rename');
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-night hover:bg-earth transition-colors text-left"
+                              >
+                               <Edit2 className="w-4 h-4 text-gray-400" />
+                               Rename View
+                              </button>
+
+                              <button
+                                onClick={() => {
+                                  setDropdownMode('delete-confirm');
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors text-left"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Delete View
+                              </button>
+                            </>
+                          )}
+                          
+                          <button
+                            onClick={() => {
+                              setActiveViewId(null);
+                              clearAllFilters();
+                              setShowSavedViews(false);
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-gray-600 hover:bg-earth transition-colors text-left border-t border-pebble"
+                          >
+                            <X className="w-4 h-4" />
+                            Clear Active View
+                          </button>
+
+                          <div className="border-t border-pebble my-1" />
+                        </>
+                      )}
+
+                      {/* Save Current View (when not active) */}
+                      {!activeViewId && (
+                        <button
+                          onClick={() => {
+                            setNewName('');
+                            setNewShared(false);
+                            setDropdownMode('create');
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-night hover:bg-earth transition-colors text-left"
+                        >
+                          <Plus className="w-4 h-4 text-gray-400" />
+                          Save Current View
+                        </button>
+                      )}
+
+                      {/* Saved Views List */}
+                      <div className="px-3.5 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        My Saved Views
+                      </div>
+                      <div className="max-h-48 overflow-y-auto px-1 space-y-0.5">
+                        {savedViews.length === 0 ? (
+                          <div className="text-xs text-gray-400 text-center py-2 bg-earth rounded-lg my-1">
+                            No saved views
+                          </div>
+                        ) : (
+                          savedViews.map(view => {
+                            const isMyView = view.owner === 'Current User';
+                            return (
+                              <button
+                                key={view.id}
+                                onClick={() => {
+                                  handleApplyView(view);
+                                  setShowSavedViews(false);
+                                }}
+                                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors ${activeViewId === view.id ? 'bg-pale text-sky font-medium' : 'text-gray-600 hover:bg-earth'}`}
+                              >
+                                <span className="truncate flex-1 text-left">{view.name}</span>
+                                <span className="flex items-center gap-1">
+                                  {isMyView ? (
+                                    view.isShared ? <Globe className="w-3 h-3 text-gray-400" /> : <Lock className="w-3 h-3 text-gray-300" />
+                                  ) : (
+                                    <span className="text-[9px] text-gray-400 bg-gray-100 px-1 py-0.5 rounded">Shared</span>
+                                  )}
+                                </span>
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {dropdownMode === 'create' && (
+                    <div className="px-3.5 py-3 space-y-3">
+                      <div className="text-xs font-semibold text-night">Save Current View</div>
+                      <div>
+                        <input
+                          type="text"
+                          value={newName}
+                          onChange={e => { setNewName(e.target.value); setNameError(''); }}
+                          placeholder="View name..."
+                          className="w-full px-2.5 py-1.5 border border-pebble rounded-lg text-xs text-night focus:outline-none focus:ring-1 focus:ring-sky bg-white"
+                          autoFocus
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const trimmed = newName.trim();
+                              if (!trimmed) { setNameError('Required'); return; }
+                              const duplicate = savedViews.some(v => v.name.toLowerCase() === trimmed.toLowerCase() && v.owner === 'Current User');
+                              if (duplicate) { setNameError('Exists'); return; }
+                              const newView: AssetSavedView = {
+                                id: `asv-${Date.now()}`,
+                                name: trimmed,
+                                owner: 'Current User',
+                                isShared: newShared,
+                                filters: {
+                                  lifecycle: lifecycleFilter,
+                                  subtype: subtypeFilter,
+                                  businessGroup: businessGroupFilter,
+                                  geography: geographyFilter,
+                                  category: categoryFilter,
+                                  createdBy: createdByFilter,
+                                  searchQuery: searchQuery
+                                },
+                                columns: [],
+                                sortBy: null,
+                                sortDir: null,
+                                createdAt: new Date().toISOString()
+                              };
+                              handleSaveView(newView);
+                              handleApplyView(newView);
+                              setDropdownMode('list');
+                              setNewName('');
+                              setNameError('');
+                              setShowSavedViews(false);
+                            }
+                          }}
+                        />
+                        {nameError && <p className="text-[10px] text-red-500 mt-1">{nameError}</p>}
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setNewShared(false)}
+                          className={`flex-1 flex items-center justify-center gap-1 py-1 rounded-lg border text-[10px] transition-colors ${!newShared ? 'border-sky bg-pale text-sky font-medium' : 'border-pebble text-gray-500 hover:bg-earth'}`}
+                        >
+                          <Lock className="w-3 h-3" /> Private
+                        </button>
+                        <button
+                          onClick={() => setNewShared(true)}
+                          className={`flex-1 flex items-center justify-center gap-1 py-1 rounded-lg border text-[10px] transition-colors ${newShared ? 'border-sky bg-pale text-sky font-medium' : 'border-pebble text-gray-500 hover:bg-earth'}`}
+                        >
+                          <Globe className="w-3 h-3" /> Shared
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-pebble">
+                        <button
+                          onClick={() => { setDropdownMode('list'); setNewName(''); setNameError(''); }}
+                          className="px-2.5 py-1 text-[11px] text-gray-600 border border-pebble rounded-lg hover:bg-earth transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => {
+                            const trimmed = newName.trim();
+                            if (!trimmed) { setNameError('Required'); return; }
+                            const duplicate = savedViews.some(v => v.name.toLowerCase() === trimmed.toLowerCase() && v.owner === 'Current User');
+                            if (duplicate) { setNameError('Exists'); return; }
+                            const newView: AssetSavedView = {
+                              id: `asv-${Date.now()}`,
+                              name: trimmed,
+                              owner: 'Current User',
+                              isShared: newShared,
+                              filters: {
+                                lifecycle: lifecycleFilter,
+                                subtype: subtypeFilter,
+                                businessGroup: businessGroupFilter,
+                                geography: geographyFilter,
+                                searchQuery: searchQuery
+                              },
+                              columns: [],
+                              sortBy: null,
+                              sortDir: null,
+                              createdAt: new Date().toISOString()
+                            };
+                            handleSaveView(newView);
+                            handleApplyView(newView);
+                            setDropdownMode('list');
+                            setNewName('');
+                            setNameError('');
+                            setShowSavedViews(false);
+                          }}
+                          className="px-2.5 py-1 text-[11px] bg-sky text-white rounded-lg hover:bg-dark transition-colors font-medium"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {dropdownMode === 'rename' && (
+                    <div className="px-3.5 py-3 space-y-3">
+                      <div className="text-xs font-semibold text-night">Rename View</div>
+                      <div>
+                        <input
+                          type="text"
+                          value={newName}
+                          onChange={e => { setNewName(e.target.value); setNameError(''); }}
+                          placeholder="View name..."
+                          className="w-full px-2.5 py-1.5 border border-pebble rounded-lg text-xs text-night focus:outline-none focus:ring-1 focus:ring-sky bg-white"
+                          autoFocus
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const trimmed = newName.trim();
+                              if (!trimmed) { setNameError('Required'); return; }
+                              onSavedViewsChange(savedViews.map(v => v.id === activeViewId ? { ...v, name: trimmed, isShared: newShared } : v));
+                              setDropdownMode('list');
+                              setNewName('');
+                              setNameError('');
+                              setShowSavedViews(false);
+                            }
+                          }}
+                        />
+                        {nameError && <p className="text-[10px] text-red-500 mt-1">{nameError}</p>}
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setNewShared(false)}
+                          className={`flex-1 flex items-center justify-center gap-1 py-1 rounded-lg border text-[10px] transition-colors ${!newShared ? 'border-sky bg-pale text-sky font-medium' : 'border-pebble text-gray-500 hover:bg-earth'}`}
+                        >
+                          <Lock className="w-3 h-3" /> Private
+                        </button>
+                        <button
+                          onClick={() => setNewShared(true)}
+                          className={`flex-1 flex items-center justify-center gap-1 py-1 rounded-lg border text-[10px] transition-colors ${newShared ? 'border-sky bg-pale text-sky font-medium' : 'border-pebble text-gray-500 hover:bg-earth'}`}
+                        >
+                          <Globe className="w-3 h-3" /> Shared
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-pebble">
+                        <button
+                          onClick={() => { setDropdownMode('list'); setNewName(''); setNameError(''); }}
+                          className="px-2.5 py-1 text-[11px] text-gray-600 border border-pebble rounded-lg hover:bg-earth transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => {
+                            const trimmed = newName.trim();
+                            if (!trimmed) { setNameError('Required'); return; }
+                            onSavedViewsChange(savedViews.map(v => v.id === activeViewId ? { ...v, name: trimmed, isShared: newShared } : v));
+                            setDropdownMode('list');
+                            setNewName('');
+                            setNameError('');
+                            setShowSavedViews(false);
+                          }}
+                          className="px-2.5 py-1 text-[11px] bg-sky text-white rounded-lg hover:bg-dark transition-colors font-medium"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {dropdownMode === 'delete-confirm' && (
+                    <div className="px-3.5 py-3 space-y-3">
+                      <div className="text-xs font-semibold text-night">Delete View</div>
+                      <p className="text-xs text-gray-500">Are you sure you want to delete this view? This action cannot be undone.</p>
+                      <div className="flex items-center justify-end gap-2 pt-2">
+                        <button
+                          onClick={() => setDropdownMode('list')}
+                          className="px-2.5 py-1 text-[11px] text-gray-600 border border-pebble rounded-lg hover:bg-earth transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (activeViewId) {
+                              handleDeleteView(activeViewId);
+                            }
+                            setDropdownMode('list');
+                            setShowSavedViews(false);
+                          }}
+                          className="px-2.5 py-1 text-[11px] bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
           <button
             onClick={() => setIsCreateModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-sky text-white rounded-lg text-sm hover:bg-dark transition-colors"
@@ -321,6 +772,20 @@ export default function AssetsModule({
                 <X className="w-3.5 h-3.5 text-gray-400" />
               </button>
             )}
+          </div>
+
+          {/* Dedicated Filter Button - Triggers Popup identical to Projects page */}
+          <div>
+            <button
+              onClick={() => {
+                setLocalQuickFilters(activeQuickFilters);
+                setIsQuickFilterMenuOpen(true);
+              }}
+              className="flex items-center gap-2 px-3 py-2 border border-pebble text-sm text-gray-600 rounded-lg hover:bg-earth hover:border-sky transition-colors"
+            >
+              <FilterListIcon sx={{ fontSize: 16 }} />
+              <span className="hidden sm:inline">Add Quick Filters</span>
+            </button>
           </div>
 
           {/* Quick Filters */}
@@ -369,179 +834,48 @@ export default function AssetsModule({
               onClear={() => setCbpFilter([])}
             />
           )}
-
-          {/* Add Quick Filters Button */}
-          <div className="relative">
-            <button
-              onClick={() => setIsQuickFilterMenuOpen(!isQuickFilterMenuOpen)}
-              className="flex items-center gap-1.5 px-3 py-2 border border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-sky hover:text-sky transition-colors whitespace-nowrap"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Customize Filters
-            </button>
-            {isQuickFilterMenuOpen && (
-              <>
-                <div className="fixed inset-0 z-30" onClick={() => setIsQuickFilterMenuOpen(false)}></div>
-                <div className="absolute left-0 top-full mt-1 bg-white border border-pebble rounded-xl shadow-xl z-40 min-w-[200px] overflow-hidden">
-                  <div className="px-3 py-2 border-b border-pebble bg-pale">
-                    <span className="text-xs font-semibold text-night">Visible Quick Filters</span>
-                  </div>
-                  <div className="max-h-60 overflow-y-auto py-1">
-                    {AVAILABLE_QUICK_FILTERS.map(filter => {
-                      const isActive = activeQuickFilters.includes(filter);
-                      return (
-                        <button
-                          key={filter}
-                          onClick={() => {
-                            setActiveQuickFilters(prev => 
-                              isActive ? prev.filter(f => f !== filter) : [...prev, filter]
-                            );
-                          }}
-                          className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left transition-colors hover:bg-earth ${isActive ? 'text-night' : 'text-gray-500'}`}
-                        >
-                          <div className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors ${isActive ? 'bg-sky border-sky' : 'border-pebble'}`}>
-                            {isActive && <Check className="w-2.5 h-2.5 text-white" />}
-                          </div>
-                          {filter}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Result count + Clear all + Saved Views */}
-          <div className="flex items-center gap-2 ml-auto text-xs text-gray-500">
-            {activeViewId && (
-              <span className="flex items-center gap-1 text-sky bg-pale border border-sky/30 px-2.5 py-1 rounded-full text-xs font-medium">
-                <Bookmark className="w-3 h-3" />
-                {savedViews.find(v => v.id === activeViewId)?.name || 'Saved View'}
-                <button onClick={() => setActiveViewId(null)} className="ml-1 text-sky/60 hover:text-sky">×</button>
-              </span>
-            )}
-            <span>Filters applied across {activeLibraryView.toLowerCase()} · <strong className="text-night">{filteredAssets.length}</strong> match{filteredAssets.length !== 1 ? 'es' : ''}</span>
-            {activeFilterCount > 0 && (
-              <button onClick={clearAllFilters} className="text-red-400 hover:text-red-600 transition-colors font-medium">Clear all</button>
-            )}
-            <button
-              onClick={() => setShowSavedViews(true)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg transition-colors text-xs whitespace-nowrap ${activeViewId ? 'border-sky text-sky bg-pale' : 'border-pebble text-gray-600 hover:border-sky hover:bg-earth'}`}
-            >
-              <Bookmark className="w-3.5 h-3.5" />
-              Saved Views
-              {savedViews.length > 0 && (
-                <span className="bg-sky text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">{savedViews.length}</span>
-              )}
-            </button>
-          </div>
+          {activeQuickFilters.includes('Category') && uniqueCategories.length > 0 && (
+            <QuickFilterDropdown<string>
+              label="Category"
+              options={uniqueCategories}
+              selected={categoryFilter}
+              onToggle={v => setCategoryFilter(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v])}
+              onClear={() => setCategoryFilter([])}
+            />
+          )}
+          {activeQuickFilters.includes('Created By') && uniqueCreatedBy.length > 0 && (
+            <QuickFilterDropdown<string>
+              label="Created By"
+              options={uniqueCreatedBy}
+              selected={createdByFilter}
+              onToggle={v => setCreatedByFilter(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v])}
+              onClear={() => setCreatedByFilter([])}
+            />
+          )}
         </div>
       </div>
 
-      {/* Bulk action bar */}
-      {selectedIds.length > 0 && (
-        <div className="bg-pale border-b border-sky/20 px-6 py-2 flex items-center gap-3 flex-shrink-0">
-          <span className="text-sm text-sky font-medium">{selectedIds.length} of {filteredAssets.length} selected</span>
-          <div className="relative">
-            <button
-              onClick={() => setIsBulkMenuOpen(!isBulkMenuOpen)}
-              className="flex items-center gap-2 px-3 py-1.5 border border-sky text-sky rounded-lg text-sm hover:bg-sky hover:text-white transition-colors"
-            >
-              <MoreHorizontal className="w-4 h-4" />
-              Bulk Actions
-              <ChevronDown className="w-3.5 h-3.5" />
-            </button>
-            {isBulkMenuOpen && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setIsBulkMenuOpen(false)}></div>
-                <div className="absolute left-0 top-full mt-1 bg-white border border-pebble rounded-xl shadow-xl z-20 min-w-[220px] overflow-hidden">
-                  <button onClick={() => handleBulkAction('reclassify')} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors">
-                    <Check className="w-4 h-4 text-sky" />
-                    Reclassify Assets
-                  </button>
-                  <button onClick={() => handleBulkAction('change-lifecycle')} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors">
-                    <Check className="w-4 h-4 text-green-500" />
-                    Change Lifecycle State
-                  </button>
-                  <button onClick={() => handleBulkAction('run-sparci')} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors">
-                    <Sparkles className="w-4 h-4 text-sky" />
-                    Run SPARCi Analysis
-                  </button>
-                  <div className="border-t border-pebble my-1"></div>
-                  <button onClick={() => handleBulkAction('archive')} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-earth transition-colors">
-                    <Archive className="w-4 h-4" />
-                    Mark as Not Used
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-          <button
-            onClick={() => setSelectedIds([])}
-            className="ml-auto text-xs text-gray-500 hover:text-night transition-colors"
-          >
-            Clear selection
-          </button>
-        </div>
-      )}
-
-      {/* Table Area */}
       <div className="flex-1 p-5 overflow-hidden flex flex-col gap-3">
         <AssetsTable
-          assets={paginatedAssets}
+          assets={filteredAssets}
           onAssetClick={onAssetClick}
           selectedIds={selectedIds}
           onSelectionChange={setSelectedIds}
           onAssetsChange={onAssetsChange}
+          onBulkAction={handleBulkAction}
+          appliedFilters={{
+            lifecycle: lifecycleFilter,
+            subtype: subtypeFilter,
+            businessGroup: businessGroupFilter,
+            geography: geographyFilter,
+            cbp: cbpFilter,
+            category: categoryFilter,
+            createdBy: createdByFilter,
+          }}
+          onRemoveFilter={handleRemoveFilter}
+          onClearFilters={clearAllFilters}
+          activeLibraryView={activeViewId ? (savedViews.find(v => v.id === activeViewId)?.name || 'Saved View') : activeLibraryView}
         />
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-2 flex-shrink-0">
-            <span className="text-xs text-gray-500">
-              Showing {((safePage - 1) * PAGE_SIZE) + 1}–{Math.min(safePage * PAGE_SIZE, filteredAssets.length)} of {filteredAssets.length} assets
-            </span>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={safePage === 1}
-                className="p-1.5 rounded-lg border border-pebble hover:bg-earth disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronLeft className="w-4 h-4 text-gray-600" />
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).filter(p => {
-                return p === 1 || p === totalPages || Math.abs(p - safePage) <= 1;
-              }).reduce<(number | '...')[]>((acc, p, idx, arr) => {
-                if (idx > 0 && (p as number) - (arr[idx - 1] as number) > 1) acc.push('...');
-                acc.push(p);
-                return acc;
-              }, []).map((p, i) =>
-                p === '...' ? (
-                  <span key={`ellipsis-${i}`} className="px-2 text-gray-400 text-sm">…</span>
-                ) : (
-                  <button
-                    key={p}
-                    onClick={() => setCurrentPage(p as number)}
-                    className={`min-w-[32px] h-8 px-2 rounded-lg text-sm transition-colors ${
-                      safePage === p
-                        ? 'bg-sky text-white font-medium'
-                        : 'border border-pebble hover:bg-earth text-gray-600'
-                    }`}
-                  >
-                    {p}
-                  </button>
-                )
-              )}
-              <button
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={safePage === totalPages}
-                className="p-1.5 rounded-lg border border-pebble hover:bg-earth disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronRight className="w-4 h-4 text-gray-600" />
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Modals */}
@@ -589,24 +923,101 @@ export default function AssetsModule({
         />
       )}
 
-      <SavedAssetViewsModal
-        isOpen={showSavedViews}
-        onClose={() => setShowSavedViews(false)}
-        views={savedViews}
-        activeViewId={activeViewId}
-        currentFilters={{
-          lifecycle: lifecycleFilter,
-          subtype: subtypeFilter,
-          businessGroup: businessGroupFilter,
-          geography: geographyFilter,
-          searchQuery,
-        }}
-        currentColumns={[]}
-        currentSort={{ sortBy: null, sortDir: null }}
-        onSaveView={handleSaveView}
-        onDeleteView={handleDeleteView}
-        onApplyView={handleApplyView}
-      />
+      {/* Quick Filter Modal Popup - Styled identically to Projects FilterPanel */}
+      {isQuickFilterMenuOpen && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-7xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-pebble flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-pale rounded-lg">
+                  <Filter className="w-4 h-4 text-sky" />
+                </div>
+                <div>
+                  <h2 className="text-night">Add Quick Filters</h2>
+                  {localQuickFilters.length > 0 && (
+                    <p className="text-xs text-sky mt-0.5">
+                      {`${localQuickFilters.length} quick filter${localQuickFilters.length !== 1 ? 's' : ''} active`}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsQuickFilterMenuOpen(false)}
+                className="p-2 hover:bg-earth rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-auto p-6">
+              <div className="grid grid-cols-4 gap-6">
+                {AVAILABLE_QUICK_FILTERS.map(filter => {
+                  const isActive = localQuickFilters.includes(filter);
+                  return (
+                    <div
+                      key={filter}
+                      className="bg-white p-4 rounded-xl border border-pebble shadow-sm flex items-center justify-between"
+                    >
+                      <div className="w-full">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={isActive}
+                            onChange={() => {
+                              setLocalQuickFilters(prev =>
+                                prev.includes(filter)
+                                  ? prev.filter(f => f !== filter)
+                                  : [...prev, filter]
+                              );
+                            }}
+                            className="w-4 h-4 text-sky rounded border-pebble focus:ring-sky cursor-pointer"
+                          />
+                          <h3 className="text-sm text-night font-bold">
+                            {filter}
+                          </h3>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-pebble flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-4 flex-wrap">
+                <button
+                  onClick={() => setLocalQuickFilters([])}
+                  className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-night hover:bg-earth rounded-lg text-sm font-semibold"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Clear All Filters
+                </button>
+              </div>
+              <div className="flex gap-3 ml-auto">
+                <button
+                  onClick={() => setIsQuickFilterMenuOpen(false)}
+                  className="px-4 py-2 border border-pebble text-night rounded-lg text-sm hover:bg-earth font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveQuickFilters(localQuickFilters);
+                    setIsQuickFilterMenuOpen(false);
+                  }}
+                  className="px-6 py-2 bg-sky text-white rounded-lg text-sm font-bold hover:bg-dark shadow-md active:scale-95 transition-all"
+                >
+                  Add Quick Filters
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
