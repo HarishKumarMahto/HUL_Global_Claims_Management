@@ -1915,6 +1915,7 @@ export interface AssetVersion {
   lifecycleStage: AssetLifecycle;
   riskRecords: AssetRiskRecord[];
   finalRisk: AssetFinalRisk;
+  isFavorite?: boolean;
 }
 
 export interface Asset {

@@ -198,8 +198,16 @@ export default function AssetsTable({
     }
   };
 
-  const toggleFavorite = (asset: Asset) => {
-    const updated = { ...asset, isFavorite: !asset.isFavorite };
+  const toggleFavorite = (asset: any) => {
+    const updatedVersions = [...asset.versions];
+    const versionIndex = updatedVersions.findIndex((v: any) => v.versionNumber === asset.currentVersionNumber);
+    if (versionIndex > -1) {
+      updatedVersions[versionIndex] = {
+        ...updatedVersions[versionIndex],
+        isFavorite: !updatedVersions[versionIndex].isFavorite
+      };
+    }
+    const updated = { ...asset, versions: updatedVersions };
     onAssetsChange(assets.map(a => a.id === asset.id ? updated : a));
   };
 
@@ -229,13 +237,19 @@ export default function AssetsTable({
     setExpandedSections(prev => ({ ...prev, [id]: prev[id] === section ? null : section }));
   };
 
-  const renderCell = (asset: Asset, colId: string, isSelected: boolean) => {
+  const renderCell = (asset: any, colId: string, isSelected: boolean, isSubRow = false) => {
     const col = columnOrder.find(c => c.id === colId);
     const colWidth = col ? col.width : 100;
     const cellStyle = {
       width: colWidth,
       minWidth: colWidth,
     };
+
+    const textClass = isSubRow ? "text-gray-400" : "text-gray-600";
+    const titleClass = isSubRow ? "text-gray-400 font-medium" : "text-sky hover:underline font-medium";
+    const nameClass = isSubRow ? "text-gray-400 font-medium" : "text-night font-medium";
+
+    const currentVersionData = asset.versions.find((v: any) => v.versionNumber === asset.currentVersionNumber) || asset.versions[0];
 
     switch (colId) {
       case 'name':
@@ -245,19 +259,25 @@ export default function AssetsTable({
             className={`px-4 py-3 ${isFrozen ? "sticky left-[128px] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`}
             style={{
               ...cellStyle,
-              ...(isFrozen ? { backgroundColor: isSelected ? "#F3F7FC" : "#ffffff" } : {})
+              ...(isFrozen ? { backgroundColor: isSubRow ? "#f9fafb" : isSelected ? "#F3F7FC" : "#ffffff" } : {})
             }}
           >
             <div className="flex items-center gap-2 overflow-hidden">
               <div className="truncate">
-                <button
-                  onClick={() => onAssetClick(asset)}
-                  className="text-sm text-sky hover:underline text-left truncate block max-w-full font-medium"
-                >
-                  {asset.name}
-                </button>
+                {isSubRow ? (
+                  <span className={`text-xs text-left truncate block max-w-full ${titleClass}`}>
+                    {asset.name}
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => onAssetClick(asset)}
+                    className={`text-xs text-left truncate block max-w-full ${titleClass}`}
+                  >
+                    {asset.name}
+                  </button>
+                )}
                 {asset.isPlaceholder && (
-                  <span className="inline-block mt-0.5 px-2 py-0.5 rounded text-xs bg-amber-50 text-amber-700 border border-amber-200">
+                  <span className={`inline-block mt-0.5 px-2 py-0.5 rounded text-[10px] border ${isSubRow ? 'bg-gray-100 text-gray-400 border-gray-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
                     Placeholder
                   </span>
                 )}
@@ -268,56 +288,59 @@ export default function AssetsTable({
       case 'assetId':
         return (
           <td key={colId} className="px-4 py-3" style={cellStyle}>
-            <span className="text-xs text-gray-600 font-mono block truncate">{asset.id}</span>
+            <span className={`text-xs font-mono block truncate ${textClass}`}>{asset.id}</span>
           </td>
         );
       case 'subtype':
         return (
           <td key={colId} className="px-4 py-3" style={cellStyle}>
-            <span className="text-sm text-gray-600 block truncate">
-              {asset.subtype || <span className="text-gray-400">Unclassified</span>}
+            <span className={`text-xs block truncate ${textClass}`}>
+              {currentVersionData.fileType || asset.subtype || <span className="text-gray-400">Unclassified</span>}
             </span>
           </td>
         );
       case 'lifecycle':
         return (
           <td key={colId} className="px-4 py-3" style={cellStyle}>
-            <span className="text-sm text-gray-600 block truncate">
-              {asset.lifecycleStage}
+            <span className={`text-xs block truncate ${textClass}`}>
+              {currentVersionData.lifecycleStage || asset.lifecycleStage}
             </span>
           </td>
         );
-      case 'version':
+      case 'version': {
+        const isLatest = asset.versions.length > 0 && asset.currentVersionNumber === asset.versions[asset.versions.length - 1].versionNumber;
         return (
           <td key={colId} className="px-4 py-3" style={cellStyle}>
             <div className="flex flex-col gap-1 overflow-hidden items-start">
-              {asset.versions.length > 1 ? (
+              {asset.versions.length > 1 && !isSubRow ? (
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
-                    toggleExpandVersion(asset.id);
+                    toggleExpandVersion(asset.uniqueRowId);
                   }}
-                  className="text-sky hover:underline flex items-center gap-1 font-medium text-left"
+                  className={`text-xs flex items-center gap-1 text-left ${titleClass}`}
                 >
                   v{asset.currentVersionNumber}
-                  {expandedVersionIds.has(asset.id) ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  {expandedVersionIds.has(asset.uniqueRowId) ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                 </button>
               ) : (
-                <span className="text-night block truncate font-medium">v{asset.currentVersionNumber}</span>
+                <span className={`text-xs block truncate ${nameClass}`}>v{asset.currentVersionNumber}</span>
               )}
+              {isLatest && <span className={`text-[10px] font-medium block truncate ${isSubRow ? 'text-gray-400' : 'text-green-700'}`}>Latest</span>}
             </div>
           </td>
         );
+      }
       case 'businessGroup':
         return (
           <td key={colId} className="px-4 py-3" style={cellStyle}>
-            <span className="text-sm text-gray-600 block truncate">{asset.businessGroup}</span>
+            <span className={`text-xs block truncate ${textClass}`}>{asset.businessGroup}</span>
           </td>
         );
       case 'geography':
         return (
           <td key={colId} className="px-4 py-3" style={cellStyle}>
-            <span className="text-sm text-gray-600 block truncate">
+            <span className={`text-xs block truncate ${textClass}`}>
               {asset.geography.slice(0, 2).join(', ')}
               {asset.geography.length > 2 && (
                 <span className="text-gray-400"> +{asset.geography.length - 2}</span>
@@ -328,13 +351,13 @@ export default function AssetsTable({
       case 'createdBy':
         return (
           <td key={colId} className="px-4 py-3" style={cellStyle}>
-            <span className="text-sm text-gray-600 block truncate">{asset.createdBy}</span>
+            <span className={`text-xs block truncate ${textClass}`}>{currentVersionData.uploadedBy || asset.createdBy}</span>
           </td>
         );
       case 'modifiedOn':
         return (
           <td key={colId} className="px-4 py-3" style={cellStyle}>
-            <span className="text-xs text-gray-500 block truncate">{formatRelativeDate(asset.modifiedAt)}</span>
+            <span className={`text-xs block truncate ${isSubRow ? 'text-gray-400' : 'text-gray-500'}`}>{formatRelativeDate(currentVersionData.uploadedAt || asset.modifiedAt)}</span>
           </td>
         );
       default:
@@ -345,14 +368,26 @@ export default function AssetsTable({
   const activeFilters = Object.entries(appliedFilters || {}).filter(([_, values]) => values && values.length > 0);
   const activeFiltersCount = activeFilters.length;
 
+  const flattenedAndSortedVersions = useMemo(() => {
+    return filteredAndSortedAssets.flatMap(asset => {
+      return asset.versions.map(ver => {
+        return {
+          ...asset,
+          currentVersionNumber: ver.versionNumber,
+          uniqueRowId: `${asset.id}-v${ver.versionNumber}`
+        };
+      });
+    });
+  }, [filteredAndSortedAssets]);
+
   const itemsPerPage = 10;
-  const totalRecords = filteredAndSortedAssets.length;
+  const totalRecords = flattenedAndSortedVersions.length;
   const totalPages = Math.max(1, Math.ceil(totalRecords / itemsPerPage));
   const safePage = Math.min(currentPage, totalPages);
   const startIndex = (safePage - 1) * itemsPerPage;
   const paginatedAssets = useMemo(() => {
-    return filteredAndSortedAssets.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredAndSortedAssets, startIndex]);
+    return flattenedAndSortedVersions.slice(startIndex, startIndex + itemsPerPage);
+  }, [flattenedAndSortedVersions, startIndex]);
 
   return (
     <div className="w-full h-full flex flex-col bg-white rounded-xl border border-gray-300 overflow-hidden shadow-sm">
@@ -420,7 +455,7 @@ export default function AssetsTable({
             </>
           ) : (
             <span className="text-sm text-gray-600 font-medium ml-1">
-              {activeLibraryView.endsWith("Assets") ? `${activeLibraryView} Library` : activeLibraryView}
+              Asset Library
             </span>
           )}
         </div>
@@ -600,7 +635,6 @@ export default function AssetsTable({
                         onClick={() => handleSort(col.id)}
                         className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-night transition-colors uppercase tracking-wide focus:outline-none focus:ring-2 focus:ring-sky rounded text-left truncate flex-1"
                       >
-                        <GripVertical className="w-3.5 h-3.5 text-gray-300 cursor-move flex-shrink-0" />
                         <span className="truncate">{col.label}</span>
                         {renderSortIcon(col.id)}
                       </button>
@@ -653,15 +687,17 @@ export default function AssetsTable({
           <tbody className="divide-y divide-gray-300">
             {paginatedAssets.map(asset => {
               const isSelected = selectedIds.includes(asset.id);
-              const isExpanded = expandedAssetId === asset.id;
+              const isExpanded = expandedAssetId === asset.uniqueRowId;
               const rowBg = isSelected
                 ? "bg-pale/30 font-medium"
                 : isExpanded
                 ? "bg-earth/50"
                 : "hover:bg-earth/30";
 
+              const currentVersionData = asset.versions.find((v: any) => v.versionNumber === asset.currentVersionNumber) || asset.versions[0];
+
               return (
-                <Fragment key={asset.id}>
+                <Fragment key={asset.uniqueRowId}>
                   <tr className={`border-b border-gray-300 transition-colors ${rowBg}`}>
                     {/* Checkbox */}
                     {isBulkMode && (
@@ -700,7 +736,7 @@ export default function AssetsTable({
                       >
                         <Star
                           className={`w-4.5 h-4.5 transition-all ${
-                            asset.isFavorite
+                            currentVersionData.isFavorite
                               ? 'fill-yellow-400 text-yellow-500'
                               : 'text-gray-400 hover:text-yellow-500 hover:fill-yellow-100'
                           }`}
@@ -720,10 +756,10 @@ export default function AssetsTable({
                       }}
                     >
                       <button
-                        onClick={() => toggleExpand(asset.id)}
+                        onClick={() => toggleExpand(asset.uniqueRowId)}
                         className="p-0.5 hover:bg-pebble rounded transition-colors"
                       >
-                        {expandedAssetId === asset.id ? (
+                        {isExpanded ? (
                           <ChevronDown className="w-4 h-4 text-gray-400" />
                         ) : (
                           <ChevronRight className="w-4 h-4 text-gray-400" />
@@ -737,13 +773,13 @@ export default function AssetsTable({
                     {/* Actions column cell — 3-dots row menu */}
                     <td className="px-3 py-3 w-10 relative" onClick={e => e.stopPropagation()}>
                       <button
-                        onClick={() => setActionMenuOpen(actionMenuOpen === asset.id ? null : asset.id)}
+                        onClick={() => setActionMenuOpen(actionMenuOpen === asset.uniqueRowId ? null : asset.uniqueRowId)}
                         className="p-1.5 hover:bg-earth rounded-lg transition-colors text-gray-400 hover:text-night"
                         title="More actions"
                       >
                         <MoreHorizontal className="w-4 h-4" />
                       </button>
-                      {actionMenuOpen === asset.id && (
+                      {actionMenuOpen === asset.uniqueRowId && (
                         <>
                           <div className="fixed inset-0 z-10" onClick={() => setActionMenuOpen(null)} />
                           <div className="absolute right-0 top-full bg-white border border-pebble rounded-xl shadow-lg z-20 min-w-[160px] overflow-hidden">
@@ -776,7 +812,7 @@ export default function AssetsTable({
                   </tr>
 
                 {/* Inline Workbench */}
-                {expandedAssetId === asset.id && (
+                {isExpanded && (
                   <tr>
                     <td colSpan={columnOrder.length + (isBulkMode ? 4 : 3)} className="px-0 py-0">
                       <div className="border-b-2 border-sky/20" style={{ background: '#EEF4FB' }}>
@@ -785,25 +821,25 @@ export default function AssetsTable({
                         <div className="bg-white rounded-lg border border-pebble overflow-hidden shadow-sm">
                           <button
                             type="button"
-                            onClick={() => toggleSection(asset.id, 'support')}
+                            onClick={() => toggleSection(asset.uniqueRowId, 'support')}
                             className="w-full px-4 py-3 flex items-center justify-between hover:bg-earth transition-colors"
                           >
                             <div className="flex items-center gap-3">
                               <FileText className="w-4 h-4 text-gray-400" />
                               <span className="text-sm text-night font-medium">Substantiations</span>
                             </div>
-                            {expandedSections[asset.id] === 'support' ? (
+                            {expandedSections[asset.uniqueRowId] === 'support' ? (
                               <ChevronDown className="w-4 h-4 text-gray-400" />
                             ) : (
                               <ChevronRight className="w-4 h-4 text-gray-400" />
                             )}
                           </button>
-                          {expandedSections[asset.id] === 'support' && (
+                          {expandedSections[asset.uniqueRowId] === 'support' && (
                             <div className="px-6 py-5 border-t border-pebble bg-pale/5">
                               <div className="text-sm text-gray-600">
                                 {asset.linkedClaimIds.length > 0 ? (
                                   <div className="space-y-2">
-                                    {asset.linkedClaimIds.map(claimId => (
+                                    {asset.linkedClaimIds.map((claimId: string) => (
                                       <div key={claimId} className="flex items-center gap-2 p-2 bg-earth rounded">
                                         <span className="text-sm text-night">{claimId}</span>
                                       </div>
@@ -821,28 +857,28 @@ export default function AssetsTable({
                         <div className="bg-white rounded-lg border border-pebble overflow-hidden shadow-sm">
                           <button
                             type="button"
-                            onClick={() => toggleSection(asset.id, 'risk')}
+                            onClick={() => toggleSection(asset.uniqueRowId, 'risk')}
                             className="w-full px-4 py-3 flex items-center justify-between hover:bg-earth transition-colors"
                           >
                             <div className="flex items-center gap-3">
                               <Shield className="w-4 h-4 text-gray-400" />
                               <span className="text-sm text-night font-medium">Risk Level Assessments</span>
-                              {asset.versions.find(v => v.versionNumber === asset.currentVersionNumber)?.finalRisk.finalRiskLevel && (
+                              {currentVersionData.finalRisk?.finalRiskLevel && (
                                 <span className="text-xs px-2 py-0.5 rounded bg-green-50 text-green-700">
-                                  {asset.versions.find(v => v.versionNumber === asset.currentVersionNumber)?.finalRisk.finalRiskLevel}
+                                  {currentVersionData.finalRisk.finalRiskLevel}
                                 </span>
                               )}
                             </div>
-                            {expandedSections[asset.id] === 'risk' ? (
+                            {expandedSections[asset.uniqueRowId] === 'risk' ? (
                               <ChevronDown className="w-4 h-4 text-gray-400" />
                             ) : (
                               <ChevronRight className="w-4 h-4 text-gray-400" />
                             )}
                           </button>
-                          {expandedSections[asset.id] === 'risk' && (
+                          {expandedSections[asset.uniqueRowId] === 'risk' && (
                             <div className="px-6 py-5 border-t border-pebble bg-pale/5">
                               <div className="space-y-3">
-                                {asset.versions.find(v => v.versionNumber === asset.currentVersionNumber)?.riskRecords.map(record => (
+                                {currentVersionData.riskRecords?.map((record: any) => (
                                   <div key={record.id} className="p-3 bg-white border border-pebble rounded">
                                     <div className="flex items-center justify-between mb-2">
                                       <span className="text-sm font-medium text-night">{record.department}</span>
@@ -862,7 +898,7 @@ export default function AssetsTable({
                         <div className="bg-white rounded-lg border border-pebble overflow-hidden shadow-sm">
                           <button
                             type="button"
-                            onClick={() => toggleSection(asset.id, 'comments')}
+                            onClick={() => toggleSection(asset.uniqueRowId, 'comments')}
                             className="w-full px-4 py-3 flex items-center justify-between hover:bg-earth transition-colors"
                           >
                             <div className="flex items-center gap-3">
@@ -872,17 +908,17 @@ export default function AssetsTable({
                                 {asset.assetLevelComments.length} comments
                               </span>
                             </div>
-                            {expandedSections[asset.id] === 'comments' ? (
+                            {expandedSections[asset.uniqueRowId] === 'comments' ? (
                               <ChevronDown className="w-4 h-4 text-gray-400" />
                             ) : (
                               <ChevronRight className="w-4 h-4 text-gray-400" />
                             )}
                           </button>
-                          {expandedSections[asset.id] === 'comments' && (
+                          {expandedSections[asset.uniqueRowId] === 'comments' && (
                             <div className="px-6 py-5 border-t border-pebble bg-pale/5">
                               <div className="space-y-3">
                                 {asset.assetLevelComments.length > 0 ? (
-                                  asset.assetLevelComments.map(comment => (
+                                  asset.assetLevelComments.map((comment: any) => (
                                     <div key={comment.id} className="p-3 bg-white border border-pebble rounded">
                                       <div className="flex items-center gap-2 mb-2">
                                         <span className="text-sm font-medium text-night">{comment.author}</span>
@@ -904,106 +940,31 @@ export default function AssetsTable({
                   </tr>
                 )}
 
-                {/* Version History Expansion */}
-                {expandedVersionIds.has(asset.id) && asset.versions.map((ver, idx) => {
+                {/* Version History Expansion - read-only grey text */}
+                {expandedVersionIds.has(asset.uniqueRowId) && asset.versions.map((ver: any) => {
                   if (ver.versionNumber === asset.currentVersionNumber) return null; // Skip current version
+                  const oldAsset = { ...asset, currentVersionNumber: ver.versionNumber };
                   return (
                     <tr
-                      key={`${asset.id}-v${ver.versionNumber}`}
-                      className="border-b border-gray-200 bg-gray-50 opacity-80 hover:opacity-100 transition-opacity"
+                      key={`${asset.uniqueRowId}-sub-v${ver.versionNumber}`}
+                      className="border-b border-gray-200 bg-gray-50 opacity-90 transition-opacity"
                       style={{ height: 48 }}
                     >
-                      {/* Checkbox */}
+                      {/* Checkbox (empty) */}
                       {isBulkMode && (
                         <td className={`px-3 py-3 ${isFrozen ? "sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`} style={{ width: "40px", minWidth: "40px", maxWidth: "40px", ...(isFrozen ? { backgroundColor: "#f9fafb" } : {}) }}></td>
                       )}
                       
-                      {/* Favorite */}
-                      <td className={`px-3 py-3 ${isFrozen ? "sticky z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`} style={{ left: isFrozen ? (isBulkMode ? 40 : 0) : undefined, width: "40px", minWidth: "40px", maxWidth: "40px", ...(isFrozen ? { backgroundColor: "#f9fafb" } : {}) }}></td>
+                      {/* Favorite (empty) */}
+                      <td className={`px-3 py-3 ${isFrozen ? "sticky z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`} style={{ left: isFrozen ? (isBulkMode ? 40 : 0) : undefined, width: "48px", minWidth: "48px", maxWidth: "48px", ...(isFrozen ? { backgroundColor: "#f9fafb" } : {}) }}></td>
 
-                      {/* Expand chevron */}
+                      {/* Expand chevron (indent) */}
                       <td className={`px-3 py-3 ${isFrozen ? "sticky z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" : ""}`} style={{ left: isFrozen ? (isBulkMode ? 88 : 48) : undefined, width: "40px", minWidth: "40px", maxWidth: "40px", ...(isFrozen ? { backgroundColor: "#f9fafb" } : {}) }}>
                         <span className="text-gray-400 flex justify-center text-lg">↳</span>
                       </td>
 
                       {/* Draggable data cells */}
-                      {columnOrder.map(col => {
-                        const cellStyle = {
-                          width: col.width,
-                          minWidth: col.width,
-                          maxWidth: col.width,
-                        };
-                        switch (col.id) {
-                          case 'name':
-                            return (
-                              <td key={col.id} className="px-4 py-3" style={cellStyle}>
-                                <div className="flex items-center gap-2 overflow-hidden">
-                                  <span className="text-xs text-gray-600 italic">{asset.name}</span>
-                                  <span className="text-xs text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded">v{ver.versionNumber}</span>
-                                </div>
-                              </td>
-                            );
-                          case 'assetId':
-                            return (
-                              <td key={col.id} className="px-4 py-3" style={cellStyle}>
-                                <span className="text-xs text-gray-600 font-mono block truncate">{asset.id}</span>
-                              </td>
-                            );
-                          case 'subtype':
-                            return (
-                              <td key={col.id} className="px-4 py-3" style={cellStyle}>
-                                <span className="text-xs text-gray-600 block truncate">
-                                  {ver.fileType || 'Unclassified'}
-                                </span>
-                              </td>
-                            );
-                          case 'lifecycle':
-                            return (
-                              <td key={col.id} className="px-4 py-3" style={cellStyle}>
-                                <span className="text-xs text-gray-600 block truncate">
-                                  {ver.lifecycleStage}
-                                </span>
-                              </td>
-                            );
-                          case 'version':
-                            return (
-                              <td key={col.id} className="px-4 py-3" style={cellStyle}>
-                                <span className="text-xs text-gray-600 font-medium block truncate">v{ver.versionNumber}</span>
-                              </td>
-                            );
-                          case 'businessGroup':
-                            return (
-                              <td key={col.id} className="px-4 py-3" style={cellStyle}>
-                                <span className="text-xs text-gray-600 block truncate">{asset.businessGroup}</span>
-                              </td>
-                            );
-                          case 'geography':
-                            return (
-                              <td key={col.id} className="px-4 py-3" style={cellStyle}>
-                                <span className="text-xs text-gray-600 block truncate">
-                                  {asset.geography.slice(0, 2).join(', ')}
-                                  {asset.geography.length > 2 && (
-                                    <span className="text-gray-400"> +{asset.geography.length - 2}</span>
-                                  )}
-                                </span>
-                              </td>
-                            );
-                          case 'createdBy':
-                            return (
-                              <td key={col.id} className="px-4 py-3" style={cellStyle}>
-                                <span className="text-xs text-gray-600 block truncate">{ver.uploadedBy}</span>
-                              </td>
-                            );
-                          case 'modifiedOn':
-                            return (
-                              <td key={col.id} className="px-4 py-3" style={cellStyle}>
-                                <span className="text-xs text-gray-500 block truncate">{formatRelativeDate(ver.uploadedAt)}</span>
-                              </td>
-                            );
-                          default:
-                            return <td key={col.id} className="px-4 py-3" style={cellStyle}></td>;
-                        }
-                      })}
+                      {columnOrder.map(col => renderCell(oldAsset, col.id, false, true))}
 
                       {/* Actions column cell */}
                       <td className="px-3 py-3 w-10"></td>

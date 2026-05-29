@@ -417,9 +417,15 @@ export default function ClaimsTable({
   const expandLeft = isBulkSelectionEnabled ? 80 : 40;
   const claimStatementLeft = isBulkSelectionEnabled ? 120 : 80;
 
-  const toggleFavorite = (claim: Claim) => {
+  const toggleFavorite = (claim: any) => {
     if (!onClaimsChange) return;
-    const updated = { ...claim, isFavorite: !claim.isFavorite };
+    const versionIndex = claim.currentVersion;
+    const updatedVersions = [...claim.versions];
+    updatedVersions[versionIndex] = {
+      ...updatedVersions[versionIndex],
+      isFavorite: !updatedVersions[versionIndex].isFavorite
+    };
+    const updated = { ...claim, versions: updatedVersions };
     onClaimsChange(claims.map(c => c.id === claim.id ? updated : c));
   };
 
@@ -466,8 +472,16 @@ export default function ClaimsTable({
   const [columnOrder, setColumnOrder] = useState(BASE_COLUMNS);
   const [draggedCol, setDraggedCol] = useState<number | null>(null);
 
-  const filteredAndSortedClaims = React.useMemo(() => {
-    return claims
+  const flattenedAndSortedVersions = React.useMemo(() => {
+    const allVersions = claims.flatMap(claim => 
+      claim.versions.map((ver, idx) => ({
+        ...claim,
+        currentVersion: idx,
+        uniqueRowId: `${claim.id}-v${ver.versionNumber}`
+      }))
+    );
+
+    return allVersions
       .filter(claim => {
         return Object.entries(colSearch).every(([colId, query]) => {
           if (!query) return true;
@@ -529,8 +543,8 @@ export default function ClaimsTable({
       });
   }, [claims, colSearch, sortCol, sortDir]);
 
-  const allSelected = filteredAndSortedClaims.length > 0 && selectedIds.length === filteredAndSortedClaims.length;
-  const someSelected = selectedIds.length > 0 && selectedIds.length < filteredAndSortedClaims.length;
+  const allSelected = flattenedAndSortedVersions.length > 0 && selectedIds.length === claims.length;
+  const someSelected = selectedIds.length > 0 && selectedIds.length < claims.length;
 
   const handleSort = (colId: string) => {
     if (sortCol === colId) {
@@ -561,13 +575,18 @@ export default function ClaimsTable({
   };
   const handleColDragEnd = () => setDraggedCol(null);
 
-  const renderClaimCell = (claim: Claim, colId: string, primaryStatement: string, isLatest: boolean, isSelected: boolean, bgOverride?: string) => {
+  const renderClaimCell = (claim: any, colId: string, primaryStatement: string, isLatest: boolean, isSelected: boolean, bgOverride?: string, isSubRow = false) => {
     const col = columnOrder.find(c => c.id === colId);
     const colWidth = col ? col.width : 100;
     const cellStyle = {
       width: colWidth,
       minWidth: colWidth,
     };
+
+    const textColor = isSubRow ? 'text-gray-400' : 'text-night';
+    const softTextColor = isSubRow ? 'text-gray-400' : 'text-gray-600';
+    const metaTextColor = isSubRow ? 'text-gray-400' : 'text-gray-500';
+    const strongTextColor = isSubRow ? 'text-gray-400' : 'text-gray-700';
 
     switch (colId) {
       case 'claimStatement':
@@ -582,17 +601,17 @@ export default function ClaimsTable({
             }}
           >
             <div className="flex flex-col gap-1 overflow-hidden">
-              <button onClick={() => onClaimClick(claim)} className="text-left text-night leading-relaxed hover:text-sky transition-colors line-clamp-2 truncate font-medium">
+              <button onClick={() => onClaimClick(claim)} className={`text-left ${textColor} leading-relaxed hover:text-sky transition-colors line-clamp-2 truncate font-medium`}>
                 {primaryStatement}
               </button>
               <div className="flex items-center gap-1.5 mt-1">
                 {claim.challenged && (
-                  <span className="flex items-center gap-1 text-xs text-amber-700 font-medium">
+                  <span className={`flex items-center gap-1 text-xs font-medium ${isSubRow ? 'text-gray-400' : 'text-amber-700'}`}>
                     <Flag className="w-3 h-3" /> Challenged
                   </span>
                 )}
                 {claim.lifecycleStage === 'Expired' && (
-                  <span className="flex items-center gap-1 text-xs text-orange-600 font-medium ml-2">
+                  <span className={`flex items-center gap-1 text-xs font-medium ml-2 ${isSubRow ? 'text-gray-400' : 'text-orange-600'}`}>
                     <AlertCircle className="w-3 h-3" /> Expired
                   </span>
                 )}
@@ -604,44 +623,44 @@ export default function ClaimsTable({
         return (
           <td key={colId} className="px-4 py-3" style={cellStyle}>
             <div className="flex flex-col gap-1 overflow-hidden items-start">
-              {claim.versions.length > 1 ? (
+              {claim.versions.length > 1 && !isSubRow ? (
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
                     setExpandedVersionIds(prev => {
                       const next = new Set(prev);
-                      if (next.has(claim.id)) next.delete(claim.id);
-                      else next.add(claim.id);
+                      if (next.has(claim.uniqueRowId)) next.delete(claim.uniqueRowId);
+                      else next.add(claim.uniqueRowId);
                       return next;
                     });
                   }}
                   className="text-sky hover:underline flex items-center gap-1 font-medium text-left"
                 >
                   v{claim.versions[claim.currentVersion].versionNumber}
-                  {expandedVersionIds.has(claim.id) ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  {expandedVersionIds.has(claim.uniqueRowId) ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                 </button>
               ) : (
-                <span className="text-night block truncate font-medium">v{claim.versions[claim.currentVersion].versionNumber}</span>
+                <span className={`${textColor} block truncate font-medium`}>v{claim.versions[claim.currentVersion].versionNumber}</span>
               )}
-              {isLatest && <span className="text-xs text-green-700 font-medium block truncate">Latest</span>}
+              {isLatest && <span className={`text-xs font-medium block truncate ${isSubRow ? 'text-gray-400' : 'text-green-700'}`}>Latest</span>}
             </div>
           </td>
         );
       case 'order':
-        return <td key={colId} className="px-4 py-3 text-gray-600 truncate" style={cellStyle}>{claim.order || '—'}</td>;
+        return <td key={colId} className={`px-4 py-3 truncate ${softTextColor}`} style={cellStyle}>{claim.order || '—'}</td>;
       case 'lifecycle':
-        return <td key={colId} className="px-4 py-3 text-night truncate" style={cellStyle}>{claim.lifecycleStage}</td>;
+        return <td key={colId} className={`px-4 py-3 truncate ${textColor}`} style={cellStyle}>{claim.lifecycleStage}</td>;
       case 'channels':
         return (
           <td key={colId} className="px-4 py-3" style={cellStyle}>
             <div className="flex flex-wrap gap-1 overflow-hidden">
-              {claim.marketingChannels.slice(0, 2).map((ch, i) => (
-                <span key={ch} className="text-xs text-gray-600 block truncate">
+              {claim.marketingChannels.slice(0, 2).map((ch: string, i: number) => (
+                <span key={ch} className={`text-xs block truncate ${softTextColor}`}>
                   {ch}{i === 0 && claim.marketingChannels.length > 1 ? ', ' : ''}
                 </span>
               ))}
               {claim.marketingChannels.length > 2 && (
-                <span className="text-xs text-gray-500 ml-1">+{claim.marketingChannels.length - 2}</span>
+                <span className={`text-xs ml-1 ${metaTextColor}`}>+{claim.marketingChannels.length - 2}</span>
               )}
             </div>
           </td>
@@ -650,25 +669,25 @@ export default function ClaimsTable({
         return (
           <td key={colId} className="px-4 py-3" style={cellStyle}>
             {claim.finalRiskLevel ? (
-              <span className="text-xs font-semibold text-night block truncate">{claim.finalRiskLevel}</span>
+              <span className={`text-xs font-semibold block truncate ${textColor}`}>{claim.finalRiskLevel}</span>
             ) : (
-              <span className="text-gray-400 text-xs block truncate">—</span>
+              <span className={`text-xs block truncate ${metaTextColor}`}>—</span>
             )}
           </td>
         );
       case 'product':
         return (
           <td key={colId} className="px-4 py-3" style={cellStyle}>
-            <span className="text-xs text-gray-700 font-medium block truncate" title={claim.productName}>{claim.productName}</span>
+            <span className={`text-xs font-medium block truncate ${strongTextColor}`} title={claim.productName}>{claim.productName}</span>
           </td>
         );
       case 'restricted':
         return (
           <td key={colId} className="px-4 py-3 text-left" style={cellStyle}>
             {claim.restrictedUse ? (
-              <span className="px-1.5 py-0.5 rounded text-[10px] bg-red-100 text-red-700 border border-red-200 uppercase font-bold block truncate w-fit">Yes</span>
+              <span className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-bold block truncate w-fit ${isSubRow ? 'bg-gray-100 text-gray-400 border border-gray-200' : 'bg-red-100 text-red-700 border border-red-200'}`}>Yes</span>
             ) : (
-              <span className="text-gray-400 text-xs block truncate">—</span>
+              <span className={`text-xs block truncate ${metaTextColor}`}>—</span>
             )}
           </td>
         );
@@ -676,9 +695,9 @@ export default function ClaimsTable({
         return (
           <td key={colId} className="px-4 py-3" style={cellStyle}>
             {claim.claimIdentifier ? (
-              <span className="text-xs text-gray-700 font-mono block truncate">{claim.claimIdentifier}</span>
+              <span className={`text-xs font-mono block truncate ${strongTextColor}`}>{claim.claimIdentifier}</span>
             ) : (
-              <span className="text-gray-400 text-xs block truncate">—</span>
+              <span className={`text-xs block truncate ${metaTextColor}`}>—</span>
             )}
           </td>
         );
@@ -686,9 +705,9 @@ export default function ClaimsTable({
         return (
           <td key={colId} className="px-4 py-3" style={cellStyle}>
             {claim.claimCategory ? (
-              <span className="text-xs text-gray-700 block truncate">{claim.claimCategory}</span>
+              <span className={`text-xs block truncate ${strongTextColor}`}>{claim.claimCategory}</span>
             ) : (
-              <span className="text-gray-400 text-xs block truncate">—</span>
+              <span className={`text-xs block truncate ${metaTextColor}`}>—</span>
             )}
           </td>
         );
@@ -696,9 +715,9 @@ export default function ClaimsTable({
         return (
           <td key={colId} className="px-4 py-3" style={cellStyle}>
             {claim.geography ? (
-              <span className="text-xs text-gray-700 block truncate">{claim.geography}</span>
+              <span className={`text-xs block truncate ${strongTextColor}`}>{claim.geography}</span>
             ) : (
-              <span className="text-gray-400 text-xs block truncate">—</span>
+              <span className={`text-xs block truncate ${metaTextColor}`}>—</span>
             )}
           </td>
         );
@@ -706,9 +725,9 @@ export default function ClaimsTable({
         return (
           <td key={colId} className="px-4 py-3" style={cellStyle}>
             {claim.relatedProjectIds.length > 0 ? (
-              <span className="text-xs text-gray-700 block truncate">{claim.relatedProjectIds.length}</span>
+              <span className={`text-xs block truncate ${strongTextColor}`}>{claim.relatedProjectIds.length}</span>
             ) : (
-              <span className="text-gray-400 text-xs block truncate">—</span>
+              <span className={`text-xs block truncate ${metaTextColor}`}>—</span>
             )}
           </td>
         );
@@ -983,16 +1002,16 @@ export default function ClaimsTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-300">
-            {filteredAndSortedClaims.map(claim => {
-              const isSelected = selectedIds.includes(claim.id);
-              const isExpanded = expandedIds.has(claim.id);
-              const expandedSection = expandedSections[claim.id];
+            {flattenedAndSortedVersions.map((claim: any) => {
+              const isSelected = selectedIds.includes(claim.id); // Selection remains at the overall claim ID level
+              const isExpanded = expandedIds.has(claim.uniqueRowId);
+              const expandedSection = expandedSections[claim.uniqueRowId];
               const version = claim.versions[claim.currentVersion];
               const primaryStatement = claim.claimType === 'Global' ? version.globalStatement : version.localStatement;
               const isLatest = version.isLatest;
 
               return (
-                <React.Fragment key={claim.id}>
+                <React.Fragment key={claim.uniqueRowId}>
                   <tr
                     className={`border-b border-gray-300 transition-colors ${
                       isSelected ? 'bg-pale/30 font-medium' : 'hover:bg-earth/50'
@@ -1035,7 +1054,7 @@ export default function ClaimsTable({
                       >
                         <Star
                           className={`w-4 h-4 transition-all ${
-                            claim.isFavorite
+                            claim.versions[claim.currentVersion].isFavorite
                               ? 'fill-yellow-400 text-yellow-500'
                               : 'text-gray-300 hover:text-yellow-400 hover:fill-yellow-100'
                           }`}
@@ -1054,7 +1073,7 @@ export default function ClaimsTable({
                       }}
                     >
                       <button
-                        onClick={() => toggleExpand(claim.id)}
+                        onClick={() => toggleExpand(claim.uniqueRowId)}
                         className="text-gray-400 hover:text-sky transition-colors focus:outline-none"
                       >
                         {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
@@ -1062,36 +1081,36 @@ export default function ClaimsTable({
                     </td>
 
                     {/* Draggable data cells */}
-                    {columnOrder.map((col) => renderClaimCell(claim, col.id, primaryStatement, isLatest, isSelected))}
+                    {columnOrder.map((col) => renderClaimCell(claim, col.id, primaryStatement, isLatest, isSelected, undefined, false))}
                   </tr>
 
-                  {/* Version History Expansion */}
-                  {expandedVersionIds.has(claim.id) && claim.versions.map((ver, idx) => {
-                    if (idx === claim.currentVersion) return null; // Skip current version
+                  {/* Version History Expansion - read-only grey text */}
+                  {expandedVersionIds.has(claim.uniqueRowId) && claim.versions.map((ver: any, idx: number) => {
+                    if (idx === claim.currentVersion) return null; // Skip the version shown in the parent row
                     const verStatement = claim.claimType === 'Global' ? ver.globalStatement : ver.localStatement;
                     const oldClaim = { ...claim, currentVersion: idx };
                     return (
                       <tr
-                        key={`${claim.id}-v${ver.versionNumber}`}
-                        className="border-b border-gray-200 bg-gray-50 opacity-80 hover:opacity-100 transition-opacity"
+                        key={`${claim.uniqueRowId}-sub-v${ver.versionNumber}`}
+                        className="border-b border-gray-200 bg-gray-50 opacity-90 transition-opacity"
                         style={{ height: 48 }}
                       >
-                        {/* Checkbox */}
+                        {/* Checkbox (empty) */}
                         {isBulkSelectionEnabled && (
                           <td className="px-4 py-3" style={{ width: "40px", minWidth: "40px", maxWidth: "40px", ...(isFrozen ? { position: "sticky", left: 0, zIndex: 10, backgroundColor: "#f9fafb", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {}) }}></td>
                         )}
                         
-                        {/* Favorite */}
+                        {/* Favorite (empty) */}
                         <td className="px-4 py-3" style={{ width: "40px", minWidth: "40px", maxWidth: "40px", ...(isFrozen ? { position: "sticky", left: favoriteLeft, zIndex: 10, backgroundColor: "#f9fafb", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {}) }}></td>
                         
-                        {/* Expand chevron */}
+                        {/* Expand chevron (indent) */}
                         <td className="px-4 py-3" style={{ width: "40px", minWidth: "40px", maxWidth: "40px", ...(isFrozen ? { position: "sticky", left: expandLeft, zIndex: 10, backgroundColor: "#f9fafb", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {}) }}>
                           <span className="text-gray-400 flex justify-center text-lg">↳</span>
                         </td>
 
-                        {/* Draggable data cells */}
+                        {/* Draggable data cells (rendered as grey text sub-rows) */}
                         {columnOrder.map((col) => {
-                          return renderClaimCell(oldClaim, col.id, verStatement, ver.isLatest, false, "#f9fafb");
+                          return renderClaimCell(oldClaim, col.id, verStatement, ver.isLatest, false, "#f9fafb", true);
                         })}
                       </tr>
                     );
