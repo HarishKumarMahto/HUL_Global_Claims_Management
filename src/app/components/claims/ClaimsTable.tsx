@@ -1435,7 +1435,7 @@ export default function ClaimsTable({
                             {isSectionOpen(claim.uniqueRowId, 'comments') && (
                               <div className="px-3 py-2 border-t border-pebble bg-pale/5">
                                 {/* Max 4 comments visible, rest scroll — single-line per comment */}
-                                <div style={{ maxHeight: '120px', overflowY: 'auto', marginBottom: '6px' }}>
+                                <div style={{ maxHeight: '80px', overflowY: 'auto', marginBottom: '6px' }}>
                                   {(claimComments[claim.id] || []).length === 0 ? (
                                     <div className="text-[10px] text-gray-400 italic py-1">No comments yet.</div>
                                   ) : (
