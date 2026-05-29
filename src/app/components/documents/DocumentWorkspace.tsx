@@ -1203,11 +1203,21 @@ export default function DocumentWorkspace({
                       </div>
                       {ann.type === 'link' ? (
                         <div className="space-y-1">
-                          {(allDocuments || []).filter(d => ann.linkedDocIds?.includes(d.id)).map(d => (
+                          {[
+                            ...(allDocuments || []),
+                            ...(allAssets || []).map(a => ({ id: a.id, name: a.name, documentType: 'Asset', subtype: a.subtype || a.category || '' } as any))
+                          ].filter(d => ann.linkedDocIds?.includes(d.id)).map(d => (
                             <a
                               key={d.id}
                               href="#"
-                              onClick={e => { e.preventDefault(); onDocumentSelect?.(d); }}
+                              onClick={e => {
+                                e.preventDefault();
+                                if (d.documentType === 'Asset') {
+                                  onNavigateToAsset?.(d.id);
+                                } else {
+                                  onDocumentSelect?.(d);
+                                }
+                              }}
                               className="block text-xs text-blue-400 hover:text-blue-300 underline underline-offset-2 truncate transition-colors leading-relaxed"
                               title={d.name}
                             >
@@ -1371,7 +1381,10 @@ export default function DocumentWorkspace({
                   </tr>
                 </thead>
                 <tbody>
-                  {(allDocuments || []).filter(d => ['Formulation Document', 'Substantiation Evidence', 'Project Document'].includes(d.documentType) && d.name.toLowerCase().includes(docLibSearch.toLowerCase())).map(d => (
+                  {[
+                    ...(allDocuments || []).filter(d => ['Formulation Document', 'Substantiation Evidence', 'Project Document'].includes(d.documentType)),
+                    ...(allAssets || []).map(a => ({ id: a.id, name: a.name, documentType: 'Asset', subtype: a.subtype || a.category || '' } as any))
+                  ].filter(d => d.name.toLowerCase().includes(docLibSearch.toLowerCase())).map(d => (
                     <tr
                       key={d.id}
                       onClick={() => setSelectedDocIds(prev => prev.includes(d.id) ? prev.filter(x => x !== d.id) : [...prev, d.id])}
@@ -1387,13 +1400,17 @@ export default function DocumentWorkspace({
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                           d.documentType === 'Formulation Document' ? 'bg-purple-50 text-purple-700'
                           : d.documentType === 'Substantiation Evidence' ? 'bg-sky/10 text-sky'
+                          : d.documentType === 'Asset' ? 'bg-orange-50 text-orange-700'
                           : 'bg-green-50 text-green-700'
                         }`}>{d.documentType}</span>
                       </td>
                       <td className="px-4 py-3 text-xs text-gray-500">{d.subtype || d.category || '—'}</td>
                     </tr>
                   ))}
-                  {(allDocuments || []).filter(d => ['Formulation Document', 'Substantiation Evidence', 'Project Document'].includes(d.documentType) && d.name.toLowerCase().includes(docLibSearch.toLowerCase())).length === 0 && (
+                  {[
+                    ...(allDocuments || []).filter(d => ['Formulation Document', 'Substantiation Evidence', 'Project Document'].includes(d.documentType)),
+                    ...(allAssets || []).map(a => ({ id: a.id, name: a.name, documentType: 'Asset', subtype: a.subtype || a.category || '' } as any))
+                  ].filter(d => d.name.toLowerCase().includes(docLibSearch.toLowerCase())).length === 0 && (
                     <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-400">No documents match your search</td></tr>
                   )}
                 </tbody>
@@ -1409,7 +1426,11 @@ export default function DocumentWorkspace({
                 disabled={selectedDocIds.length === 0}
                 onClick={() => {
                   if (selectedDocIds.length === 0 || !dragRect) return;
-                  const linkedDocs = (allDocuments || []).filter(d => selectedDocIds.includes(d.id));
+                  const availableDocs = [
+                    ...(allDocuments || []).filter(d => ['Formulation Document', 'Substantiation Evidence', 'Project Document'].includes(d.documentType)),
+                    ...(allAssets || []).map(a => ({ id: a.id, name: a.name, documentType: 'Asset', subtype: a.subtype || a.category || '' } as any))
+                  ];
+                  const linkedDocs = availableDocs.filter(d => selectedDocIds.includes(d.id));
                   const label = linkedDocs.map(d => d.name).join(', ');
                   setAnnotations(prev => [...prev, { id: `ann-${Date.now()}`, type: 'link' as const, label, rect: dragRect, linkedDocIds: [...selectedDocIds] }]);
                   setLinkModalOpen(false);
