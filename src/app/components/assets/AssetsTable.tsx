@@ -20,7 +20,6 @@ const FILTER_NAMES: Record<string, string> = {
 
 const BASE_COLUMNS = [
   { id: 'name', label: 'Asset Name', width: 280 },
-  { id: 'assetId', label: 'Asset ID', width: 110 },
   { id: 'subtype', label: 'Subtype', width: 150 },
   { id: 'lifecycle', label: 'Lifecycle', width: 140 },
   { id: 'version', label: 'Version', width: 100 },
@@ -134,7 +133,6 @@ export default function AssetsTable({
         const q = query.toLowerCase();
         switch (colId) {
           case 'name': return asset.name.toLowerCase().includes(q);
-          case 'assetId': return asset.id.toLowerCase().includes(q);
           case 'subtype': return (asset.subtype || '').toLowerCase().includes(q);
           case 'lifecycle': return asset.lifecycleStage.toLowerCase().includes(q);
           case 'version': return asset.currentVersionNumber.toLowerCase().includes(q);
@@ -151,8 +149,7 @@ export default function AssetsTable({
       list.sort((a, b) => {
         let aVal = '';
         let bVal = '';
-        if (sortCol === 'assetId') { aVal = a.id; bVal = b.id; }
-        else if (sortCol === 'lifecycle') { aVal = a.lifecycleStage; bVal = b.lifecycleStage; }
+        if (sortCol === 'lifecycle') { aVal = a.lifecycleStage; bVal = b.lifecycleStage; }
         else if (sortCol === 'version') { aVal = a.currentVersionNumber; bVal = b.currentVersionNumber; }
         else if (sortCol === 'modifiedOn') { aVal = a.modifiedAt; bVal = b.modifiedAt; }
         else {
@@ -283,12 +280,6 @@ export default function AssetsTable({
                 )}
               </div>
             </div>
-          </td>
-        );
-      case 'assetId':
-        return (
-          <td key={colId} className="px-4 py-3" style={cellStyle}>
-            <span className={`text-xs font-mono block truncate ${textClass}`}>{asset.id}</span>
           </td>
         );
       case 'subtype':

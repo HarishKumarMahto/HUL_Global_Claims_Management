@@ -1324,23 +1324,6 @@ export default function ProjectTable({
 
                   <div className="border-t border-pebble my-1" />
 
-                  <div className="px-4 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Project Actions</div>
-                  {["Clone", "Audit Log", "Cancel Project"].map(action => (
-                    <button
-                      key={action}
-                      onClick={() => {
-                        setTopMenuOpen(false);
-                        setSelectedRows(new Set());
-                        setPendingAction(action as any);
-                      }}
-                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors pl-8 ${action === "Cancel Project" ? "text-red-600 hover:bg-red-50" : "text-night hover:bg-earth"}`}
-                    >
-                      {action}
-                    </button>
-                  ))}
-
-                  <div className="border-t border-pebble my-1" />
-
                   <div className="px-4 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Export Functions</div>
                   {[
                     { label: "Export to CSV", action: "Export to CSV" },
