@@ -105,116 +105,10 @@ function InlineSupportStrategyEditor({ claim, onClaimsChange, fileRef }: InlineS
   };
 
   return (
-    <div className="flex gap-4 items-start">
-      {/* 70% — Strategy editor */}
-      <div className="flex-[7] min-w-0">
-        <div className="flex items-center justify-between mb-1.5">
-          <div className="flex items-center gap-2">
-            <label className="block text-xs text-sky/70 uppercase tracking-wide font-semibold">Support Strategy</label>
-            {/* F02 — role badge */}
-            <span className="text-[10px] bg-sky/10 text-sky px-2 py-0.5 rounded-full border border-sky/20 cursor-help" title="Editable by: Claims Lead, R&D TPL, Nutritionist, Substantiator">
-              Claims Lead · TPL · Nutritionist · Substantiator
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            {savedToast && (
-              <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-200 animate-pulse">✓ Saved</span>
-            )}
-            {/* F02 — lifecycle lock badge */}
-            {isLifecycleLocked && (
-              <span className="flex items-center gap-1 text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                <Lock className="w-2.5 h-2.5" /> Locked after assessment
-              </span>
-            )}
-            {/* F01 — Edit button for edit-permitted users when not editing */}
-            {canEdit && !isEditing && (
-              <button
-                onClick={() => { setIsEditing(true); setTimeout(() => textareaRef.current?.focus(), 50); }}
-                className="text-xs text-sky hover:text-sky/80 border border-sky/30 px-2.5 py-0.5 rounded-lg hover:bg-sky/5 transition-colors"
-              >
-                Edit
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* F02 — view-only static render (or read-mode that activates on click) */}
-        {!canEdit || !isEditing ? (
-          <div
-            onClick={() => { if (canEdit) { setIsEditing(true); } }}
-            className={`min-h-[72px] px-3 py-2.5 rounded-lg border text-sm leading-relaxed transition-all rich-text-content
-              ${isLifecycleLocked
-                ? 'bg-gray-50 border-pebble text-gray-500 cursor-default'
-                : !hasEditRole
-                  ? 'bg-gray-50 border-pebble text-gray-600 cursor-default'
-                  : 'bg-earth/30 border-pebble text-night cursor-text hover:border-sky/40 hover:bg-earth/50'
-              }`}
-          >
-            {claim.supportStrategy
-              ? <div dangerouslySetInnerHTML={{ __html: claim.supportStrategy }} />
-              : <span className="text-gray-400 italic">
-                  {isLifecycleLocked || !hasEditRole ? 'No support strategy recorded.' : 'Click to add support strategy…'}
-                </span>
-            }
-          </div>
-        ) : (
-          /* F01 — Rich-text editor (toolbar + contentEditable) when editing */
-          <div className="border border-sky/30 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-sky/30">
-            <textarea
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onBlur={() => {
-                // F01 — auto-save on blur
-                if (isEditing) {
-                  const timer = setTimeout(() => {
-                    commitSave();
-                  }, 300);
-                  setAutoSaveTimer(timer);
-                }
-              }}
-              placeholder="Describe the support strategy and justification for this claim…"
-              className="w-full px-4 py-3 text-sm text-night focus:outline-none resize-none bg-white"
-              rows={6}
-            />
-          </div>
-        )}
-
-        {/* F01 — Save / Cancel controls when editing */}
-        {isEditing && canEdit && (
-          <div className="flex items-center gap-2 mt-1.5">
-            <button
-              onClick={() => {
-                if (autoSaveTimer) clearTimeout(autoSaveTimer);
-                commitSave();
-              }}
-              className="flex items-center gap-1 px-3 py-1.5 bg-sky text-white rounded-lg text-xs hover:bg-dark transition-colors"
-            >
-              <Save className="w-3 h-3" /> Save
-            </button>
-            <button
-              onClick={handleCancel}
-              className="px-3 py-1.5 border border-pebble text-gray-500 rounded-lg text-xs hover:bg-earth transition-colors"
-            >
-              Cancel
-            </button>
-            <span className="text-[10px] text-gray-400 ml-1">Auto-saves on blur</span>
-          </div>
-        )}
-
-        {!hasEditRole && (
-          <p className="mt-1 text-[10px] text-gray-400">View-only. Edit access requires Claims Lead, TPL, Nutritionist, or Substantiator role.</p>
-        )}
-        {claim.supportStrategyLastModifiedBy && (
-          <p className="mt-1 text-[10px] text-gray-400">
-            Last modified by <span className="font-medium">{claim.supportStrategyLastModifiedBy}</span>
-            {claim.supportStrategyLastModifiedAt && <> on {new Date(claim.supportStrategyLastModifiedAt).toLocaleString()}</>}
-          </p>
-        )}
-      </div>
-
-      {/* 30% — Docs */}
-      <div className="flex-[3] min-w-0">
-        <div className="flex items-center justify-between mb-1.5">
+    <div className="flex flex-col gap-4">
+      {/* Docs table taking full width */}
+      <div className="w-full">
+        <div className="flex items-center justify-between mb-2">
           <label className="block text-xs text-sky/70 uppercase tracking-wide font-semibold">Substantiation Evidence Documents ({claim.substantiationDocs.length})</label>
           {canEdit && (
             <button onClick={() => fileRef.current[claim.id]?.click()} className="flex items-center gap-1.5 text-xs text-sky hover:underline border border-sky/30 px-2.5 py-0.5 rounded-lg hover:bg-sky/5 transition-colors">
@@ -237,23 +131,24 @@ function InlineSupportStrategyEditor({ claim, onClaimsChange, fileRef }: InlineS
         {claim.substantiationDocs.length === 0 ? (
           <div className="text-xs text-gray-400 italic py-2">No documents uploaded. Click "Add Document" to attach substantiation evidence.</div>
         ) : (
-          <div className="rounded-lg border border-pebble overflow-hidden">
+          <div className="rounded-lg border border-pebble overflow-hidden bg-white">
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-earth/60 border-b border-pebble">
-                  <th className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">Document Name</th>
-                  <th className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">Type / Classification</th>
-                  <th className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-                  <th className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">Creator</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">Substantiation Name</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">Substantiation Evidence Document</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">Type</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">Uploaded By</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-pebble">
                 {claim.substantiationDocs.map(doc => (
-                  <tr key={doc.id} className="bg-white hover:bg-earth/20 transition-colors">
+                  <tr key={doc.id} className="hover:bg-earth/20 transition-colors">
+                    <td className="px-3 py-2 text-night font-medium truncate max-w-[140px]">{doc.fileName.split('.')[0]}</td>
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-1.5">
                         <FileText className="w-3 h-3 text-sky/50 flex-shrink-0" />
-                        <span className="text-night font-medium truncate max-w-[140px]">{doc.fileName}</span>
+                        <span className="text-sky hover:underline cursor-pointer truncate max-w-[140px]">{doc.fileName}</span>
                       </div>
                     </td>
                     <td className="px-3 py-2">
@@ -267,7 +162,7 @@ function InlineSupportStrategyEditor({ claim, onClaimsChange, fileRef }: InlineS
                               : c
                             ));
                           }}
-                          className="text-xs border border-pebble rounded px-1 py-0.5 bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-sky"
+                          className="text-xs border border-pebble rounded px-1 py-0.5 bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-sky w-full max-w-[180px]"
                         >
                           <option value="">⚠ Classify…</option>
                           {['Level 1 (GO)', 'Level 2 (ASK)', 'Level 3 (NO GO)', 'Internal Reference', 'Published Study', 'Consumer Panel', 'Regulatory Filing'].map(c => (
@@ -279,11 +174,6 @@ function InlineSupportStrategyEditor({ claim, onClaimsChange, fileRef }: InlineS
                           ? <span className="text-gray-600">{doc.classification}</span>
                           : <span className="text-amber-500">⚠ Unclassified</span>
                       )}
-                    </td>
-                    <td className="px-3 py-2">
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase ${
-                        doc.inUse ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                      }`}>{doc.inUse ? 'In Use' : 'Uploaded'}</span>
                     </td>
                     <td className="px-3 py-2 text-gray-500">{doc.uploadedBy}</td>
                   </tr>
@@ -357,6 +247,7 @@ export default function ClaimsTable({
   // Risk record edit state (US-M4-011)
   const [editingRiskId, setEditingRiskId] = useState<string | null>(null);
   const [editingRiskDraft, setEditingRiskDraft] = useState<{riskLevel: string; comments: string; geography: string} | null>(null);
+  const [replyingToComment, setReplyingToComment] = useState<Record<string, {id: string; author: string} | null>>({});
 
   interface CommentEntry {
     id: string;
@@ -364,6 +255,7 @@ export default function ClaimsTable({
     initials: string;
     text: string;
     timestamp: string;
+    replyToId?: string;
   }
 
   const [claimComments, setClaimComments] = useState<Record<string, CommentEntry[]>>({
@@ -381,6 +273,7 @@ export default function ClaimsTable({
         initials: 'MC',
         text: '@Sarah Johnson Done — all docs are now classified as Level 1.',
         timestamp: '2026-04-28T11:05:00Z',
+        replyToId: 'c1',
       },
     ],
     'CLM-002': [
@@ -1259,12 +1152,11 @@ export default function ClaimsTable({
 
                           {/* Section 2: Risk Level Assessments — US-M4-011 */}
                           <div className="bg-white rounded-lg border border-pebble overflow-hidden shadow-sm">
-                            <button
-                              type="button"
+                            <div
                               onClick={() => toggleSection(claim.uniqueRowId, 'risk')}
-                              className="w-full px-3 py-2 flex items-center justify-between hover:bg-earth transition-colors"
+                              className="w-full px-3 py-2 flex items-center justify-between hover:bg-earth transition-colors cursor-pointer"
                             >
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-3">
                                 <Shield className="w-3.5 h-3.5 text-gray-400" />
                                 <span className="text-xs text-night font-medium">Risk Level Assessments</span>
                                 {claim.finalRiskLevel && (
@@ -1272,144 +1164,150 @@ export default function ClaimsTable({
                                     {claim.finalRiskLevel}
                                   </span>
                                 )}
-                                <span className="text-[10px] text-gray-400">({claim.riskAssessments.filter((r: any) => !r.isRemoved).length} records)</span>
+                                <span className="text-[10px] text-gray-400 border-r border-pebble pr-3">({claim.riskAssessments.filter((r: any) => !r.isRemoved).length} records)</span>
+                                <div className="flex items-center gap-3 pl-1">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      if (!onClaimsChange) return;
+                                      if (!isSectionOpen(claim.uniqueRowId, 'risk')) {
+                                        toggleSection(claim.uniqueRowId, 'risk');
+                                      }
+                                      const now = new Date().toISOString();
+                                      const newRecord = {
+                                        id: `RA-${Date.now()}`,
+                                        functionDept: CURRENT_USER_ROLE || 'R&D',
+                                        assessedBy: CURRENT_USER,
+                                        riskLevel: 'Low' as any,
+                                        comments: '',
+                                        geography: claim.claimType !== 'Global' ? (claim.geography || '') : '',
+                                        dateTime: now,
+                                      };
+                                      const allC = (claim as any)._allClaims ?? claims;
+                                      onClaimsChange(allC.map((c: any) => c.id === claim.id
+                                        ? { ...c, riskAssessments: [...c.riskAssessments, newRecord] }
+                                        : c
+                                      ));
+                                      setEditingRiskId(newRecord.id);
+                                      setEditingRiskDraft({ riskLevel: 'Low', comments: '', geography: newRecord.geography as string });
+                                    }}
+                                    className="flex items-center gap-1.5 text-xs text-sky border border-sky/30 px-2.5 py-1 rounded-lg hover:bg-sky/5 transition-colors font-medium bg-white"
+                                  >
+                                    <Plus className="w-3 h-3" /> Add Assessment
+                                  </button>
+                              
+                                </div>
                               </div>
                               {isSectionOpen(claim.uniqueRowId, 'risk') ? (
                                 <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
                               ) : (
                                 <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
                               )}
-                            </button>
+                            </div>
                             {isSectionOpen(claim.uniqueRowId, 'risk') && (
                               <div className="px-4 py-2 border-t border-pebble bg-pale/5 space-y-2">
-                                {/* Final Risk Summary — compact single row */}
-                                <div className="flex items-center gap-4 px-2 py-1.5 bg-white rounded border border-pebble text-xs">
-                                  {claim.finalRiskSummary.inheritanceTrace && (
-                                    <span className="text-sky italic truncate flex-1">ℹ {claim.finalRiskSummary.inheritanceTrace}</span>
-                                  )}
-                                  <div className="flex items-center gap-1 flex-shrink-0"><span className="text-gray-400 uppercase tracking-wide text-[10px] font-semibold">Risk:</span><span className="font-semibold text-night">{claim.finalRiskLevel || '—'}</span></div>
-                                  <div className="flex items-center gap-1 flex-shrink-0"><span className="text-gray-400 uppercase tracking-wide text-[10px] font-semibold">Class:</span><span className="font-semibold text-night">{claim.finalRiskSummary.claimClassificationLevel || '—'}</span></div>
-                                  {claim.finalRiskSummary.reason && <span className="text-gray-600 truncate max-w-[200px]">{claim.finalRiskSummary.reason}</span>}
-                                </div>
-
                                 {/* Individual Risk Assessment Records */}
                                 <div>
-                                  <div className="flex items-center justify-between mb-1.5">
-                                    <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Assessment Records</span>
-                                    <button
-                                      onClick={() => {
-                                        if (!onClaimsChange) return;
-                                        const now = new Date().toISOString();
-                                        const newRecord = {
-                                          id: `RA-${Date.now()}`,
-                                          functionDept: CURRENT_USER_ROLE || 'R&D',
-                                          assessedBy: CURRENT_USER,
-                                          riskLevel: 'Low' as any,
-                                          comments: '',
-                                          geography: claim.claimType !== 'Global' ? (claim.geography || '') : '',
-                                          dateTime: now,
-                                        };
-                                        const allC = (claim as any)._allClaims ?? claims;
-                                        onClaimsChange(allC.map((c: any) => c.id === claim.id
-                                          ? { ...c, riskAssessments: [...c.riskAssessments, newRecord] }
-                                          : c
-                                        ));
-                                        setEditingRiskId(newRecord.id);
-                                        setEditingRiskDraft({ riskLevel: 'Low', comments: '', geography: newRecord.geography as string });
-                                      }}
-                                      className="flex items-center gap-1.5 text-xs text-sky border border-sky/30 px-2.5 py-1 rounded-lg hover:bg-sky/5 transition-colors font-medium"
-                                    >
-                                      <Plus className="w-3 h-3" /> Add Assessment
-                                    </button>
-                                  </div>
-                                  <div className="space-y-1">
-                                    {claim.riskAssessments.length === 0 ? (
-                                      <p className="text-[10px] text-gray-400 italic">No risk assessments recorded.</p>
-                                    ) : (
-                                      claim.riskAssessments.map((record: any) => {
-                                        const isOwn = record.assessedBy === CURRENT_USER;
-                                        const isEditing = editingRiskId === record.id;
-                                        if (record.isRemoved) {
-                                          return (
-                                            <div key={record.id} className="px-2 py-1 border border-gray-200 rounded bg-gray-50 opacity-50">
-                                              <span className="text-[10px] text-gray-400 italic">Removed by {record.assessedBy}</span>
-                                            </div>
-                                          );
-                                        }
-                                        return (
-                                          <div key={record.id} className={`px-2 py-1.5 rounded border ${isOwn ? 'border-sky/20 bg-pale/10' : 'border-pebble bg-white'}`}>
-                                            {/* Compact single-line header */}
-                                            <div className="flex items-center justify-between gap-2">
-                                              <div className="flex items-center gap-1.5 flex-wrap">
-                                                <span className="text-[10px] font-semibold uppercase bg-sky/10 text-sky px-1.5 py-0.5 rounded-full border border-sky/20">{record.functionDept}</span>
-                                                <span className="text-[10px] text-gray-600 font-medium">{record.assessedBy}</span>
-                                                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                                                  record.riskLevel === 'Low' ? 'bg-green-100 text-green-700' :
-                                                  record.riskLevel === 'Medium' ? 'bg-amber-100 text-amber-700' :
-                                                  record.riskLevel === 'High' ? 'bg-orange-100 text-orange-700' :
-                                                  'bg-red-100 text-red-700'
-                                                }`}>{record.riskLevel}</span>
-                                                {record.geography && <span className="text-[10px] text-gray-400">📍 {Array.isArray(record.geography) ? record.geography.join(', ') : record.geography}</span>}
-                                                {record.source === 'Parent' && <span className="text-[10px] bg-amber-50 text-amber-600 border border-amber-200 px-1.5 py-0.5 rounded-full">Inherited</span>}
-                                                <span className="text-[10px] text-gray-400">{new Date(record.dateTime).toLocaleDateString()}</span>
-                                              </div>
-                                              {isOwn && !isEditing && (
-                                                <div className="flex items-center gap-1 flex-shrink-0">
-                                                  <button onClick={() => { setEditingRiskId(record.id); setEditingRiskDraft({ riskLevel: record.riskLevel, comments: record.comments, geography: Array.isArray(record.geography) ? record.geography.join(', ') : (record.geography || '') }); }} className="text-[10px] text-sky px-1.5 py-0.5 border border-sky/30 rounded hover:bg-sky/5 transition-colors">Edit</button>
-                                                  <button onClick={() => { const confirmed = window.confirm('Remove this assessment record? This cannot be permanently deleted.'); if (!confirmed || !onClaimsChange) return; const allC = (claim as any)._allClaims ?? claims; onClaimsChange(allC.map((c: any) => c.id === claim.id ? { ...c, riskAssessments: c.riskAssessments.map((r: any) => r.id === record.id ? { ...r, isRemoved: true } : r) } : c)); }} className="text-[10px] text-red-500 px-1.5 py-0.5 border border-red-200 rounded hover:bg-red-50 transition-colors">Remove</button>
-                                                </div>
-                                              )}
-                                            </div>
-                                            {record.comments && !isEditing && <p className="text-[10px] text-gray-500 mt-0.5 leading-snug">{record.comments}</p>}
-                                            {/* Edit form */}
-                                            {isEditing && editingRiskDraft && (
-                                              <div className="mt-2 space-y-1.5">
-                                                <div className="flex gap-2">
-                                                  <div className="flex-1">
-                                                    <label className="block text-[10px] text-gray-500 uppercase mb-0.5 font-semibold">Risk Level</label>
-                                                    <select value={editingRiskDraft.riskLevel} onChange={e => setEditingRiskDraft(d => d ? { ...d, riskLevel: e.target.value } : d)} className="w-full text-xs border border-pebble rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-sky bg-white">
-                                                      {['Low', 'Medium', 'High', 'Very High'].map(r => <option key={r} value={r}>{r}</option>)}
-                                                    </select>
-                                                  </div>
-                                                  {claim.claimType !== 'Global' && (
-                                                    <div className="flex-1">
-                                                      <label className="block text-[10px] text-gray-500 uppercase mb-0.5 font-semibold">Geography <span className="text-red-400">*</span></label>
-                                                      <input type="text" value={editingRiskDraft.geography} onChange={e => setEditingRiskDraft(d => d ? { ...d, geography: e.target.value } : d)} placeholder="e.g. UK" className="w-full text-xs border border-pebble rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-sky bg-white" />
+                                  
+                                  {claim.riskAssessments.length === 0 ? (
+                                    <p className="text-[10px] text-gray-400 italic mb-2">No risk assessments recorded.</p>
+                                  ) : (
+                                    <div className="rounded-lg border border-pebble overflow-hidden bg-white mb-2">
+                                      <table className="w-full text-xs">
+                                        <thead>
+                                          <tr className="bg-earth/60 border-b border-pebble">
+                                            <th className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">Type</th>
+                                            <th className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">Created by</th>
+                                            <th className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">Marketing Channel</th>
+                                            <th className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">Risk level</th>
+                                            <th className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">Comment</th>
+                                            <th className="px-3 py-2"></th>
+                                          </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-pebble">
+                                          {claim.riskAssessments.map((record: any) => {
+                                            const isOwn = record.assessedBy === CURRENT_USER;
+                                            const isEditing = editingRiskId === record.id;
+                                            if (record.isRemoved) {
+                                              return (
+                                                <tr key={record.id} className="bg-gray-50 opacity-50">
+                                                  <td colSpan={6} className="px-3 py-2 text-[10px] text-gray-400 italic">Removed by {record.assessedBy}</td>
+                                                </tr>
+                                              );
+                                            }
+                                            
+                                            if (isEditing && editingRiskDraft) {
+                                              return (
+                                                <tr key={record.id} className="bg-pale/10">
+                                                  <td colSpan={6} className="px-3 py-2">
+                                                    <div className="space-y-1.5">
+                                                      <div className="flex gap-2 items-end">
+                                                        <div className="w-1/4">
+                                                          <label className="block text-[10px] text-gray-500 uppercase mb-0.5 font-semibold">Risk Level</label>
+                                                          <select value={editingRiskDraft.riskLevel} onChange={e => setEditingRiskDraft(d => d ? { ...d, riskLevel: e.target.value } : d)} className="w-full text-xs border border-pebble rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-sky bg-white">
+                                                            {['Low', 'Medium', 'High', 'Very High'].map(r => <option key={r} value={r}>{r}</option>)}
+                                                          </select>
+                                                        </div>
+                                                        {claim.claimType !== 'Global' && (
+                                                          <div className="w-1/4">
+                                                            <label className="block text-[10px] text-gray-500 uppercase mb-0.5 font-semibold">Geography <span className="text-red-400">*</span></label>
+                                                            <input type="text" value={editingRiskDraft.geography} onChange={e => setEditingRiskDraft(d => d ? { ...d, geography: e.target.value } : d)} placeholder="e.g. UK" className="w-full text-xs border border-pebble rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-sky bg-white" />
+                                                          </div>
+                                                        )}
+                                                        <div className="flex-1">
+                                                          <label className="block text-[10px] text-gray-500 uppercase mb-0.5 font-semibold">Comments</label>
+                                                          <input type="text" value={editingRiskDraft.comments} onChange={e => setEditingRiskDraft(d => d ? { ...d, comments: e.target.value } : d)} className="w-full text-xs border border-pebble rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-sky bg-white" placeholder="Comments…" />
+                                                        </div>
+                                                        <div className="flex gap-1.5 pb-[2px]">
+                                                          <button onClick={() => { if (!onClaimsChange || !editingRiskDraft) return; const allC = (claim as any)._allClaims ?? claims; onClaimsChange(allC.map((c: any) => c.id === claim.id ? { ...c, riskAssessments: c.riskAssessments.map((r: any) => r.id === record.id ? { ...r, riskLevel: editingRiskDraft.riskLevel, comments: editingRiskDraft.comments, geography: editingRiskDraft.geography } : r) } : c)); setEditingRiskId(null); setEditingRiskDraft(null); }} className="flex items-center gap-1 px-2 py-1 bg-sky text-white rounded text-[10px] font-semibold hover:bg-dark transition-colors"><Save className="w-2.5 h-2.5" /> Save</button>
+                                                          <button onClick={() => { setEditingRiskId(null); setEditingRiskDraft(null); }} className="px-2 py-1 border border-pebble text-gray-500 rounded text-[10px] hover:bg-earth transition-colors">Cancel</button>
+                                                        </div>
+                                                      </div>
+                                                    </div>
+                                                  </td>
+                                                </tr>
+                                              );
+                                            }
+
+                                            return (
+                                              <tr key={record.id} className={`hover:bg-earth/20 transition-colors ${isOwn ? 'bg-pale/5' : ''}`}>
+                                                <td className="px-3 py-2">
+                                                  <span className="text-[10px] font-semibold uppercase bg-sky/10 text-sky px-1.5 py-0.5 rounded-full border border-sky/20 whitespace-nowrap">{record.functionDept}</span>
+                                                </td>
+                                                <td className="px-3 py-2 text-night font-medium">{record.assessedBy}</td>
+                                                <td className="px-3 py-2 text-gray-600 max-w-[120px] truncate" title={claim.marketingChannels.join(', ')}>
+                                                  {claim.marketingChannels.join(', ')}
+                                                </td>
+                                                <td className="px-3 py-2">
+                                                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full whitespace-nowrap ${
+                                                    record.riskLevel === 'Low' ? 'bg-green-100 text-green-700' :
+                                                    record.riskLevel === 'Medium' ? 'bg-amber-100 text-amber-700' :
+                                                    record.riskLevel === 'High' ? 'bg-orange-100 text-orange-700' :
+                                                    'bg-red-100 text-red-700'
+                                                  }`}>{record.riskLevel}</span>
+                                                </td>
+                                                <td className="px-3 py-2 text-gray-600 max-w-[200px]">
+                                                  <div className="line-clamp-2" title={record.comments}>{record.comments || '—'}</div>
+                                                </td>
+                                                <td className="px-3 py-2 text-right">
+                                                  {isOwn && (
+                                                    <div className="flex items-center justify-end gap-1">
+                                                      <button onClick={() => { setEditingRiskId(record.id); setEditingRiskDraft({ riskLevel: record.riskLevel, comments: record.comments, geography: Array.isArray(record.geography) ? record.geography.join(', ') : (record.geography || '') }); }} className="text-[10px] text-sky hover:underline">Edit</button>
+                                                      <span className="text-gray-300">|</span>
+                                                      <button onClick={() => { const confirmed = window.confirm('Remove this assessment record?'); if (!confirmed || !onClaimsChange) return; const allC = (claim as any)._allClaims ?? claims; onClaimsChange(allC.map((c: any) => c.id === claim.id ? { ...c, riskAssessments: c.riskAssessments.map((r: any) => r.id === record.id ? { ...r, isRemoved: true } : r) } : c)); }} className="text-[10px] text-red-500 hover:underline">Remove</button>
                                                     </div>
                                                   )}
-                                                </div>
-                                                <textarea value={editingRiskDraft.comments} onChange={e => setEditingRiskDraft(d => d ? { ...d, comments: e.target.value } : d)} rows={1} className="w-full text-xs border border-pebble rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-sky resize-none bg-white" placeholder="Comments…" />
-                                                <div className="flex gap-1.5">
-                                                  <button onClick={() => { if (!onClaimsChange || !editingRiskDraft) return; const allC = (claim as any)._allClaims ?? claims; onClaimsChange(allC.map((c: any) => c.id === claim.id ? { ...c, riskAssessments: c.riskAssessments.map((r: any) => r.id === record.id ? { ...r, riskLevel: editingRiskDraft.riskLevel, comments: editingRiskDraft.comments, geography: editingRiskDraft.geography } : r) } : c)); setEditingRiskId(null); setEditingRiskDraft(null); }} className="flex items-center gap-1 px-2 py-0.5 bg-sky text-white rounded text-[10px] font-semibold hover:bg-dark transition-colors"><Save className="w-2.5 h-2.5" /> Save</button>
-                                                  <button onClick={() => { setEditingRiskId(null); setEditingRiskDraft(null); }} className="px-2 py-0.5 border border-pebble text-gray-500 rounded text-[10px] hover:bg-earth transition-colors">Cancel</button>
-                                                </div>
-                                              </div>
-                                            )}
-                                          </div>
-                                        );
-                                      })
-                                    )}
-                                  </div>
+                                                </td>
+                                              </tr>
+                                            );
+                                          })}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  )}
                                 </div>
-
-                                {/* Functional Summaries — compact grid */}
-                                {(claim.finalRiskSummary.legalSummary || claim.finalRiskSummary.raSummary || claim.finalRiskSummary.rdSummary || (claim.finalRiskSummary as any).claimsForumSummary) && (
-                                  <div className="grid grid-cols-4 gap-2 px-2 py-2 bg-white/60 rounded border border-sky/10 text-[10px]">
-                                    {(claim.finalRiskSummary as any).claimsForumSummary && <div><span className="font-semibold text-sky/70 uppercase block">Claims Forum</span><span className="text-gray-600 italic">{(claim.finalRiskSummary as any).claimsForumSummary}</span></div>}
-                                    {claim.finalRiskSummary.legalSummary && <div><span className="font-semibold text-sky/70 uppercase block">Legal</span><span className="text-gray-700">{claim.finalRiskSummary.legalSummary}</span></div>}
-                                    {claim.finalRiskSummary.raSummary && <div><span className="font-semibold text-sky/70 uppercase block">RA</span><span className="text-gray-700">{claim.finalRiskSummary.raSummary}</span></div>}
-                                    {claim.finalRiskSummary.rdSummary && <div><span className="font-semibold text-sky/70 uppercase block">R&amp;D</span><span className="text-gray-700">{claim.finalRiskSummary.rdSummary}</span></div>}
-                                  </div>
-                                )}
-                                {/* iRA Output — compact */}
-                                {claim.finalRiskSummary.iRAOutput === 'Completed' && (
-                                  <div className="flex items-center gap-3 px-2 py-1.5 bg-blue-50 border border-blue-200 rounded text-[10px]">
-                                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-600 text-white font-semibold">iRA</span>
-                                    <div className="flex items-center gap-1"><span className="text-blue-600 font-semibold uppercase">Risk:</span><span className="font-bold text-blue-900">{claim.finalRiskLevelIRA || '—'}</span></div>
-                                    <div className="flex items-center gap-1"><span className="text-blue-600 font-semibold uppercase">Class:</span><span className="font-bold text-blue-900">{claim.finalRiskSummary.claimClassificationLevelIRA || '—'}</span></div>
-                                    {claim.finalRiskSummary.reasonIRA && <span className="text-blue-800 truncate flex-1">{claim.finalRiskSummary.reasonIRA}</span>}
-                                  </div>
-                                )}
                               </div>
                             )}
                           </div>
@@ -1440,15 +1338,36 @@ export default function ClaimsTable({
                                     <div className="text-[10px] text-gray-400 italic py-1">No comments yet.</div>
                                   ) : (
                                     (claimComments[claim.id] || []).map((c) => (
-                                      <div key={c.id} className="flex items-center gap-2 py-0.5 border-b border-pebble/40 last:border-0 min-w-0">
-                                        <div className="w-4 h-4 rounded-full bg-sky text-white flex items-center justify-center text-[8px] font-semibold flex-shrink-0">{c.initials}</div>
-                                        <span className="text-[10px] font-semibold text-night flex-shrink-0">{c.author}</span>
-                                        <span className="text-[9px] text-gray-400 flex-shrink-0">{new Date(c.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                                        <span className="text-[10px] text-gray-700 truncate flex-1">{c.text}</span>
+                                      <div key={c.id} className={`group flex items-start gap-2 py-1 min-w-0 ${c.replyToId ? 'ml-6' : ''}`}>
+                                        <div className="w-4 h-4 rounded-full bg-sky text-white flex items-center justify-center text-[8px] font-semibold flex-shrink-0 mt-0.5">{c.initials}</div>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center gap-1.5">
+                                            <span className="text-[10px] font-semibold text-night">{c.author}</span>
+                                            <span className="text-[9px] text-gray-400">{new Date(c.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                            <button 
+                                              onClick={() => setReplyingToComment(prev => ({ ...prev, [claim.id]: { id: c.id, author: c.author } }))}
+                                              className="opacity-0 group-hover:opacity-100 text-sky hover:text-sky/80 transition-opacity p-0.5 rounded focus:outline-none"
+                                              title="Reply to comment"
+                                            >
+                                              <MessageSquare className="w-3 h-3" />
+                                            </button>
+                                          </div>
+                                          <p className="text-[10px] text-gray-700 leading-snug mt-0.5 whitespace-pre-wrap">{c.text}</p>
+                                        </div>
                                       </div>
                                     ))
                                   )}
                                 </div>
+
+                                {replyingToComment[claim.id] && (
+                                  <div className="flex items-center justify-between bg-sky/5 border border-sky/20 rounded px-2 py-1 mb-1.5 text-[10px] text-sky">
+                                    <span>Replying to <span className="font-semibold">{replyingToComment[claim.id]?.author}</span></span>
+                                    <button onClick={() => setReplyingToComment(prev => ({ ...prev, [claim.id]: null }))} className="hover:text-sky/70">
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                )}
+
                                 <div className="flex gap-1.5">
                                   <textarea
                                     id={`new-comment-${claim.id}`}
@@ -1459,12 +1378,52 @@ export default function ClaimsTable({
                                       if (e.key === 'Enter' && !e.shiftKey) {
                                         e.preventDefault();
                                         const text = e.currentTarget.value.trim();
-                                        if (text) { setClaimComments(prev => ({ ...prev, [claim.id]: [...(prev[claim.id] || []), { id: `c-${Date.now()}`, author: 'Current User', initials: 'CU', text, timestamp: new Date().toISOString() }] })); e.currentTarget.value = ''; }
+                                        if (text) { 
+                                          setClaimComments(prev => ({ 
+                                            ...prev, 
+                                            [claim.id]: [
+                                              ...(prev[claim.id] || []), 
+                                              { 
+                                                id: `c-${Date.now()}`, 
+                                                author: 'Current User', 
+                                                initials: 'CU', 
+                                                text, 
+                                                timestamp: new Date().toISOString(),
+                                                replyToId: replyingToComment[claim.id]?.id
+                                              }
+                                            ] 
+                                          })); 
+                                          e.currentTarget.value = '';
+                                          setReplyingToComment(prev => ({ ...prev, [claim.id]: null }));
+                                        }
                                       }
                                     }}
                                   />
                                   <button
-                                    onClick={() => { const ta = document.getElementById(`new-comment-${claim.id}`) as HTMLTextAreaElement | null; if (ta) { const text = ta.value.trim(); if (text) { setClaimComments(prev => ({ ...prev, [claim.id]: [...(prev[claim.id] || []), { id: `c-${Date.now()}`, author: 'Current User', initials: 'CU', text, timestamp: new Date().toISOString() }] })); ta.value = ''; } } }}
+                                    onClick={() => { 
+                                      const ta = document.getElementById(`new-comment-${claim.id}`) as HTMLTextAreaElement | null; 
+                                      if (ta) { 
+                                        const text = ta.value.trim(); 
+                                        if (text) { 
+                                          setClaimComments(prev => ({ 
+                                            ...prev, 
+                                            [claim.id]: [
+                                              ...(prev[claim.id] || []), 
+                                              { 
+                                                id: `c-${Date.now()}`, 
+                                                author: 'Current User', 
+                                                initials: 'CU', 
+                                                text, 
+                                                timestamp: new Date().toISOString(),
+                                                replyToId: replyingToComment[claim.id]?.id
+                                              }
+                                            ] 
+                                          })); 
+                                          ta.value = ''; 
+                                          setReplyingToComment(prev => ({ ...prev, [claim.id]: null }));
+                                        } 
+                                      } 
+                                    }}
                                     className="px-3 bg-sky text-white rounded hover:bg-dark text-[10px] font-semibold transition-colors flex items-center gap-1"
                                   ><Send className="w-2.5 h-2.5" /> Send</button>
                                 </div>
