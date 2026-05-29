@@ -830,6 +830,7 @@ export interface RiskAssessmentRecord {
   geography?: string | string[];
   dateTime: string;
   source?: 'Parent';
+  isRemoved?: boolean;
 }
 
 export interface ClaimInheritance {

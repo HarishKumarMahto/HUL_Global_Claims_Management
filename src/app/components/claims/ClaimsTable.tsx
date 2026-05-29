@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, ChevronRight, ChevronUp, Check, Flag, AlertCircle, FileText, Shield, Scale, Plus, Upload, X, Search, Lock, Save, Bold, Italic, List, Link, MoreHorizontal, Eye, EyeOff, ArrowUpDown, MessageSquare, Star, Send } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronUp, Check, Flag, AlertCircle, FileText, Shield, Scale, Plus, Upload, X, Search, Lock, Save, Bold, Italic, List, Link, MoreHorizontal, Eye, EyeOff, ArrowUpDown, MessageSquare, Star, Send, Network } from 'lucide-react';
 import type { Claim, ClaimBaseView, ClaimWorkView, RiskLevel, AuditEntry } from '../../types';
 import { formatDate, RISK_LEVEL_OPTIONS } from '../ui/tableUtils';
 import { CURRENT_USER, CURRENT_USER_ROLE, canEditSupportStrategy, CLAIM_LIFECYCLE_COLORS } from '../../types';
@@ -215,10 +215,10 @@ function InlineSupportStrategyEditor({ claim, onClaimsChange, fileRef }: InlineS
       {/* 30% — Docs */}
       <div className="flex-[3] min-w-0">
         <div className="flex items-center justify-between mb-1.5">
-          <label className="block text-xs text-sky/70 uppercase tracking-wide font-semibold">Documents ({claim.substantiationDocs.length})</label>
+          <label className="block text-xs text-sky/70 uppercase tracking-wide font-semibold">Substantiation Evidence Documents ({claim.substantiationDocs.length})</label>
           {canEdit && (
-            <button onClick={() => fileRef.current[claim.id]?.click()} className="flex items-center gap-1 text-xs text-sky hover:underline">
-              <Upload className="w-3 h-3" /> Upload
+            <button onClick={() => fileRef.current[claim.id]?.click()} className="flex items-center gap-1.5 text-xs text-sky hover:underline border border-sky/30 px-2.5 py-0.5 rounded-lg hover:bg-sky/5 transition-colors">
+              <Plus className="w-3 h-3" /> Add Document
             </button>
           )}
         </div>
@@ -235,38 +235,61 @@ function InlineSupportStrategyEditor({ claim, onClaimsChange, fileRef }: InlineS
           }}
         />
         {claim.substantiationDocs.length === 0 ? (
-          <div className="text-xs text-gray-400 italic">No documents uploaded</div>
+          <div className="text-xs text-gray-400 italic py-2">No documents uploaded. Click "Add Document" to attach substantiation evidence.</div>
         ) : (
-          <div className="space-y-1">
-            {claim.substantiationDocs.map(doc => (
-              <div key={doc.id} className="flex items-center gap-2 px-2.5 py-1.5 bg-white/70 rounded-lg border border-sky/10">
-                <FileText className="w-3 h-3 text-sky/50 flex-shrink-0" />
-                <span className="text-xs text-night truncate flex-1">{doc.fileName}</span>
-                {/* F04 — editable classification (US-M5.1-F04) */}
-                {canEdit ? (
-                  <select
-                    value={doc.classification || ''}
-                    onChange={e => {
-                      if (!onClaimsChange) return;
-                      onClaimsChange(allClaims.map(c => c.id === claim.id
-                        ? { ...c, substantiationDocs: c.substantiationDocs.map(d => d.id === doc.id ? { ...d, classification: e.target.value } : d) }
-                        : c
-                      ));
-                    }}
-                    className="text-xs border border-pebble rounded px-1 py-0.5 bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-sky flex-shrink-0"
-                  >
-                    <option value="">⚠ Classify…</option>
-                    {['Level 1 (GO)', 'Level 2 (ASK)', 'Level 3 (NO GO)', 'Internal Reference', 'Published Study', 'Consumer Panel', 'Regulatory Filing'].map(c => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                ) : (
-                  doc.classification
-                    ? <span className="text-xs text-gray-400 flex-shrink-0">{doc.classification}</span>
-                    : <span className="text-xs text-amber-500 flex-shrink-0">⚠ Unclassified</span>
-                )}
-              </div>
-            ))}
+          <div className="rounded-lg border border-pebble overflow-hidden">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-earth/60 border-b border-pebble">
+                  <th className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">Document Name</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">Type / Classification</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">Status</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">Creator</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-pebble">
+                {claim.substantiationDocs.map(doc => (
+                  <tr key={doc.id} className="bg-white hover:bg-earth/20 transition-colors">
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-1.5">
+                        <FileText className="w-3 h-3 text-sky/50 flex-shrink-0" />
+                        <span className="text-night font-medium truncate max-w-[140px]">{doc.fileName}</span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2">
+                      {canEdit ? (
+                        <select
+                          value={doc.classification || ''}
+                          onChange={e => {
+                            if (!onClaimsChange) return;
+                            onClaimsChange(allClaims.map(c => c.id === claim.id
+                              ? { ...c, substantiationDocs: c.substantiationDocs.map(d => d.id === doc.id ? { ...d, classification: e.target.value } : d) }
+                              : c
+                            ));
+                          }}
+                          className="text-xs border border-pebble rounded px-1 py-0.5 bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-sky"
+                        >
+                          <option value="">⚠ Classify…</option>
+                          {['Level 1 (GO)', 'Level 2 (ASK)', 'Level 3 (NO GO)', 'Internal Reference', 'Published Study', 'Consumer Panel', 'Regulatory Filing'].map(c => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        doc.classification
+                          ? <span className="text-gray-600">{doc.classification}</span>
+                          : <span className="text-amber-500">⚠ Unclassified</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase ${
+                        doc.inUse ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                      }`}>{doc.inUse ? 'In Use' : 'Uploaded'}</span>
+                    </td>
+                    <td className="px-3 py-2 text-gray-500">{doc.uploadedBy}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
@@ -325,8 +348,15 @@ export default function ClaimsTable({
   onClearAllFilters,
 }: ClaimsTableProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-  const [expandedSections, setExpandedSections] = useState<Record<string, 'support' | 'final' | 'risk' | 'comments' | null>>({});
+  // Multi-open accordion: each claim can have multiple sections open simultaneously (US-M4-009, US-M4-012)
+  const [expandedSections, setExpandedSections] = useState<Record<string, Set<'support' | 'final' | 'risk' | 'comments' | 'versions' | 'parent'>>>({});
   const [expandedVersionIds, setExpandedVersionIds] = useState<Set<string>>(new Set());
+  const [expandedParentIds, setExpandedParentIds] = useState<Set<string>>(new Set());
+  // Track editing state for unsaved changes warning (US-M4-012)
+  const [editingClaimId, setEditingClaimId] = useState<string | null>(null);
+  // Risk record edit state (US-M4-011)
+  const [editingRiskId, setEditingRiskId] = useState<string | null>(null);
+  const [editingRiskDraft, setEditingRiskDraft] = useState<{riskLevel: string; comments: string; geography: string} | null>(null);
 
   interface CommentEntry {
     id: string;
@@ -383,11 +413,11 @@ export default function ClaimsTable({
       // Auto-expand all currently visible claims
       setExpandedIds(new Set(claims.map(c => c.id)));
       
-      // Force all expanded claims to show the relevant section tab
+      // Force all expanded claims to show the relevant section tab (multi-open)
       setExpandedSections(prev => {
         const next = { ...prev };
         claims.forEach(c => {
-          next[c.id] = section;
+          next[c.id] = new Set([section]);
         });
         return next;
       });
@@ -433,22 +463,39 @@ export default function ClaimsTable({
     setExpandedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) {
+        // US-M4-012: warn if editing in this row
+        if (editingClaimId === id) {
+          const confirmed = window.confirm('You have unsaved changes. Collapse anyway?');
+          if (!confirmed) return prev;
+          setEditingClaimId(null);
+        }
         next.delete(id);
+        setExpandedSections(ps => { const n = {...ps}; delete n[id]; return n; });
       } else {
-        // Auto-set section based on activeWorkView
+        // US-M4-009: Auto-open the relevant section, but allow all to be open (multi-open)
         const autoSection: 'support' | 'final' | 'risk' | null =
           activeWorkView === 'Support Strategy & Substantiation' ? 'support' :
           activeWorkView === 'Final Risk Summary' ? 'final' :
           activeWorkView === 'Risk Level Assessments' ? 'risk' : null;
-        setExpandedSections(ps => ({ ...ps, [id]: autoSection }));
+        setExpandedSections(ps => ({ ...ps, [id]: new Set(autoSection ? [autoSection] : []) }));
         next.add(id);
       }
       return next;
     });
   };
 
-  const toggleSection = (id: string, section: 'support' | 'final' | 'risk' | 'comments') => {
-    setExpandedSections(prev => ({ ...prev, [id]: prev[id] === section ? null : section }));
+  // US-M4-009: Multi-open toggle — each section toggles independently
+  const toggleSection = (id: string, section: 'support' | 'final' | 'risk' | 'comments' | 'versions' | 'parent') => {
+    setExpandedSections(prev => {
+      const current = prev[id] ? new Set(prev[id]) : new Set<typeof section>();
+      if (current.has(section)) current.delete(section);
+      else current.add(section);
+      return { ...prev, [id]: current };
+    });
+  };
+
+  const isSectionOpen = (id: string, section: 'support' | 'final' | 'risk' | 'comments' | 'versions' | 'parent') => {
+    return expandedSections[id]?.has(section) ?? false;
   };
 
   const hideGeography = activeBaseView === 'Global Claims';
@@ -601,18 +648,37 @@ export default function ClaimsTable({
             }}
           >
             <div className="flex flex-col gap-1 overflow-hidden">
-              <button onClick={() => onClaimClick(claim)} className={`text-left ${textColor} leading-relaxed hover:text-sky transition-colors line-clamp-2 truncate font-medium`}>
-                {primaryStatement}
-              </button>
-              <div className="flex items-center gap-1.5 mt-1">
+              <div className="flex items-start justify-between gap-2">
+                <button onClick={() => onClaimClick(claim)} className={`text-left flex-1 ${textColor} leading-relaxed hover:text-sky transition-colors line-clamp-2 font-medium`}>
+                  {primaryStatement}
+                </button>
+                {claim.parentClaimId && !isSubRow && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setExpandedParentIds(prev => {
+                        const next = new Set(prev);
+                        if (next.has(claim.uniqueRowId)) next.delete(claim.uniqueRowId);
+                        else next.add(claim.uniqueRowId);
+                        return next;
+                      });
+                    }}
+                    title="View Parent Hierarchy"
+                    className={`flex-shrink-0 mt-0.5 p-1 rounded transition-colors ${expandedParentIds.has(claim.uniqueRowId) ? 'text-sky bg-sky/10' : 'text-gray-400 hover:text-sky hover:bg-sky/5'}`}
+                  >
+                    <Network className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5 mt-0.5">
                 {claim.challenged && (
-                  <span className={`flex items-center gap-1 text-xs font-medium ${isSubRow ? 'text-gray-400' : 'text-amber-700'}`}>
-                    <Flag className="w-3 h-3" /> Challenged
+                  <span className={`flex items-center gap-1 text-[10px] font-medium ${isSubRow ? 'text-gray-400' : 'text-amber-700'}`}>
+                    <Flag className="w-2.5 h-2.5" /> Challenged
                   </span>
                 )}
                 {claim.lifecycleStage === 'Expired' && (
-                  <span className={`flex items-center gap-1 text-xs font-medium ml-2 ${isSubRow ? 'text-gray-400' : 'text-orange-600'}`}>
-                    <AlertCircle className="w-3 h-3" /> Expired
+                  <span className={`flex items-center gap-1 text-[10px] font-medium ml-2 ${isSubRow ? 'text-gray-400' : 'text-orange-600'}`}>
+                    <AlertCircle className="w-2.5 h-2.5" /> Expired
                   </span>
                 )}
               </div>
@@ -1005,13 +1071,52 @@ export default function ClaimsTable({
             {flattenedAndSortedVersions.map((claim: any) => {
               const isSelected = selectedIds.includes(claim.id); // Selection remains at the overall claim ID level
               const isExpanded = expandedIds.has(claim.uniqueRowId);
-              const expandedSection = expandedSections[claim.uniqueRowId];
               const version = claim.versions[claim.currentVersion];
               const primaryStatement = claim.claimType === 'Global' ? version.globalStatement : version.localStatement;
               const isLatest = version.isLatest;
 
               return (
                 <React.Fragment key={claim.uniqueRowId}>
+                  {/* Parent Expansion Row (Above) */}
+                  {expandedParentIds.has(claim.uniqueRowId) && claim.parentClaimId && (() => {
+                    let parentClaim = claims.find(c => c.id === claim.parentClaimId);
+                    
+                    // Show dummy data if the parent is not loaded in the current view
+                    if (!parentClaim) {
+                      parentClaim = {
+                        id: claim.parentClaimId,
+                        claimIdentifier: 'Clinically proven to hydrate skin',
+                        claimType: 'Global',
+                        lifecycleStage: 'Approved',
+                        finalRiskLevel: 'Low',
+                        versions: [{ versionNumber: 1, globalStatement: 'Clinically proven to hydrate skin for 24 hours, providing the foundational support for this local adaptation.', isLatest: true }]
+                      } as any;
+                    }
+
+                    const pVer = parentClaim.versions[parentClaim?.currentVersion || 0];
+                    const pStmt = parentClaim.claimType === 'Global' ? pVer?.globalStatement : pVer?.localStatement;
+                    return (
+                      <tr className="bg-sky/5 border-b-2 border-sky/20">
+                        <td colSpan={columnOrder.length + (isBulkSelectionEnabled ? 3 : 2)} className="p-0">
+                          <div className="px-4 py-3 flex gap-4">
+                            <div className="flex-shrink-0 text-sky opacity-50 mt-1">
+                              <Network className="w-4 h-4" />
+                            </div>
+                            <div className="flex-1 space-y-1.5">
+                              <div className="flex items-center gap-3">
+                                <span className="text-[10px] font-bold text-sky uppercase">{parentClaim.claimIdentifier || parentClaim.id}</span>
+                                <span className="text-[10px] text-gray-500 font-medium">Parent Claim</span>
+                                <span className="text-[10px] text-gray-400 border-l border-gray-300 pl-3">v{pVer?.versionNumber} · {parentClaim.claimType} · {parentClaim.lifecycleStage}</span>
+                                {parentClaim.finalRiskLevel && <span className="text-[10px] text-gray-400 border-l border-gray-300 pl-3">Risk: {parentClaim.finalRiskLevel}</span>}
+                              </div>
+                              <p className="text-xs text-night font-medium leading-snug">{pStmt || '—'}</p>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })()}
+
                   <tr
                     className={`border-b border-gray-300 transition-colors ${
                       isSelected ? 'bg-pale/30 font-medium' : 'hover:bg-earth/50'
@@ -1116,251 +1221,308 @@ export default function ClaimsTable({
                     );
                   })}
 
-                  {/* Inline Expanded Workbench */}
+                  {/* Inline Expanded Workbench — US-M4-008 */}
                   {isExpanded && (
                     <tr>
                       <td colSpan={columnOrder.length + (isBulkSelectionEnabled ? 3 : 2)} className="p-0">
                         <div className="border-b-2 border-sky/20" style={{ background: '#EEF4FB' }}>
-                          <div className="p-4 space-y-2">
-                          {/* Collapsible Accordion Sections (Substantiations, Final Risk) */}
-                          {/* Section 1: Substantiations */}
+                          <div className="px-3 py-2 space-y-1.5">
+
+                          {/* Section 1: Substantiations — US-M4-010 */}
                           <div className="bg-white rounded-lg border border-pebble overflow-hidden shadow-sm">
                             <button
                               type="button"
-                              onClick={() => toggleSection(claim.id, 'support')}
-                              className="w-full px-4 py-3 flex items-center justify-between hover:bg-earth transition-colors"
+                              onClick={() => toggleSection(claim.uniqueRowId, 'support')}
+                              className="w-full px-3 py-2 flex items-center justify-between hover:bg-earth transition-colors"
                             >
-                              <div className="flex items-center gap-3">
-                                <FileText className="w-4 h-4 text-gray-400" />
-                                <span className="text-sm text-night font-medium">Substantiations</span>
+                              <div className="flex items-center gap-2">
+                                <FileText className="w-3.5 h-3.5 text-gray-400" />
+                                <span className="text-xs text-night font-medium">Support Strategy &amp; Substantiations</span>
+                                <span className="text-[10px] text-gray-400">({claim.substantiationDocs.length} docs)</span>
                               </div>
-                                  {expandedSection === 'support' ? (
-                                    <ChevronDown className="w-4 h-4 text-gray-400" />
-                                  ) : (
-                                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                                  )}
-                                </button>
-                                {expandedSection === 'support' && (
-                                  <div className="px-6 py-5 border-t border-pebble bg-pale/5">
-                                    <InlineSupportStrategyEditor
-                                      claim={claim}
-                                      onClaimsChange={onClaimsChange}
-                                      fileRef={fileRefs}
-                                    />
-                                  </div>
-                                )}
+                              {isSectionOpen(claim.uniqueRowId, 'support') ? (
+                                <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+                              ) : (
+                                <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
+                              )}
+                            </button>
+                            {isSectionOpen(claim.uniqueRowId, 'support') && (
+                              <div className="px-4 py-3 border-t border-pebble bg-pale/5">
+                                <InlineSupportStrategyEditor
+                                  claim={claim}
+                                  onClaimsChange={onClaimsChange}
+                                  fileRef={fileRefs}
+                                />
                               </div>
-
-                              {/* Section 2: Risk Level Assessments */}
-                              <div className="bg-white rounded-lg border border-pebble overflow-hidden shadow-sm">
-                                <button
-                                  type="button"
-                                  onClick={() => toggleSection(claim.id, 'risk')}
-                                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-earth transition-colors"
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <Shield className="w-4 h-4 text-gray-400" />
-                                    <span className="text-sm text-night font-medium">Risk Level Assessments</span>
-                                    {claim.finalRiskLevel && (
-                                      <span className="text-[10px] font-semibold text-night bg-white px-2 py-0.5 rounded-full border border-pebble">
-                                        {claim.finalRiskLevel}
-                                      </span>
-                                    )}
-                                  </div>
-                                  {expandedSection === 'risk' ? (
-                                    <ChevronDown className="w-4 h-4 text-gray-400" />
-                                  ) : (
-                                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                                  )}
-                                </button>
-                                {expandedSection === 'risk' && (
-                                  <div className="px-6 py-5 border-t border-pebble bg-pale/5">
-                                    {claim.finalRiskSummary.inheritanceTrace && (
-                                      <div className="mb-4 bg-pale/60 text-sky text-xs px-3 py-2 rounded-lg border border-sky/20">
-                                        <span className="font-semibold mr-1">ℹ Note:</span> {claim.finalRiskSummary.inheritanceTrace}
-                                      </div>
-                                    )}
-                                    <div className="grid grid-cols-4 gap-6 mb-5">
-                                      <div>
-                                        <label className="block text-[10px] text-sky/70 uppercase tracking-wide mb-1.5 font-semibold">Final Risk Level</label>
-                                        <div className="text-sm font-semibold text-night">{claim.finalRiskLevel || 'Not assessed'}</div>
-                                      </div>
-                                      <div>
-                                        <label className="block text-[10px] text-sky/70 uppercase tracking-wide mb-1.5 font-semibold">Classification</label>
-                                        <div className="text-sm font-semibold text-night">{claim.finalRiskSummary.claimClassificationLevel || '—'}</div>
-                                      </div>
-                                      <div className="col-span-2">
-                                        <label className="block text-[10px] text-sky/70 uppercase tracking-wide mb-1.5 font-semibold">Reason</label>
-                                        <div className="text-sm text-gray-700 leading-relaxed">{claim.finalRiskSummary.reason || '—'}</div>
-                                      </div>
-                                    </div>
-                                    
-                                    {/* Functional Summaries */}
-                                    <div className="grid grid-cols-2 gap-6 bg-white/50 p-4 rounded-lg border border-sky/10">
-                                      <div>
-                                        <label className="block text-[10px] text-sky/70 uppercase tracking-wide mb-1.5 font-semibold">Claims Forum Summary</label>
-                                        <div className="text-sm text-gray-600 italic">{(claim.finalRiskSummary as any).claimsForumSummary || '—'}</div>
-                                      </div>
-                                      <div>
-                                        <label className="block text-[10px] text-sky/70 uppercase tracking-wide mb-1.5 font-semibold">Legal Summary</label>
-                                        <div className="text-sm text-gray-700">{claim.finalRiskSummary.legalSummary || '—'}</div>
-                                      </div>
-                                      <div>
-                                        <label className="block text-[10px] text-sky/70 uppercase tracking-wide mb-1.5 font-semibold">RA Summary</label>
-                                        <div className="text-sm text-gray-700">{claim.finalRiskSummary.raSummary || '—'}</div>
-                                      </div>
-                                      <div>
-                                        <label className="block text-[10px] text-sky/70 uppercase tracking-wide mb-1.5 font-semibold">R&amp;D Summary</label>
-                                        <div className="text-sm text-gray-700">{claim.finalRiskSummary.rdSummary || '—'}</div>
-                                      </div>
-                                      <div className="col-span-2">
-                                        <label className="block text-[10px] text-sky/70 uppercase tracking-wide mb-1.5 font-semibold">Marketing Feedback</label>
-                                        <div className="text-sm text-gray-700">{claim.finalRiskSummary.marketingFeedback || '—'}</div>
-                                        <div className="mt-1.5 text-xs">
-                                          <span className="font-medium text-gray-500">Signoff Status: </span>
-                                          {claim.finalRiskSummary.marketingRiskSignoff ? <span className="text-green-600 font-medium">✓ Complete</span> : <span className="text-gray-500">Pending</span>}
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    {/* M6: iRA Output Block */}
-                                    {claim.finalRiskSummary.iRAOutput === 'Completed' && (
-                                      <div className="mt-5 p-4 bg-blue-50 border border-blue-200 rounded-xl shadow-sm">
-                                        <div className="flex items-center gap-2 mb-3">
-                                          <span className="text-sm font-bold text-blue-800 uppercase tracking-wide">iRA Automated Assessment</span>
-                                          <span className="px-2 py-0.5 rounded-md text-[10px] bg-blue-600 text-white font-semibold shadow-sm">iRA</span>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-5">
-                                          <div>
-                                            <span className="text-[10px] text-blue-600 font-semibold uppercase block mb-1">Final Risk Level (iRA)</span>
-                                            <div className="text-sm font-bold text-blue-900">{claim.finalRiskLevelIRA || '—'}</div>
-                                          </div>
-                                          <div>
-                                            <span className="text-[10px] text-blue-600 font-semibold uppercase block mb-1">Classification Level (iRA)</span>
-                                            <div className="text-sm font-bold text-blue-900">{claim.finalRiskSummary.claimClassificationLevelIRA || '—'}</div>
-                                          </div>
-                                          <div className="col-span-2">
-                                            <span className="text-[10px] text-blue-600 font-semibold uppercase block mb-1">Reasons (iRA)</span>
-                                            <div className="text-sm text-blue-800 leading-relaxed">{claim.finalRiskSummary.reasonIRA || '—'}</div>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Section 3: Comments */}
-                              <div className="bg-white rounded-lg border border-pebble overflow-hidden shadow-sm">
-                                <button
-                                  type="button"
-                                  onClick={() => toggleSection(claim.id, 'comments')}
-                                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-earth transition-colors"
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <MessageSquare className="w-4 h-4 text-gray-400" />
-                                    <span className="text-sm text-night font-medium">Comments</span>
-                                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full border border-pebble font-semibold">
-                                      {(claimComments[claim.id] || []).length}
-                                    </span>
-                                  </div>
-                                  {expandedSection === 'comments' ? (
-                                    <ChevronDown className="w-4 h-4 text-gray-400" />
-                                  ) : (
-                                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                                  )}
-                                </button>
-                                {expandedSection === 'comments' && (
-                                  <div className="px-6 py-5 border-t border-pebble bg-pale/5">
-                                    <div className="space-y-4 max-h-60 overflow-y-auto mb-4 no-scrollbar">
-                                      {(claimComments[claim.id] || []).length === 0 ? (
-                                        <div className="text-xs text-gray-400 italic py-2">No comments yet. Be the first to start the discussion.</div>
-                                      ) : (
-                                        (claimComments[claim.id] || []).map((c) => (
-                                          <div key={c.id} className="flex gap-3">
-                                            <div className="w-7 h-7 rounded-full bg-sky text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">
-                                              {c.initials}
-                                            </div>
-                                            <div className="flex-1">
-                                              <div className="flex items-baseline gap-2 mb-1">
-                                                <span className="text-xs font-semibold text-night">
-                                                  {c.author}
-                                                </span>
-                                                <span className="text-[10px] text-gray-400">
-                                                  {new Date(c.timestamp).toLocaleString()}
-                                                </span>
-                                              </div>
-                                              <p className="text-xs text-gray-700 leading-relaxed bg-earth rounded-lg px-3 py-2">
-                                                {c.text}
-                                              </p>
-                                            </div>
-                                          </div>
-                                        ))
-                                      )}
-                                    </div>
-                                    <div className="flex gap-2">
-                                      <textarea
-                                        id={`new-comment-${claim.id}`}
-                                        placeholder="Add a comment... (Press Send or Enter to submit)"
-                                        rows={2}
-                                        className="flex-1 px-3 py-2 border border-pebble rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-sky resize-none bg-white text-night"
-                                        onKeyDown={(e) => {
-                                          if (e.key === "Enter" && !e.shiftKey) {
-                                            e.preventDefault();
-                                            const target = e.currentTarget;
-                                            const text = target.value.trim();
-                                            if (text) {
-                                              const newEntry: CommentEntry = {
-                                                id: `c-${Date.now()}`,
-                                                author: 'Current User',
-                                                initials: 'CU',
-                                                text,
-                                                timestamp: new Date().toISOString()
-                                              };
-                                              setClaimComments(prev => ({
-                                                ...prev,
-                                                [claim.id]: [...(prev[claim.id] || []), newEntry]
-                                              }));
-                                              target.value = '';
-                                            }
-                                          }
-                                        }}
-                                      />
-                                      <button
-                                        onClick={() => {
-                                          const textarea = document.getElementById(`new-comment-${claim.id}`) as HTMLTextAreaElement | null;
-                                          if (textarea) {
-                                            const text = textarea.value.trim();
-                                            if (text) {
-                                              const newEntry: CommentEntry = {
-                                                id: `c-${Date.now()}`,
-                                                author: 'Current User',
-                                                initials: 'CU',
-                                                text,
-                                                timestamp: new Date().toISOString()
-                                              };
-                                              setClaimComments(prev => ({
-                                                ...prev,
-                                                [claim.id]: [...(prev[claim.id] || []), newEntry]
-                                              }));
-                                              textarea.value = '';
-                                            }
-                                          }
-                                        }}
-                                        className="px-4 bg-sky text-white rounded-lg hover:bg-dark text-xs font-semibold shadow-sm transition-colors flex items-center justify-center gap-1.5"
-                                      >
-                                        <Send className="w-3.5 h-3.5" />
-                                        Send
-                                      </button>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-
-                            </div>
+                            )}
                           </div>
-                        </td>
-                      </tr>
+
+                          {/* Section 2: Risk Level Assessments — US-M4-011 */}
+                          <div className="bg-white rounded-lg border border-pebble overflow-hidden shadow-sm">
+                            <button
+                              type="button"
+                              onClick={() => toggleSection(claim.uniqueRowId, 'risk')}
+                              className="w-full px-3 py-2 flex items-center justify-between hover:bg-earth transition-colors"
+                            >
+                              <div className="flex items-center gap-2">
+                                <Shield className="w-3.5 h-3.5 text-gray-400" />
+                                <span className="text-xs text-night font-medium">Risk Level Assessments</span>
+                                {claim.finalRiskLevel && (
+                                  <span className="text-[10px] font-semibold text-night bg-white px-1.5 py-0.5 rounded-full border border-pebble">
+                                    {claim.finalRiskLevel}
+                                  </span>
+                                )}
+                                <span className="text-[10px] text-gray-400">({claim.riskAssessments.filter((r: any) => !r.isRemoved).length} records)</span>
+                              </div>
+                              {isSectionOpen(claim.uniqueRowId, 'risk') ? (
+                                <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+                              ) : (
+                                <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
+                              )}
+                            </button>
+                            {isSectionOpen(claim.uniqueRowId, 'risk') && (
+                              <div className="px-4 py-2 border-t border-pebble bg-pale/5 space-y-2">
+                                {/* Final Risk Summary — compact single row */}
+                                <div className="flex items-center gap-4 px-2 py-1.5 bg-white rounded border border-pebble text-xs">
+                                  {claim.finalRiskSummary.inheritanceTrace && (
+                                    <span className="text-sky italic truncate flex-1">ℹ {claim.finalRiskSummary.inheritanceTrace}</span>
+                                  )}
+                                  <div className="flex items-center gap-1 flex-shrink-0"><span className="text-gray-400 uppercase tracking-wide text-[10px] font-semibold">Risk:</span><span className="font-semibold text-night">{claim.finalRiskLevel || '—'}</span></div>
+                                  <div className="flex items-center gap-1 flex-shrink-0"><span className="text-gray-400 uppercase tracking-wide text-[10px] font-semibold">Class:</span><span className="font-semibold text-night">{claim.finalRiskSummary.claimClassificationLevel || '—'}</span></div>
+                                  {claim.finalRiskSummary.reason && <span className="text-gray-600 truncate max-w-[200px]">{claim.finalRiskSummary.reason}</span>}
+                                </div>
+
+                                {/* Individual Risk Assessment Records */}
+                                <div>
+                                  <div className="flex items-center justify-between mb-1.5">
+                                    <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Assessment Records</span>
+                                    <button
+                                      onClick={() => {
+                                        if (!onClaimsChange) return;
+                                        const now = new Date().toISOString();
+                                        const newRecord = {
+                                          id: `RA-${Date.now()}`,
+                                          functionDept: CURRENT_USER_ROLE || 'R&D',
+                                          assessedBy: CURRENT_USER,
+                                          riskLevel: 'Low' as any,
+                                          comments: '',
+                                          geography: claim.claimType !== 'Global' ? (claim.geography || '') : '',
+                                          dateTime: now,
+                                        };
+                                        const allC = (claim as any)._allClaims ?? claims;
+                                        onClaimsChange(allC.map((c: any) => c.id === claim.id
+                                          ? { ...c, riskAssessments: [...c.riskAssessments, newRecord] }
+                                          : c
+                                        ));
+                                        setEditingRiskId(newRecord.id);
+                                        setEditingRiskDraft({ riskLevel: 'Low', comments: '', geography: newRecord.geography as string });
+                                      }}
+                                      className="flex items-center gap-1.5 text-xs text-sky border border-sky/30 px-2.5 py-1 rounded-lg hover:bg-sky/5 transition-colors font-medium"
+                                    >
+                                      <Plus className="w-3 h-3" /> Add Assessment
+                                    </button>
+                                  </div>
+                                  <div className="space-y-1">
+                                    {claim.riskAssessments.length === 0 ? (
+                                      <p className="text-[10px] text-gray-400 italic">No risk assessments recorded.</p>
+                                    ) : (
+                                      claim.riskAssessments.map((record: any) => {
+                                        const isOwn = record.assessedBy === CURRENT_USER;
+                                        const isEditing = editingRiskId === record.id;
+                                        if (record.isRemoved) {
+                                          return (
+                                            <div key={record.id} className="px-2 py-1 border border-gray-200 rounded bg-gray-50 opacity-50">
+                                              <span className="text-[10px] text-gray-400 italic">Removed by {record.assessedBy}</span>
+                                            </div>
+                                          );
+                                        }
+                                        return (
+                                          <div key={record.id} className={`px-2 py-1.5 rounded border ${isOwn ? 'border-sky/20 bg-pale/10' : 'border-pebble bg-white'}`}>
+                                            {/* Compact single-line header */}
+                                            <div className="flex items-center justify-between gap-2">
+                                              <div className="flex items-center gap-1.5 flex-wrap">
+                                                <span className="text-[10px] font-semibold uppercase bg-sky/10 text-sky px-1.5 py-0.5 rounded-full border border-sky/20">{record.functionDept}</span>
+                                                <span className="text-[10px] text-gray-600 font-medium">{record.assessedBy}</span>
+                                                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                                                  record.riskLevel === 'Low' ? 'bg-green-100 text-green-700' :
+                                                  record.riskLevel === 'Medium' ? 'bg-amber-100 text-amber-700' :
+                                                  record.riskLevel === 'High' ? 'bg-orange-100 text-orange-700' :
+                                                  'bg-red-100 text-red-700'
+                                                }`}>{record.riskLevel}</span>
+                                                {record.geography && <span className="text-[10px] text-gray-400">📍 {Array.isArray(record.geography) ? record.geography.join(', ') : record.geography}</span>}
+                                                {record.source === 'Parent' && <span className="text-[10px] bg-amber-50 text-amber-600 border border-amber-200 px-1.5 py-0.5 rounded-full">Inherited</span>}
+                                                <span className="text-[10px] text-gray-400">{new Date(record.dateTime).toLocaleDateString()}</span>
+                                              </div>
+                                              {isOwn && !isEditing && (
+                                                <div className="flex items-center gap-1 flex-shrink-0">
+                                                  <button onClick={() => { setEditingRiskId(record.id); setEditingRiskDraft({ riskLevel: record.riskLevel, comments: record.comments, geography: Array.isArray(record.geography) ? record.geography.join(', ') : (record.geography || '') }); }} className="text-[10px] text-sky px-1.5 py-0.5 border border-sky/30 rounded hover:bg-sky/5 transition-colors">Edit</button>
+                                                  <button onClick={() => { const confirmed = window.confirm('Remove this assessment record? This cannot be permanently deleted.'); if (!confirmed || !onClaimsChange) return; const allC = (claim as any)._allClaims ?? claims; onClaimsChange(allC.map((c: any) => c.id === claim.id ? { ...c, riskAssessments: c.riskAssessments.map((r: any) => r.id === record.id ? { ...r, isRemoved: true } : r) } : c)); }} className="text-[10px] text-red-500 px-1.5 py-0.5 border border-red-200 rounded hover:bg-red-50 transition-colors">Remove</button>
+                                                </div>
+                                              )}
+                                            </div>
+                                            {record.comments && !isEditing && <p className="text-[10px] text-gray-500 mt-0.5 leading-snug">{record.comments}</p>}
+                                            {/* Edit form */}
+                                            {isEditing && editingRiskDraft && (
+                                              <div className="mt-2 space-y-1.5">
+                                                <div className="flex gap-2">
+                                                  <div className="flex-1">
+                                                    <label className="block text-[10px] text-gray-500 uppercase mb-0.5 font-semibold">Risk Level</label>
+                                                    <select value={editingRiskDraft.riskLevel} onChange={e => setEditingRiskDraft(d => d ? { ...d, riskLevel: e.target.value } : d)} className="w-full text-xs border border-pebble rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-sky bg-white">
+                                                      {['Low', 'Medium', 'High', 'Very High'].map(r => <option key={r} value={r}>{r}</option>)}
+                                                    </select>
+                                                  </div>
+                                                  {claim.claimType !== 'Global' && (
+                                                    <div className="flex-1">
+                                                      <label className="block text-[10px] text-gray-500 uppercase mb-0.5 font-semibold">Geography <span className="text-red-400">*</span></label>
+                                                      <input type="text" value={editingRiskDraft.geography} onChange={e => setEditingRiskDraft(d => d ? { ...d, geography: e.target.value } : d)} placeholder="e.g. UK" className="w-full text-xs border border-pebble rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-sky bg-white" />
+                                                    </div>
+                                                  )}
+                                                </div>
+                                                <textarea value={editingRiskDraft.comments} onChange={e => setEditingRiskDraft(d => d ? { ...d, comments: e.target.value } : d)} rows={1} className="w-full text-xs border border-pebble rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-sky resize-none bg-white" placeholder="Comments…" />
+                                                <div className="flex gap-1.5">
+                                                  <button onClick={() => { if (!onClaimsChange || !editingRiskDraft) return; const allC = (claim as any)._allClaims ?? claims; onClaimsChange(allC.map((c: any) => c.id === claim.id ? { ...c, riskAssessments: c.riskAssessments.map((r: any) => r.id === record.id ? { ...r, riskLevel: editingRiskDraft.riskLevel, comments: editingRiskDraft.comments, geography: editingRiskDraft.geography } : r) } : c)); setEditingRiskId(null); setEditingRiskDraft(null); }} className="flex items-center gap-1 px-2 py-0.5 bg-sky text-white rounded text-[10px] font-semibold hover:bg-dark transition-colors"><Save className="w-2.5 h-2.5" /> Save</button>
+                                                  <button onClick={() => { setEditingRiskId(null); setEditingRiskDraft(null); }} className="px-2 py-0.5 border border-pebble text-gray-500 rounded text-[10px] hover:bg-earth transition-colors">Cancel</button>
+                                                </div>
+                                              </div>
+                                            )}
+                                          </div>
+                                        );
+                                      })
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Functional Summaries — compact grid */}
+                                {(claim.finalRiskSummary.legalSummary || claim.finalRiskSummary.raSummary || claim.finalRiskSummary.rdSummary || (claim.finalRiskSummary as any).claimsForumSummary) && (
+                                  <div className="grid grid-cols-4 gap-2 px-2 py-2 bg-white/60 rounded border border-sky/10 text-[10px]">
+                                    {(claim.finalRiskSummary as any).claimsForumSummary && <div><span className="font-semibold text-sky/70 uppercase block">Claims Forum</span><span className="text-gray-600 italic">{(claim.finalRiskSummary as any).claimsForumSummary}</span></div>}
+                                    {claim.finalRiskSummary.legalSummary && <div><span className="font-semibold text-sky/70 uppercase block">Legal</span><span className="text-gray-700">{claim.finalRiskSummary.legalSummary}</span></div>}
+                                    {claim.finalRiskSummary.raSummary && <div><span className="font-semibold text-sky/70 uppercase block">RA</span><span className="text-gray-700">{claim.finalRiskSummary.raSummary}</span></div>}
+                                    {claim.finalRiskSummary.rdSummary && <div><span className="font-semibold text-sky/70 uppercase block">R&amp;D</span><span className="text-gray-700">{claim.finalRiskSummary.rdSummary}</span></div>}
+                                  </div>
+                                )}
+                                {/* iRA Output — compact */}
+                                {claim.finalRiskSummary.iRAOutput === 'Completed' && (
+                                  <div className="flex items-center gap-3 px-2 py-1.5 bg-blue-50 border border-blue-200 rounded text-[10px]">
+                                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-600 text-white font-semibold">iRA</span>
+                                    <div className="flex items-center gap-1"><span className="text-blue-600 font-semibold uppercase">Risk:</span><span className="font-bold text-blue-900">{claim.finalRiskLevelIRA || '—'}</span></div>
+                                    <div className="flex items-center gap-1"><span className="text-blue-600 font-semibold uppercase">Class:</span><span className="font-bold text-blue-900">{claim.finalRiskSummary.claimClassificationLevelIRA || '—'}</span></div>
+                                    {claim.finalRiskSummary.reasonIRA && <span className="text-blue-800 truncate flex-1">{claim.finalRiskSummary.reasonIRA}</span>}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Section 3: Comments — US-M4-009 */}
+                          <div className="bg-white rounded-lg border border-pebble overflow-hidden shadow-sm">
+                            <button
+                              type="button"
+                              onClick={() => toggleSection(claim.uniqueRowId, 'comments')}
+                              className="w-full px-3 py-2 flex items-center justify-between hover:bg-earth transition-colors"
+                            >
+                              <div className="flex items-center gap-2">
+                                <MessageSquare className="w-3.5 h-3.5 text-gray-400" />
+                                <span className="text-xs text-night font-medium">Comments</span>
+                                <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full border border-pebble font-semibold">{(claimComments[claim.id] || []).length}</span>
+                              </div>
+                              {isSectionOpen(claim.uniqueRowId, 'comments') ? (
+                                <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+                              ) : (
+                                <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
+                              )}
+                            </button>
+                            {isSectionOpen(claim.uniqueRowId, 'comments') && (
+                              <div className="px-3 py-2 border-t border-pebble bg-pale/5">
+                                {/* Max 4 comments visible, rest scroll — single-line per comment */}
+                                <div style={{ maxHeight: '120px', overflowY: 'auto', marginBottom: '6px' }}>
+                                  {(claimComments[claim.id] || []).length === 0 ? (
+                                    <div className="text-[10px] text-gray-400 italic py-1">No comments yet.</div>
+                                  ) : (
+                                    (claimComments[claim.id] || []).map((c) => (
+                                      <div key={c.id} className="flex items-center gap-2 py-0.5 border-b border-pebble/40 last:border-0 min-w-0">
+                                        <div className="w-4 h-4 rounded-full bg-sky text-white flex items-center justify-center text-[8px] font-semibold flex-shrink-0">{c.initials}</div>
+                                        <span className="text-[10px] font-semibold text-night flex-shrink-0">{c.author}</span>
+                                        <span className="text-[9px] text-gray-400 flex-shrink-0">{new Date(c.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                        <span className="text-[10px] text-gray-700 truncate flex-1">{c.text}</span>
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
+                                <div className="flex gap-1.5">
+                                  <textarea
+                                    id={`new-comment-${claim.id}`}
+                                    placeholder="Add a comment… (Enter to submit)"
+                                    rows={1}
+                                    className="flex-1 px-2 py-1 border border-pebble rounded text-[10px] focus:outline-none focus:ring-1 focus:ring-sky resize-none bg-white text-night"
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        const text = e.currentTarget.value.trim();
+                                        if (text) { setClaimComments(prev => ({ ...prev, [claim.id]: [...(prev[claim.id] || []), { id: `c-${Date.now()}`, author: 'Current User', initials: 'CU', text, timestamp: new Date().toISOString() }] })); e.currentTarget.value = ''; }
+                                      }
+                                    }}
+                                  />
+                                  <button
+                                    onClick={() => { const ta = document.getElementById(`new-comment-${claim.id}`) as HTMLTextAreaElement | null; if (ta) { const text = ta.value.trim(); if (text) { setClaimComments(prev => ({ ...prev, [claim.id]: [...(prev[claim.id] || []), { id: `c-${Date.now()}`, author: 'Current User', initials: 'CU', text, timestamp: new Date().toISOString() }] })); ta.value = ''; } } }}
+                                    className="px-3 bg-sky text-white rounded hover:bg-dark text-[10px] font-semibold transition-colors flex items-center gap-1"
+                                  ><Send className="w-2.5 h-2.5" /> Send</button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+
+
+                          {/* Section 4: Parent Claim Tab — US-M4-009 */}
+                          {claim.parentClaimId && (
+                            <div className="bg-white rounded-lg border border-pebble overflow-hidden shadow-sm">
+                              <button
+                                type="button"
+                                onClick={() => toggleSection(claim.uniqueRowId, 'parent')}
+                                className="w-full px-3 py-2 flex items-center justify-between hover:bg-earth transition-colors"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Scale className="w-3.5 h-3.5 text-gray-400" />
+                                  <span className="text-xs text-night font-medium">Parent Claim</span>
+                                  <span className="text-[10px] text-sky bg-pale border border-sky/20 px-1.5 py-0.5 rounded-full font-semibold">{claim.parentClaimId}</span>
+                                </div>
+                                {isSectionOpen(claim.uniqueRowId, 'parent') ? (
+                                  <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+                                ) : (
+                                  <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
+                                )}
+                              </button>
+                              {isSectionOpen(claim.uniqueRowId, 'parent') && (() => {
+                                const parentClaim = claims.find(c => c.id === claim.parentClaimId);
+                                if (!parentClaim) return (
+                                  <div className="px-3 py-2 border-t border-pebble bg-pale/5">
+                                    <p className="text-[10px] text-gray-400 italic">Parent claim ({claim.parentClaimId}) not found in current view.</p>
+                                  </div>
+                                );
+                                const pVer = parentClaim.versions[parentClaim.currentVersion];
+                                const pStmt = parentClaim.claimType === 'Global' ? pVer?.globalStatement : pVer?.localStatement;
+                                return (
+                                  <div className="px-3 py-2 border-t border-pebble bg-pale/5">
+                                    <div className="p-2 rounded border border-sky/20 bg-pale/10">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <span className="text-[10px] font-semibold text-sky uppercase">{parentClaim.id}</span>
+                                        <span className="text-[10px] text-gray-400">{parentClaim.claimType} · v{pVer?.versionNumber}</span>
+                                        <span className="text-[10px] text-gray-400">{parentClaim.lifecycleStage}</span>
+                                        <span className="text-[10px] text-gray-400">{parentClaim.finalRiskLevel || '—'}</span>
+                                      </div>
+                                      <p className="text-xs text-night leading-snug">{pStmt || '—'}</p>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          )}
+
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
                   )}
                 </React.Fragment>
               );
