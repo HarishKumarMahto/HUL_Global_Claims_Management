@@ -405,6 +405,11 @@ export default function ClaimsTable({
   const [columnOrder, setColumnOrder] = useState(BASE_COLUMNS);
   const [draggedCol, setDraggedCol] = useState<number | null>(null);
 
+  useEffect(() => {
+    setColumnOrder(BASE_COLUMNS);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeBaseView]);
+
   const flattenedAndSortedVersions = React.useMemo(() => {
     const allVersions = claims.flatMap(claim => 
       claim.versions.map((ver, idx) => ({
@@ -636,11 +641,12 @@ export default function ClaimsTable({
       case 'restricted':
         return (
           <td key={colId} className="px-4 py-3 text-left" style={cellStyle}>
-            {claim.restrictedUse ? (
-              <span className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-bold block truncate w-fit ${isSubRow ? 'bg-gray-100 text-gray-400 border border-gray-200' : 'bg-red-100 text-red-700 border border-red-200'}`}>Yes</span>
-            ) : (
-              <span className={`text-xs block truncate ${metaTextColor}`}>—</span>
-            )}
+            <input
+              type="checkbox"
+              readOnly
+              checked={!!claim.restrictedUse}
+              className={`w-4 h-4 rounded border-gray-300 ${isSubRow ? 'opacity-50 cursor-not-allowed' : 'accent-sky cursor-default'}`}
+            />
           </td>
         );
       case 'identifier':

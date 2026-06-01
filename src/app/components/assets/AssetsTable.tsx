@@ -89,7 +89,16 @@ export default function AssetsTable({
   const [draggedCol, setDraggedCol] = useState<number | null>(null);
   const [expandedAssetId, setExpandedAssetId] = useState<string | null>(null);
   const [expandedVersionIds, setExpandedVersionIds] = useState<Set<string>>(new Set());
-  const [expandedSections, setExpandedSections] = useState<Record<string, 'support' | 'risk' | 'comments' | null>>({});
+  const [expandedSections, setExpandedSections] = useState<Record<string, Set<'support' | 'risk' | 'comments'>>>({});
+
+  // Risk editing state
+  const [editingRiskId, setEditingRiskId] = useState<string | null>(null);
+  const [editingRiskDraft, setEditingRiskDraft] = useState<{ department: string; riskLevel: string; comments: string } | null>(null);
+
+  // Asset-level comments (local state, keyed by asset.id)
+  interface AssetCommentEntry { id: string; author: string; initials: string; text: string; timestamp: string; replyToId?: string; }
+  const [assetComments, setAssetComments] = useState<Record<string, AssetCommentEntry[]>>({});
+  const [replyingToComment, setReplyingToComment] = useState<Record<string, { id: string; author: string } | null>>({});
 
   // Search, Sorting & Table Settings
   const [sortCol, setSortCol] = useState<string | null>(null);
@@ -231,7 +240,16 @@ export default function AssetsTable({
   };
 
   const toggleSection = (id: string, section: 'support' | 'risk' | 'comments') => {
-    setExpandedSections(prev => ({ ...prev, [id]: prev[id] === section ? null : section }));
+    setExpandedSections(prev => {
+      const current = prev[id] ? new Set(prev[id]) : new Set<typeof section>();
+      if (current.has(section)) current.delete(section);
+      else current.add(section);
+      return { ...prev, [id]: current };
+    });
+  };
+
+  const isSectionOpen = (id: string, section: 'support' | 'risk' | 'comments') => {
+    return expandedSections[id]?.has(section) ?? false;
   };
 
   const renderCell = (asset: any, colId: string, isSelected: boolean, isSubRow = false) => {
@@ -805,126 +823,426 @@ export default function AssetsTable({
                 {/* Inline Workbench */}
                 {isExpanded && (
                   <tr>
-                    <td colSpan={columnOrder.length + (isBulkMode ? 4 : 3)} className="px-0 py-0">
+                    <td colSpan={columnOrder.length + (isBulkMode ? 4 : 3)} className="p-0">
                       <div className="border-b-2 border-sky/20" style={{ background: '#EEF4FB' }}>
-                        <div className="p-4 space-y-2">
-                        {/* Section 1: Substantiations */}
+                        <div className="px-3 py-2 space-y-1.5">
+
+                        {/* Section 1: Substantiations (Linked Claims) */}
                         <div className="bg-white rounded-lg border border-pebble overflow-hidden shadow-sm">
-                          <button
-                            type="button"
+                          <div
                             onClick={() => toggleSection(asset.uniqueRowId, 'support')}
-                            className="w-full px-4 py-3 flex items-center justify-between hover:bg-earth transition-colors"
+                            className="w-full px-3 py-2 flex items-center justify-between hover:bg-earth transition-colors cursor-pointer"
                           >
                             <div className="flex items-center gap-3">
-                              <FileText className="w-4 h-4 text-gray-400" />
-                              <span className="text-sm text-night font-medium">Substantiations</span>
-                            </div>
-                            {expandedSections[asset.uniqueRowId] === 'support' ? (
-                              <ChevronDown className="w-4 h-4 text-gray-400" />
-                            ) : (
-                              <ChevronRight className="w-4 h-4 text-gray-400" />
-                            )}
-                          </button>
-                          {expandedSections[asset.uniqueRowId] === 'support' && (
-                            <div className="px-6 py-5 border-t border-pebble bg-pale/5">
-                              <div className="text-sm text-gray-600">
-                                {asset.linkedClaimIds.length > 0 ? (
-                                  <div className="space-y-2">
-                                    {asset.linkedClaimIds.map((claimId: string) => (
-                                      <div key={claimId} className="flex items-center gap-2 p-2 bg-earth rounded">
-                                        <span className="text-sm text-night">{claimId}</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <p className="text-gray-400 italic">No substantiation data</p>
-                                )}
+                              <FileText className="w-3.5 h-3.5 text-gray-400" />
+                              <span className="text-xs text-night font-medium">Support Strategy & Substantiations</span>
+                              <span className="text-[10px] text-gray-400 border-r border-pebble pr-3">({asset.linkedClaimIds.length} linked claims)</span>
+                              <div className="flex items-center pl-1" onClick={e => e.stopPropagation()}>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (!isSectionOpen(asset.uniqueRowId, 'support')) {
+                                      toggleSection(asset.uniqueRowId, 'support');
+                                    }
+                                    const id = window.prompt('Enter Claim ID to link (e.g. CLM-010):');
+                                    if (id && id.trim()) {
+                                      onAssetsChange(assets.map(a => a.id === asset.id
+                                        ? { ...a, linkedClaimIds: [...a.linkedClaimIds, id.trim()] }
+                                        : a
+                                      ));
+                                    }
+                                  }}
+                                  className="flex items-center gap-1.5 text-xs text-sky border border-sky/30 px-2.5 py-1 rounded-lg hover:bg-sky/5 transition-colors font-medium bg-white"
+                                >
+                                  <Plus className="w-3 h-3" /> Add Link
+                                </button>
                               </div>
+                            </div>
+                            {isSectionOpen(asset.uniqueRowId, 'support') ? (
+                              <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+                            ) : (
+                              <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
+                            )}
+                          </div>
+                          {isSectionOpen(asset.uniqueRowId, 'support') && (
+                            <div className="p-0 border-t border-pebble bg-pale/5 flex flex-col" style={{ height: '160px' }}>
+                              {asset.linkedClaimIds.length === 0 ? (
+                                <div className="text-[10px] text-gray-400 italic p-4 bg-white border-t border-pebble flex-1">No linked claims. Click "Add Link" to attach a claim.</div>
+                              ) : (
+                                <div className="overflow-auto bg-white border-t border-pebble flex-1 relative">
+                                  <table className="w-full text-xs">
+                                    <thead className="sticky top-0 bg-earth/60 z-10">
+                                      <tr className="border-b border-pebble">
+                                        <th className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">Claim ID</th>
+                                        <th className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">Type</th>
+                                        <th className="px-3 py-2"></th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-pebble">
+                                      {asset.linkedClaimIds.map((claimId: string) => (
+                                        <tr key={claimId} className="hover:bg-earth/20 transition-colors">
+                                          <td className="px-3 py-2">
+                                            <div className="flex items-center gap-1.5">
+                                              <Link2 className="w-3 h-3 text-sky/50 flex-shrink-0" />
+                                              <span className="text-sky hover:underline cursor-pointer font-medium">{claimId}</span>
+                                            </div>
+                                          </td>
+                                          <td className="px-3 py-2">
+                                            <span className="text-[10px] font-semibold uppercase bg-sky/10 text-sky px-1.5 py-0.5 rounded-full border border-sky/20">Claim</span>
+                                          </td>
+                                          <td className="px-3 py-2 text-right">
+                                            <button
+                                              onClick={() => {
+                                                if (!window.confirm(`Remove link to ${claimId}?`)) return;
+                                                onAssetsChange(assets.map(a => a.id === asset.id
+                                                  ? { ...a, linkedClaimIds: a.linkedClaimIds.filter((c: string) => c !== claimId) }
+                                                  : a
+                                                ));
+                                              }}
+                                              className="text-[10px] text-red-500 hover:underline"
+                                            >Remove</button>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
 
                         {/* Section 2: Risk Level Assessments */}
                         <div className="bg-white rounded-lg border border-pebble overflow-hidden shadow-sm">
-                          <button
-                            type="button"
+                          <div
                             onClick={() => toggleSection(asset.uniqueRowId, 'risk')}
-                            className="w-full px-4 py-3 flex items-center justify-between hover:bg-earth transition-colors"
+                            className="w-full px-3 py-2 flex items-center justify-between hover:bg-earth transition-colors cursor-pointer"
                           >
                             <div className="flex items-center gap-3">
-                              <Shield className="w-4 h-4 text-gray-400" />
-                              <span className="text-sm text-night font-medium">Risk Level Assessments</span>
+                              <Shield className="w-3.5 h-3.5 text-gray-400" />
+                              <span className="text-xs text-night font-medium">Risk Level Assessments</span>
                               {currentVersionData.finalRisk?.finalRiskLevel && (
-                                <span className="text-xs px-2 py-0.5 rounded bg-green-50 text-green-700">
+                                <span className="text-[10px] font-semibold text-night bg-white px-1.5 py-0.5 rounded-full border border-pebble">
                                   {currentVersionData.finalRisk.finalRiskLevel}
                                 </span>
                               )}
-                            </div>
-                            {expandedSections[asset.uniqueRowId] === 'risk' ? (
-                              <ChevronDown className="w-4 h-4 text-gray-400" />
-                            ) : (
-                              <ChevronRight className="w-4 h-4 text-gray-400" />
-                            )}
-                          </button>
-                          {expandedSections[asset.uniqueRowId] === 'risk' && (
-                            <div className="px-6 py-5 border-t border-pebble bg-pale/5">
-                              <div className="space-y-3">
-                                {currentVersionData.riskRecords?.map((record: any) => (
-                                  <div key={record.id} className="p-3 bg-white border border-pebble rounded">
-                                    <div className="flex items-center justify-between mb-2">
-                                      <span className="text-sm font-medium text-night">{record.department}</span>
-                                      <span className="text-xs px-2 py-0.5 rounded bg-green-50 text-green-700 font-semibold">
-                                        {record.riskLevel}
-                                      </span>
-                                    </div>
-                                    <p className="text-xs text-gray-600">{record.comments}</p>
-                                  </div>
-                                ))}
+                              <span className="text-[10px] text-gray-400 border-r border-pebble pr-3">
+                                ({currentVersionData.riskRecords?.filter((r: any) => !r.isRemoved).length || 0} records)
+                              </span>
+                              <div className="flex items-center gap-2 pl-1" onClick={e => e.stopPropagation()}>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (!isSectionOpen(asset.uniqueRowId, 'risk')) {
+                                      toggleSection(asset.uniqueRowId, 'risk');
+                                    }
+                                    const now = new Date().toISOString();
+                                    const newRecord = {
+                                      id: `RR-${Date.now()}`,
+                                      department: 'R&D',
+                                      assessedBy: 'Sarah Johnson',
+                                      riskLevel: 'Low',
+                                      comments: '',
+                                      createdAt: now,
+                                    };
+                                    onAssetsChange(assets.map(a => a.id === asset.id
+                                      ? {
+                                          ...a,
+                                          versions: a.versions.map((v: any) =>
+                                            v.versionNumber === a.currentVersionNumber
+                                              ? { ...v, riskRecords: [...v.riskRecords, newRecord] }
+                                              : v
+                                          )
+                                        }
+                                      : a
+                                    ));
+                                    setEditingRiskId(newRecord.id);
+                                    setEditingRiskDraft({ department: 'R&D', riskLevel: 'Low', comments: '' });
+                                  }}
+                                  className="flex items-center gap-1.5 text-xs text-sky border border-sky/30 px-2.5 py-1 rounded-lg hover:bg-sky/5 transition-colors font-medium bg-white"
+                                >
+                                  <Plus className="w-3 h-3" /> Add Assessment
+                                </button>
                               </div>
+                            </div>
+                            {isSectionOpen(asset.uniqueRowId, 'risk') ? (
+                              <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+                            ) : (
+                              <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
+                            )}
+                          </div>
+                          {isSectionOpen(asset.uniqueRowId, 'risk') && (
+                            <div className="p-0 border-t border-pebble bg-pale/5 flex flex-col" style={{ height: '160px' }}>
+                              {(!currentVersionData.riskRecords || currentVersionData.riskRecords.filter((r: any) => !r.isRemoved).length === 0) ? (
+                                <p className="text-[10px] text-gray-400 italic p-4 bg-white flex-1">No risk assessments recorded.</p>
+                              ) : (
+                                <div className="overflow-auto bg-white flex-1 relative">
+                                  <table className="w-full text-xs">
+                                    <thead className="sticky top-0 bg-earth/60 z-10">
+                                      <tr className="border-b border-pebble">
+                                        <th className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">Dept</th>
+                                        <th className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">Assessed By</th>
+                                        <th className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">Risk Level</th>
+                                        <th className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">Comment</th>
+                                        <th className="px-3 py-2"></th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-pebble">
+                                      {currentVersionData.riskRecords.map((record: any) => {
+                                        if (record.isRemoved) {
+                                          return (
+                                            <tr key={record.id} className="bg-gray-50 opacity-50">
+                                              <td colSpan={5} className="px-3 py-2 text-[10px] text-gray-400 italic">Removed by {record.assessedBy}</td>
+                                            </tr>
+                                          );
+                                        }
+                                        const isEditing = editingRiskId === record.id;
+                                        const isOwn = record.assessedBy === 'Sarah Johnson';
+                                        if (isEditing && editingRiskDraft) {
+                                          return (
+                                            <tr key={record.id} className="bg-pale/10">
+                                              <td colSpan={5} className="px-3 py-2">
+                                                <div className="space-y-1.5">
+                                                  <div className="flex gap-2 items-end">
+                                                    <div className="w-1/5">
+                                                      <label className="block text-[10px] text-gray-500 uppercase mb-0.5 font-semibold">Dept</label>
+                                                      <select
+                                                        value={editingRiskDraft.department}
+                                                        onChange={e => setEditingRiskDraft(d => d ? { ...d, department: e.target.value } : d)}
+                                                        className="w-full text-xs border border-pebble rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-sky bg-white"
+                                                      >
+                                                        {['R&D', 'Legal', 'RA', 'Claims Lead', 'Marketing'].map(d => <option key={d} value={d}>{d}</option>)}
+                                                      </select>
+                                                    </div>
+                                                    <div className="w-1/5">
+                                                      <label className="block text-[10px] text-gray-500 uppercase mb-0.5 font-semibold">Risk Level</label>
+                                                      <select
+                                                        value={editingRiskDraft.riskLevel}
+                                                        onChange={e => setEditingRiskDraft(d => d ? { ...d, riskLevel: e.target.value } : d)}
+                                                        className="w-full text-xs border border-pebble rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-sky bg-white"
+                                                      >
+                                                        {['Low', 'Medium', 'High', 'Very High'].map(r => <option key={r} value={r}>{r}</option>)}
+                                                      </select>
+                                                    </div>
+                                                    <div className="flex-1">
+                                                      <label className="block text-[10px] text-gray-500 uppercase mb-0.5 font-semibold">Comments</label>
+                                                      <input
+                                                        type="text"
+                                                        value={editingRiskDraft.comments}
+                                                        onChange={e => setEditingRiskDraft(d => d ? { ...d, comments: e.target.value } : d)}
+                                                        className="w-full text-xs border border-pebble rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-sky bg-white"
+                                                        placeholder="Comments…"
+                                                      />
+                                                    </div>
+                                                    <div className="flex gap-1.5 pb-[2px]">
+                                                      <button
+                                                        onClick={() => {
+                                                          if (!editingRiskDraft) return;
+                                                          onAssetsChange(assets.map(a => a.id === asset.id
+                                                            ? {
+                                                                ...a,
+                                                                versions: a.versions.map((v: any) =>
+                                                                  v.versionNumber === a.currentVersionNumber
+                                                                    ? {
+                                                                        ...v,
+                                                                        riskRecords: v.riskRecords.map((r: any) =>
+                                                                          r.id === record.id
+                                                                            ? { ...r, department: editingRiskDraft.department, riskLevel: editingRiskDraft.riskLevel, comments: editingRiskDraft.comments }
+                                                                            : r
+                                                                        )
+                                                                      }
+                                                                    : v
+                                                                )
+                                                              }
+                                                            : a
+                                                          ));
+                                                          setEditingRiskId(null);
+                                                          setEditingRiskDraft(null);
+                                                        }}
+                                                        className="flex items-center gap-1 px-2 py-1 bg-sky text-white rounded text-[10px] font-semibold hover:bg-dark transition-colors"
+                                                      >
+                                                        Save
+                                                      </button>
+                                                      <button
+                                                        onClick={() => { setEditingRiskId(null); setEditingRiskDraft(null); }}
+                                                        className="px-2 py-1 border border-pebble text-gray-500 rounded text-[10px] hover:bg-earth transition-colors"
+                                                      >Cancel</button>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              </td>
+                                            </tr>
+                                          );
+                                        }
+                                        return (
+                                          <tr key={record.id} className={`hover:bg-earth/20 transition-colors ${isOwn ? 'bg-pale/5' : ''}`}>
+                                            <td className="px-3 py-2">
+                                              <span className="text-[10px] font-semibold uppercase bg-sky/10 text-sky px-1.5 py-0.5 rounded-full border border-sky/20 whitespace-nowrap">{record.department}</span>
+                                            </td>
+                                            <td className="px-3 py-2 text-night font-medium">{record.assessedBy}</td>
+                                            <td className="px-3 py-2">
+                                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full whitespace-nowrap ${
+                                                record.riskLevel === 'Low' ? 'bg-green-100 text-green-700' :
+                                                record.riskLevel === 'Medium' ? 'bg-amber-100 text-amber-700' :
+                                                record.riskLevel === 'High' ? 'bg-orange-100 text-orange-700' :
+                                                'bg-red-100 text-red-700'
+                                              }`}>{record.riskLevel}</span>
+                                            </td>
+                                            <td className="px-3 py-2 text-gray-600 max-w-[200px]">
+                                              <div className="line-clamp-2" title={record.comments}>{record.comments || '—'}</div>
+                                            </td>
+                                            <td className="px-3 py-2 text-right">
+                                              {isOwn && (
+                                                <div className="flex items-center justify-end gap-1">
+                                                  <button
+                                                    onClick={() => {
+                                                      setEditingRiskId(record.id);
+                                                      setEditingRiskDraft({ department: record.department, riskLevel: record.riskLevel, comments: record.comments });
+                                                    }}
+                                                    className="text-[10px] text-sky hover:underline"
+                                                  >Edit</button>
+                                                  <span className="text-gray-300">|</span>
+                                                  <button
+                                                    onClick={() => {
+                                                      if (!window.confirm('Remove this assessment record?')) return;
+                                                      onAssetsChange(assets.map(a => a.id === asset.id
+                                                        ? {
+                                                            ...a,
+                                                            versions: a.versions.map((v: any) =>
+                                                              v.versionNumber === a.currentVersionNumber
+                                                                ? { ...v, riskRecords: v.riskRecords.map((r: any) => r.id === record.id ? { ...r, isRemoved: true } : r) }
+                                                                : v
+                                                            )
+                                                          }
+                                                        : a
+                                                      ));
+                                                    }}
+                                                    className="text-[10px] text-red-500 hover:underline"
+                                                  >Remove</button>
+                                                </div>
+                                              )}
+                                            </td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
 
                         {/* Section 3: Comments */}
                         <div className="bg-white rounded-lg border border-pebble overflow-hidden shadow-sm">
-                          <button
-                            type="button"
+                          <div
                             onClick={() => toggleSection(asset.uniqueRowId, 'comments')}
-                            className="w-full px-4 py-3 flex items-center justify-between hover:bg-earth transition-colors"
+                            className="w-full px-3 py-2 flex items-center justify-between hover:bg-earth transition-colors cursor-pointer"
                           >
-                            <div className="flex items-center gap-3">
-                              <MessageSquare className="w-4 h-4 text-gray-400" />
-                              <span className="text-sm text-night font-medium">Comments</span>
-                              <span className="text-xs text-gray-500">
-                                {asset.assetLevelComments.length} comments
+                            <div className="flex items-center gap-2">
+                              <MessageSquare className="w-3.5 h-3.5 text-gray-400" />
+                              <span className="text-xs text-night font-medium">Comments</span>
+                              <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full border border-pebble font-semibold">
+                                {(assetComments[asset.id] || []).length + asset.assetLevelComments.length}
                               </span>
                             </div>
-                            {expandedSections[asset.uniqueRowId] === 'comments' ? (
-                              <ChevronDown className="w-4 h-4 text-gray-400" />
+                            {isSectionOpen(asset.uniqueRowId, 'comments') ? (
+                              <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
                             ) : (
-                              <ChevronRight className="w-4 h-4 text-gray-400" />
+                              <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
                             )}
-                          </button>
-                          {expandedSections[asset.uniqueRowId] === 'comments' && (
-                            <div className="px-6 py-5 border-t border-pebble bg-pale/5">
-                              <div className="space-y-3">
-                                {asset.assetLevelComments.length > 0 ? (
-                                  asset.assetLevelComments.map((comment: any) => (
-                                    <div key={comment.id} className="p-3 bg-white border border-pebble rounded">
-                                      <div className="flex items-center gap-2 mb-2">
-                                        <span className="text-sm font-medium text-night">{comment.author}</span>
-                                        <span className="text-xs text-gray-400">{formatRelativeDate(comment.createdAt)}</span>
-                                      </div>
-                                      <p className="text-sm text-gray-600">{comment.content}</p>
-                                    </div>
-                                  ))
+                          </div>
+                          {isSectionOpen(asset.uniqueRowId, 'comments') && (
+                            <div className="px-3 py-2 border-t border-pebble bg-pale/5 flex flex-col" style={{ height: '160px' }}>
+                              <div className="flex-1 overflow-y-auto mb-1.5 pr-2">
+                                {/* Static comments from asset data */}
+                                {asset.assetLevelComments.length === 0 && (assetComments[asset.id] || []).length === 0 ? (
+                                  <div className="text-[10px] text-gray-400 italic py-1">No comments yet.</div>
                                 ) : (
-                                  <p className="text-sm text-gray-400 italic">No comments yet</p>
+                                  <>
+                                    {asset.assetLevelComments.map((comment: any) => (
+                                      <div key={comment.id} className="flex items-start gap-2 py-1 min-w-0">
+                                        <div className="w-4 h-4 rounded-full bg-gray-400 text-white flex items-center justify-center text-[8px] font-semibold flex-shrink-0 mt-0.5">
+                                          {comment.author.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center gap-1.5">
+                                            <span className="text-[10px] font-semibold text-night">{comment.author}</span>
+                                            <span className="text-[9px] text-gray-400">{formatRelativeDate(comment.createdAt)}</span>
+                                          </div>
+                                          <p className="text-[10px] text-gray-700 leading-snug mt-0.5 whitespace-pre-wrap">{comment.content}</p>
+                                        </div>
+                                      </div>
+                                    ))}
+                                    {/* Live comments added in session */}
+                                    {(assetComments[asset.id] || []).map(c => (
+                                      <div key={c.id} className={`group flex items-start gap-2 py-1 min-w-0 ${c.replyToId ? 'ml-6' : ''}`}>
+                                        <div className="w-4 h-4 rounded-full bg-sky text-white flex items-center justify-center text-[8px] font-semibold flex-shrink-0 mt-0.5">{c.initials}</div>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center gap-1.5">
+                                            <span className="text-[10px] font-semibold text-night">{c.author}</span>
+                                            <span className="text-[9px] text-gray-400">{new Date(c.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                            <button
+                                              onClick={() => setReplyingToComment(prev => ({ ...prev, [asset.id]: { id: c.id, author: c.author } }))}
+                                              className="opacity-0 group-hover:opacity-100 text-sky hover:text-sky/80 transition-opacity focus:outline-none"
+                                              title="Reply"
+                                            ><MessageSquare className="w-3 h-3" /></button>
+                                          </div>
+                                          <p className="text-[10px] text-gray-700 leading-snug mt-0.5 whitespace-pre-wrap">{c.text}</p>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </>
                                 )}
+                              </div>
+
+                              {/* Reply indicator */}
+                              {replyingToComment[asset.id] && (
+                                <div className="flex items-center justify-between bg-sky/5 border border-sky/20 rounded px-2 py-1 mb-1.5 text-[10px] text-sky">
+                                  <span>Replying to <span className="font-semibold">{replyingToComment[asset.id]?.author}</span></span>
+                                  <button onClick={() => setReplyingToComment(prev => ({ ...prev, [asset.id]: null }))} className="hover:text-sky/70">
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              )}
+
+                              {/* New comment input */}
+                              <div className="flex gap-1.5 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                                <textarea
+                                  id={`asset-comment-${asset.id}`}
+                                  placeholder="Add a comment… (Enter to submit)"
+                                  rows={1}
+                                  className="flex-1 px-2 py-1 border border-pebble rounded text-[10px] focus:outline-none focus:ring-1 focus:ring-sky resize-none bg-white text-night"
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                      e.preventDefault();
+                                      const text = e.currentTarget.value.trim();
+                                      if (text) {
+                                        setAssetComments(prev => ({
+                                          ...prev,
+                                          [asset.id]: [
+                                            ...(prev[asset.id] || []),
+                                            {
+                                              id: `ac-${Date.now()}`,
+                                              author: 'Sarah Johnson',
+                                              initials: 'SJ',
+                                              text,
+                                              timestamp: new Date().toISOString(),
+                                              replyToId: replyingToComment[asset.id]?.id,
+                                            }
+                                          ]
+                                        }));
+                                        e.currentTarget.value = '';
+                                        setReplyingToComment(prev => ({ ...prev, [asset.id]: null }));
+                                      }
+                                    }
+                                  }}
+                                />
                               </div>
                             </div>
                           )}
                         </div>
+
                         </div>
                       </div>
                     </td>
