@@ -193,24 +193,24 @@ function FinalRiskSummarySection({
   const [draft, setDraft] = useState({
     finalRiskLevel: claim.finalRiskLevel ?? "",
     claimClassificationLevel:
-      claim.finalRiskSummary.claimClassificationLevel ?? "",
+      claim.finalRiskSummary?.claimClassificationLevel ?? "",
     reasons:
-      claim.finalRiskSummary.reasons ??
-      (claim.finalRiskSummary.reason
+      claim.finalRiskSummary?.reasons ??
+      (claim.finalRiskSummary?.reason
         ? claim.finalRiskSummary.reason
             .split(";")
             .map((r) => r.trim())
             .filter(Boolean)
         : []),
     claimsForumSummary:
-      claim.finalRiskSummary.claimsForumSummary ?? "",
-    legalSummary: claim.finalRiskSummary.legalSummary ?? "",
-    raSummary: claim.finalRiskSummary.raSummary ?? "",
-    rdSummary: claim.finalRiskSummary.rdSummary ?? "",
+      claim.finalRiskSummary?.claimsForumSummary ?? "",
+    legalSummary: claim.finalRiskSummary?.legalSummary ?? "",
+    raSummary: claim.finalRiskSummary?.raSummary ?? "",
+    rdSummary: claim.finalRiskSummary?.rdSummary ?? "",
     marketingFeedback:
-      claim.finalRiskSummary.marketingFeedback ?? "",
+      claim.finalRiskSummary?.marketingFeedback ?? "",
     marketingRiskSignoff:
-      claim.finalRiskSummary.marketingRiskSignoff,
+      claim.finalRiskSummary?.marketingRiskSignoff ?? false,
   });
 
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -611,7 +611,7 @@ function FinalRiskSummarySection({
       </div>
 
       {/* ── iRA Output Block (M6 US-M4-66) ── */}
-      {claim.finalRiskSummary.iRAOutput === "Completed" && (
+      {claim.finalRiskSummary?.iRAOutput === "Completed" && (
         <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-xs font-bold text-blue-800 uppercase tracking-wide">
@@ -630,7 +630,7 @@ function FinalRiskSummarySection({
                 <span className="text-sm font-semibold text-blue-900">
                   {claim.finalRiskLevelIRA}
                 </span>
-                {claim.finalRiskSummary.iRARiskConfidence && (
+                {claim.finalRiskSummary?.iRARiskConfidence && (
                   <span className="px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-700">
                     {claim.finalRiskSummary.iRARiskConfidence}%
                     confidence
@@ -646,22 +646,22 @@ function FinalRiskSummarySection({
                 <span className="text-sm font-semibold text-blue-900">
                   {
                     claim.finalRiskSummary
-                      .claimClassificationLevelIRA
+                      ?.claimClassificationLevelIRA
                   }
                 </span>
                 {claim.finalRiskSummary
-                  .iRAClassificationConfidence && (
+                  ?.iRAClassificationConfidence && (
                   <span className="px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-700">
                     {
                       claim.finalRiskSummary
-                        .iRAClassificationConfidence
+                        ?.iRAClassificationConfidence
                     }
                     % confidence
                   </span>
                 )}
               </div>
             </div>
-            {claim.finalRiskSummary.iRAReasons &&
+            {claim.finalRiskSummary?.iRAReasons &&
               claim.finalRiskSummary.iRAReasons.length > 0 && (
                 <div className="col-span-2">
                   <span className="text-xs text-blue-600 font-semibold uppercase block mb-2">
@@ -692,7 +692,7 @@ function FinalRiskSummarySection({
       )}
 
       {/* Inheritance trace */}
-      {claim.finalRiskSummary.inheritanceTrace && (
+      {claim.finalRiskSummary?.inheritanceTrace && (
         <div className="px-3 py-2 bg-teal-50 border border-teal-200 rounded-lg text-sm text-teal-700">
           ℹ {claim.finalRiskSummary.inheritanceTrace}
         </div>

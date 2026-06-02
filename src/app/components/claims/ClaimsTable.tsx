@@ -342,11 +342,11 @@ export default function ClaimsTable({
   const [creationConfig, setCreationConfig] = useState<{ open: boolean; type?: ClaimType; initialTabs?: any[] }>({ open: false });
 
   const checkboxWidth = isBulkSelectionEnabled ? 40 : 0;
-  // Layout: [checkbox?40] [three-dots:36] [favorite:36] [expand:36] [columns...]
+  // Layout: [checkbox?40] [three-dots:24] [favorite:24] [expand:24] [columns...]
   const threeDotsLeft = isBulkSelectionEnabled ? 40 : 0;
-  const favoriteLeft = isBulkSelectionEnabled ? 76 : 36;
-  const expandLeft = isBulkSelectionEnabled ? 112 : 72;
-  const claimStatementLeft = isBulkSelectionEnabled ? 148 : 108;
+  const favoriteLeft = isBulkSelectionEnabled ? 64 : 24;
+  const expandLeft = isBulkSelectionEnabled ? 88 : 48;
+  const claimStatementLeft = isBulkSelectionEnabled ? 112 : 72;
 
   const toggleFavorite = (claim: any) => {
     if (!onClaimsChange) return;
@@ -626,13 +626,13 @@ export default function ClaimsTable({
         return (
           <td key={colId} className="px-4 py-3" style={cellStyle}>
             <div className="flex flex-wrap gap-1 overflow-hidden">
-              {claim.marketingChannels.slice(0, 2).map((ch: string, i: number) => (
+              {(claim.marketingChannels || []).slice(0, 2).map((ch: string, i: number, arr: string[]) => (
                 <span key={ch} className={`text-xs block truncate ${softTextColor}`}>
-                  {ch}{i === 0 && claim.marketingChannels.length > 1 ? ', ' : ''}
+                  {ch}{i === 0 && arr.length > 1 ? ', ' : ''}
                 </span>
               ))}
-              {claim.marketingChannels.length > 2 && (
-                <span className={`text-xs ml-1 ${metaTextColor}`}>+{claim.marketingChannels.length - 2}</span>
+              {(claim.marketingChannels || []).length > 2 && (
+                <span className={`text-xs ml-1 ${metaTextColor}`}>+{(claim.marketingChannels || []).length - 2}</span>
               )}
             </div>
           </td>
@@ -697,8 +697,8 @@ export default function ClaimsTable({
       case 'relatedProjects':
         return (
           <td key={colId} className="px-4 py-3" style={cellStyle}>
-            {claim.relatedProjectIds.length > 0 ? (
-              <span className={`text-xs block truncate ${strongTextColor}`}>{claim.relatedProjectIds.length}</span>
+            {(claim.relatedProjectIds || []).length > 0 ? (
+              <span className={`text-xs block truncate ${strongTextColor}`}>{(claim.relatedProjectIds || []).length}</span>
             ) : (
               <span className={`text-xs block truncate ${metaTextColor}`}>—</span>
             )}
@@ -886,33 +886,33 @@ export default function ClaimsTable({
 
               {/* Three-dots actions header */}
               <th
-                className="py-3 pl-2 pr-1"
+                className="py-3 pl-1 pr-0"
                 style={{
-                  width: "36px",
-                  minWidth: "36px",
-                  maxWidth: "36px",
+                  width: "24px",
+                  minWidth: "24px",
+                  maxWidth: "24px",
                   ...(isFrozen ? { position: "sticky", left: threeDotsLeft, zIndex: 20, backgroundColor: "#F6F7F0", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {})
                 }}
               ></th>
 
               {/* Favorite */}
               <th
-                className="py-3 px-1"
+                className="py-3 px-0"
                 style={{
-                  width: "36px",
-                  minWidth: "36px",
-                  maxWidth: "36px",
+                  width: "24px",
+                  minWidth: "24px",
+                  maxWidth: "24px",
                   ...(isFrozen ? { position: "sticky", left: favoriteLeft, zIndex: 20, backgroundColor: "#F6F7F0", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {})
                 }}
               ></th>
 
               {/* Expand */}
               <th
-                className="py-3 px-1"
+                className="py-3 px-0"
                 style={{
-                  width: "36px",
-                  minWidth: "36px",
-                  maxWidth: "36px",
+                  width: "24px",
+                  minWidth: "24px",
+                  maxWidth: "24px",
                   ...(isFrozen ? { position: "sticky", left: expandLeft, zIndex: 20, backgroundColor: "#F6F7F0", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {})
                 }}
               ></th>
@@ -1008,30 +1008,46 @@ export default function ClaimsTable({
                         claimType: 'Global',
                         lifecycleStage: 'Approved',
                         finalRiskLevel: 'Low',
-                        versions: [{ versionNumber: 1, globalStatement: 'Clinically proven to hydrate skin for 24 hours, providing the foundational support for this local adaptation.', isLatest: true }]
+                        currentVersion: 0,
+                        marketingChannels: [],
+                        relatedProjectIds: [],
+                        substantiationDocs: [],
+                        riskAssessments: [],
+                        challenged: false,
+                        restrictedUse: false,
+                        productName: '—',
+                        geography: '—',
+                        claimCategory: '—',
+                        order: '—',
+                        uniqueRowId: claim.parentClaimId,
+                        versions: [{ versionNumber: 1, globalStatement: 'Clinically proven to hydrate skin for 24 hours, providing the foundational support for this local adaptation.', isLatest: true, isFavorite: false }]
                       } as any;
                     }
 
                     const pVer = parentClaim.versions[parentClaim?.currentVersion || 0];
                     const pStmt = parentClaim.claimType === 'Global' ? pVer?.globalStatement : pVer?.localStatement;
                     return (
-                      <tr className="bg-sky/5 border-b-2 border-sky/20">
-                        <td colSpan={columnOrder.length + (isBulkSelectionEnabled ? 3 : 2)} className="p-0">
-                          <div className="px-4 py-3 flex gap-4">
-                            <div className="flex-shrink-0 text-sky opacity-50 mt-1">
-                              <Network className="w-4 h-4" />
-                            </div>
-                            <div className="flex-1 space-y-1.5">
-                              <div className="flex items-center gap-3">
-                                <span className="text-[10px] font-bold text-sky uppercase">{parentClaim.claimIdentifier || parentClaim.id}</span>
-                                <span className="text-[10px] text-gray-500 font-medium">Parent Claim</span>
-                                <span className="text-[10px] text-gray-400 border-l border-gray-300 pl-3">v{pVer?.versionNumber} · {parentClaim.claimType} · {parentClaim.lifecycleStage}</span>
-                                {parentClaim.finalRiskLevel && <span className="text-[10px] text-gray-400 border-l border-gray-300 pl-3">Risk: {parentClaim.finalRiskLevel}</span>}
-                              </div>
-                              <p className="text-xs text-night font-medium leading-snug">{pStmt || '—'}</p>
-                            </div>
-                          </div>
+                      <tr className="bg-sky/5 border-b-2 border-sky/20 transition-opacity" style={{ height: 48 }}>
+                        {/* Checkbox (empty) */}
+                        {isBulkSelectionEnabled && (
+                          <td className="py-3 pl-4 pr-1" style={{ width: "40px", minWidth: "40px", maxWidth: "40px", ...(isFrozen ? { position: "sticky", left: 0, zIndex: 10, backgroundColor: "#EEF4FB", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {}) }}></td>
+                        )}
+
+                        {/* Three-dots (empty for sub-rows) */}
+                        <td className="py-3 pl-1 pr-0" style={{ width: "24px", minWidth: "24px", maxWidth: "24px", ...(isFrozen ? { position: "sticky", left: threeDotsLeft, zIndex: 10, backgroundColor: "#EEF4FB", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {}) }}></td>
+                        
+                        {/* Favorite (empty) */}
+                        <td className="py-3 px-0" style={{ width: "24px", minWidth: "24px", maxWidth: "24px", ...(isFrozen ? { position: "sticky", left: favoriteLeft, zIndex: 10, backgroundColor: "#EEF4FB", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {}) }}></td>
+                        
+                        {/* Parent Indicator (indent) */}
+                        <td className="py-3 px-0 text-center" style={{ width: "24px", minWidth: "24px", maxWidth: "24px", ...(isFrozen ? { position: "sticky", left: expandLeft, zIndex: 10, backgroundColor: "#EEF4FB", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {}) }}>
+                          <Network className="w-4 h-4 text-sky mx-auto opacity-70" title="Parent Claim" />
                         </td>
+
+                        {/* Draggable data cells */}
+                        {columnOrder.map((col) => {
+                          return renderClaimCell(parentClaim, col.id, pStmt, pVer?.isLatest, false, "#EEF4FB", true);
+                        })}
                       </tr>
                     );
                   })()}
@@ -1064,11 +1080,11 @@ export default function ClaimsTable({
 
                     {/* Three-dots actions */}
                     <td
-                      className="py-3 pl-2 pr-0 relative"
+                      className="py-3 pl-1 pr-0 relative"
                       style={{
-                        width: "36px",
-                        minWidth: "36px",
-                        maxWidth: "36px",
+                        width: "24px",
+                        minWidth: "24px",
+                        maxWidth: "24px",
                         ...(isFrozen ? { position: "sticky", left: threeDotsLeft, zIndex: 10, backgroundColor: isSelected ? "#F3F7FC" : "#ffffff", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {})
                       }}
                     >
@@ -1189,11 +1205,11 @@ export default function ClaimsTable({
 
                     {/* Favorite */}
                     <td
-                      className="py-3 px-1"
+                      className="py-3 px-0"
                       style={{
-                        width: "36px",
-                        minWidth: "36px",
-                        maxWidth: "36px",
+                        width: "24px",
+                        minWidth: "24px",
+                        maxWidth: "24px",
                         ...(isFrozen ? { position: "sticky", left: favoriteLeft, zIndex: 10, backgroundColor: isSelected ? "#F3F7FC" : "#ffffff", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {})
                       }}
                     >
@@ -1213,11 +1229,11 @@ export default function ClaimsTable({
 
                     {/* Expand chevron */}
                     <td
-                      className="py-3 px-1"
+                      className="py-3 px-0"
                       style={{
-                        width: "36px",
-                        minWidth: "36px",
-                        maxWidth: "36px",
+                        width: "24px",
+                        minWidth: "24px",
+                        maxWidth: "24px",
                         ...(isFrozen ? { position: "sticky", left: expandLeft, zIndex: 10, backgroundColor: isSelected ? "#F3F7FC" : "#ffffff", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {})
                       }}
                     >
@@ -1250,13 +1266,13 @@ export default function ClaimsTable({
                         )}
 
                         {/* Three-dots (empty for sub-rows) */}
-                        <td className="py-3 pl-2 pr-0" style={{ width: "36px", minWidth: "36px", maxWidth: "36px", ...(isFrozen ? { position: "sticky", left: threeDotsLeft, zIndex: 10, backgroundColor: "#f9fafb", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {}) }}></td>
+                        <td className="py-3 pl-1 pr-0" style={{ width: "24px", minWidth: "24px", maxWidth: "24px", ...(isFrozen ? { position: "sticky", left: threeDotsLeft, zIndex: 10, backgroundColor: "#f9fafb", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {}) }}></td>
                         
                         {/* Favorite (empty) */}
-                        <td className="py-3 px-1" style={{ width: "36px", minWidth: "36px", maxWidth: "36px", ...(isFrozen ? { position: "sticky", left: favoriteLeft, zIndex: 10, backgroundColor: "#f9fafb", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {}) }}></td>
+                        <td className="py-3 px-0" style={{ width: "24px", minWidth: "24px", maxWidth: "24px", ...(isFrozen ? { position: "sticky", left: favoriteLeft, zIndex: 10, backgroundColor: "#f9fafb", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {}) }}></td>
                         
                         {/* Expand chevron (indent) */}
-                        <td className="py-3 px-1" style={{ width: "36px", minWidth: "36px", maxWidth: "36px", ...(isFrozen ? { position: "sticky", left: expandLeft, zIndex: 10, backgroundColor: "#f9fafb", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {}) }}>
+                        <td className="py-3 px-0" style={{ width: "24px", minWidth: "24px", maxWidth: "24px", ...(isFrozen ? { position: "sticky", left: expandLeft, zIndex: 10, backgroundColor: "#f9fafb", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {}) }}>
                           <span className="text-gray-400 flex justify-center text-lg">↳</span>
                         </td>
 
