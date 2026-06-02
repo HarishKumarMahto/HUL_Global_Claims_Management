@@ -1,9 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, ChevronRight, ChevronUp, Check, Flag, AlertCircle, FileText, Shield, Scale, Plus, Upload, X, Search, Lock, Save, Bold, Italic, List, Link, MoreHorizontal, Eye, EyeOff, ArrowUpDown, MessageSquare, Star, Send, Network } from 'lucide-react';
-import type { Claim, ClaimBaseView, ClaimWorkView, RiskLevel, AuditEntry } from '../../types';
+import { ChevronDown, ChevronRight, ChevronUp, Check, Flag, AlertCircle, FileText, Shield, Scale, Plus, Upload, X, Search, Lock, Save, Bold, Italic, List, Link, MoreHorizontal, Eye, EyeOff, ArrowUpDown, MessageSquare, Star, Send, Network, Copy, Settings, Sparkles } from 'lucide-react';
+import type { Claim, ClaimBaseView, ClaimWorkView, RiskLevel, AuditEntry, ClaimType } from '../../types';
 import { formatDate, RISK_LEVEL_OPTIONS } from '../ui/tableUtils';
-import { CURRENT_USER, CURRENT_USER_ROLE, canEditSupportStrategy, CLAIM_LIFECYCLE_COLORS } from '../../types';
+import { CURRENT_USER, CURRENT_USER_ROLE, canEditSupportStrategy, CLAIM_LIFECYCLE_COLORS, initialProjects } from '../../types';
 import EmptyState from '../ui/EmptyState';
+import DuplicateClaimModal from './DuplicateClaimModal';
+import AdaptationModal from './AdaptationModal';
+import ClaimCreationModal from './ClaimCreationModal';
+import IRAModal from './IRAModal';
 
 const RISK_FUNCTIONS = ['R&D', 'RA', 'Legal', 'Marketing'] as const;
 type RiskFunction = typeof RISK_FUNCTIONS[number];
@@ -328,10 +332,21 @@ export default function ClaimsTable({
   const [isTableMenuOpen, setIsTableMenuOpen] = useState(false);
   const [activeHeaderDropdown, setActiveHeaderDropdown] = useState<string | null>(null);
 
+  // Three-dots row action menu state
+  const [rowActionMenuId, setRowActionMenuId] = useState<string | null>(null);
+  // Row-level modals
+  const [rowActionClaim, setRowActionClaim] = useState<any>(null);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [showAdaptationModal, setShowAdaptationModal] = useState(false);
+  const [showIRAModal, setShowIRAModal] = useState(false);
+  const [creationConfig, setCreationConfig] = useState<{ open: boolean; type?: ClaimType; initialTabs?: any[] }>({ open: false });
+
   const checkboxWidth = isBulkSelectionEnabled ? 40 : 0;
-  const favoriteLeft = isBulkSelectionEnabled ? 40 : 0;
-  const expandLeft = isBulkSelectionEnabled ? 80 : 40;
-  const claimStatementLeft = isBulkSelectionEnabled ? 120 : 80;
+  // Layout: [checkbox?40] [three-dots:36] [favorite:36] [expand:36] [columns...]
+  const threeDotsLeft = isBulkSelectionEnabled ? 40 : 0;
+  const favoriteLeft = isBulkSelectionEnabled ? 76 : 36;
+  const expandLeft = isBulkSelectionEnabled ? 112 : 72;
+  const claimStatementLeft = isBulkSelectionEnabled ? 148 : 108;
 
   const toggleFavorite = (claim: any) => {
     if (!onClaimsChange) return;
@@ -697,6 +712,7 @@ export default function ClaimsTable({
   const hasActiveFilters = lifecycleFilter.length > 0 || riskLevelFilter.length > 0 || channelsFilter.length > 0 || geographyFilter.length > 0;
 
   return (
+    <>
     <div className="w-full h-full flex flex-col bg-white rounded-xl border border-gray-300 overflow-hidden shadow-sm">
       {/* Active filter chips row */}
       {hasActiveFilters && (
@@ -868,24 +884,35 @@ export default function ClaimsTable({
                 </th>
               )}
 
+              {/* Three-dots actions header */}
+              <th
+                className="py-3 pl-2 pr-1"
+                style={{
+                  width: "36px",
+                  minWidth: "36px",
+                  maxWidth: "36px",
+                  ...(isFrozen ? { position: "sticky", left: threeDotsLeft, zIndex: 20, backgroundColor: "#F6F7F0", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {})
+                }}
+              ></th>
+
               {/* Favorite */}
               <th
-                className="px-4 py-3"
+                className="py-3 px-1"
                 style={{
-                  width: "40px",
-                  minWidth: "40px",
-                  maxWidth: "40px",
+                  width: "36px",
+                  minWidth: "36px",
+                  maxWidth: "36px",
                   ...(isFrozen ? { position: "sticky", left: favoriteLeft, zIndex: 20, backgroundColor: "#F6F7F0", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {})
                 }}
               ></th>
 
               {/* Expand */}
               <th
-                className="px-4 py-3"
+                className="py-3 px-1"
                 style={{
-                  width: "40px",
-                  minWidth: "40px",
-                  maxWidth: "40px",
+                  width: "36px",
+                  minWidth: "36px",
+                  maxWidth: "36px",
                   ...(isFrozen ? { position: "sticky", left: expandLeft, zIndex: 20, backgroundColor: "#F6F7F0", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {})
                 }}
               ></th>
@@ -1035,14 +1062,139 @@ export default function ClaimsTable({
                       </td>
                     )}
 
+                    {/* Three-dots actions */}
+                    <td
+                      className="py-3 pl-2 pr-0 relative"
+                      style={{
+                        width: "36px",
+                        minWidth: "36px",
+                        maxWidth: "36px",
+                        ...(isFrozen ? { position: "sticky", left: threeDotsLeft, zIndex: 10, backgroundColor: isSelected ? "#F3F7FC" : "#ffffff", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {})
+                      }}
+                    >
+                      <div className="relative">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRowActionMenuId(rowActionMenuId === claim.uniqueRowId ? null : claim.uniqueRowId);
+                            setRowActionClaim(claim);
+                          }}
+                          className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors focus:outline-none"
+                          title="More actions"
+                        >
+                          <MoreHorizontal className="w-4 h-4" />
+                        </button>
+                        {rowActionMenuId === claim.uniqueRowId && (
+                          <>
+                            <div className="fixed inset-0 z-30" onClick={() => setRowActionMenuId(null)} />
+                            <div className="absolute left-0 top-full mt-1 bg-white border border-pebble rounded-xl shadow-xl z-40 min-w-[220px] overflow-hidden py-1" style={{ top: '100%' }}>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setRowActionMenuId(null);
+                                  setRowActionClaim(claim);
+                                  setShowDuplicateModal(true);
+                                }}
+                                className="w-full text-left px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors flex items-center gap-2.5"
+                              >
+                                <Copy className="w-4 h-4 text-sky" />
+                                Duplicate Claim
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setRowActionMenuId(null);
+                                  if (!onClaimsChange) return;
+                                  const curVer = claim.versions[claim.currentVersion];
+                                  const currentPrimary = claim.claimType === 'Global' ? curVer.globalStatement : curVer.localStatement;
+                                  const oldVersions = claim.versions.map((v: any, i: number) =>
+                                    i === claim.currentVersion ? { ...v, isLatest: false } : v
+                                  );
+                                  const newVersion = {
+                                    versionNumber: claim.versions.length + 1,
+                                    isLatest: true,
+                                    globalStatement: claim.claimType === 'Global' ? currentPrimary : curVer.globalStatement,
+                                    localStatement: claim.claimType !== 'Global' ? currentPrimary : curVer.localStatement,
+                                    createdAt: new Date().toISOString(),
+                                    createdBy: CURRENT_USER,
+                                  };
+                                  const updated = {
+                                    ...claim,
+                                    versions: [...oldVersions, newVersion],
+                                    currentVersion: oldVersions.length,
+                                    lifecycleStage: 'Proposed',
+                                    updatedAt: new Date().toISOString(),
+                                  };
+                                  const allClaims: Claim[] = (claim as any)._allClaims ?? claims;
+                                  onClaimsChange(allClaims.map((c: Claim) => c.id === claim.id ? updated : c));
+                                }}
+                                className="w-full text-left px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors flex items-center gap-2.5"
+                              >
+                                <FileText className="w-4 h-4 text-sky" />
+                                Create New Version
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setRowActionMenuId(null);
+                                  setRowActionClaim(claim);
+                                  setShowAdaptationModal(true);
+                                }}
+                                className="w-full text-left px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors flex items-center gap-2.5"
+                              >
+                                <Settings className="w-4 h-4 text-sky" />
+                                Create Local/Regional Claim
+                              </button>
+                              <div className="border-t border-pebble my-1" />
+                              {(() => {
+                                const isHomeCare = (() => {
+                                  if ((claim as any).businessGroup === 'Home Care') return true;
+                                  return (claim.relatedProjectIds || []).some((pid: string) => {
+                                    const proj = initialProjects.find((p: any) => p.id === pid);
+                                    return proj?.businessGroup === 'Home Care';
+                                  });
+                                })();
+                                const canRunIRA = isHomeCare && claim.lifecycleStage !== 'Assessed';
+                                return canRunIRA ? (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setRowActionMenuId(null);
+                                      setRowActionClaim(claim);
+                                      setShowIRAModal(true);
+                                    }}
+                                    className="w-full text-left px-4 py-2.5 text-sm text-night hover:bg-earth transition-colors flex items-center gap-2.5"
+                                  >
+                                    <Sparkles className="w-4 h-4 text-sky animate-pulse" />
+                                    Run iRA
+                                  </button>
+                                ) : (
+                                  <div
+                                    className="px-4 py-2.5 text-sm text-gray-400 flex items-center gap-2.5 cursor-not-allowed bg-earth/30"
+                                    title={!isHomeCare ? 'iRA is only available for Home Care claims' : 'iRA is disabled after Assessed'}
+                                  >
+                                    <Sparkles className="w-4 h-4 text-gray-300" />
+                                    Run iRA
+                                    <span className="ml-auto text-xs text-gray-400">
+                                      {!isHomeCare ? 'Home Care only' : 'Assessed'}
+                                    </span>
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </td>
+
                     {/* Favorite */}
                     <td
-                      className="px-4 py-3"
+                      className="py-3 px-1"
                       style={{
-                        width: "40px",
-                        minWidth: "40px",
-                        maxWidth: "40px",
-                        ...(isFrozen ? { position: "sticky", left: favoriteLeft, zIndex: 10, backgroundColor: "#ffffff", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {})
+                        width: "36px",
+                        minWidth: "36px",
+                        maxWidth: "36px",
+                        ...(isFrozen ? { position: "sticky", left: favoriteLeft, zIndex: 10, backgroundColor: isSelected ? "#F3F7FC" : "#ffffff", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {})
                       }}
                     >
                       <button
@@ -1061,12 +1213,12 @@ export default function ClaimsTable({
 
                     {/* Expand chevron */}
                     <td
-                      className="px-4 py-3"
+                      className="py-3 px-1"
                       style={{
-                        width: "40px",
-                        minWidth: "40px",
-                        maxWidth: "40px",
-                        ...(isFrozen ? { position: "sticky", left: expandLeft, zIndex: 10, backgroundColor: "#ffffff", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {})
+                        width: "36px",
+                        minWidth: "36px",
+                        maxWidth: "36px",
+                        ...(isFrozen ? { position: "sticky", left: expandLeft, zIndex: 10, backgroundColor: isSelected ? "#F3F7FC" : "#ffffff", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {})
                       }}
                     >
                       <button
@@ -1094,14 +1246,17 @@ export default function ClaimsTable({
                       >
                         {/* Checkbox (empty) */}
                         {isBulkSelectionEnabled && (
-                          <td className="px-4 py-3" style={{ width: "40px", minWidth: "40px", maxWidth: "40px", ...(isFrozen ? { position: "sticky", left: 0, zIndex: 10, backgroundColor: "#f9fafb", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {}) }}></td>
+                          <td className="py-3 pl-4 pr-1" style={{ width: "40px", minWidth: "40px", maxWidth: "40px", ...(isFrozen ? { position: "sticky", left: 0, zIndex: 10, backgroundColor: "#f9fafb", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {}) }}></td>
                         )}
+
+                        {/* Three-dots (empty for sub-rows) */}
+                        <td className="py-3 pl-2 pr-0" style={{ width: "36px", minWidth: "36px", maxWidth: "36px", ...(isFrozen ? { position: "sticky", left: threeDotsLeft, zIndex: 10, backgroundColor: "#f9fafb", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {}) }}></td>
                         
                         {/* Favorite (empty) */}
-                        <td className="px-4 py-3" style={{ width: "40px", minWidth: "40px", maxWidth: "40px", ...(isFrozen ? { position: "sticky", left: favoriteLeft, zIndex: 10, backgroundColor: "#f9fafb", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {}) }}></td>
+                        <td className="py-3 px-1" style={{ width: "36px", minWidth: "36px", maxWidth: "36px", ...(isFrozen ? { position: "sticky", left: favoriteLeft, zIndex: 10, backgroundColor: "#f9fafb", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {}) }}></td>
                         
                         {/* Expand chevron (indent) */}
-                        <td className="px-4 py-3" style={{ width: "40px", minWidth: "40px", maxWidth: "40px", ...(isFrozen ? { position: "sticky", left: expandLeft, zIndex: 10, backgroundColor: "#f9fafb", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {}) }}>
+                        <td className="py-3 px-1" style={{ width: "36px", minWidth: "36px", maxWidth: "36px", ...(isFrozen ? { position: "sticky", left: expandLeft, zIndex: 10, backgroundColor: "#f9fafb", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.1)" } : {}) }}>
                           <span className="text-gray-400 flex justify-center text-lg">↳</span>
                         </td>
 
@@ -1116,7 +1271,7 @@ export default function ClaimsTable({
                   {/* Inline Expanded Workbench — US-M4-008 */}
                   {isExpanded && (
                     <tr>
-                      <td colSpan={columnOrder.length + (isBulkSelectionEnabled ? 3 : 2)} className="p-0">
+                      <td colSpan={columnOrder.length + (isBulkSelectionEnabled ? 4 : 3)} className="p-0">
                         <div className="border-b-2 border-sky/20" style={{ background: '#EEF4FB' }}>
                           <div className="px-3 py-2 space-y-1.5">
 
@@ -1501,7 +1656,7 @@ export default function ClaimsTable({
             })}
             {claims.length === 0 && (
               <tr>
-                <td colSpan={columnOrder.length + (isBulkSelectionEnabled ? 3 : 2)} className="px-0 py-0">
+                <td colSpan={columnOrder.length + (isBulkSelectionEnabled ? 4 : 3)} className="px-0 py-0">
                   <EmptyState
                     icon={FileText}
                     title="No claims found"
@@ -1514,5 +1669,151 @@ export default function ClaimsTable({
         </table>
       </div>
     </div>
+
+    {/* Row-level action modals */}
+    {rowActionClaim && (
+      <>
+        <DuplicateClaimModal
+          isOpen={showDuplicateModal}
+          onClose={() => { setShowDuplicateModal(false); setRowActionClaim(null); }}
+          claim={rowActionClaim}
+          onDuplicate={(claimId, targetProducts, settings) => {
+            const version = rowActionClaim.versions[rowActionClaim.currentVersion];
+            const initialTabs = targetProducts.map((p: string) => ({
+              key: `${p}||${rowActionClaim.geography || 'Global'}`,
+              label: rowActionClaim.claimType === 'Global' ? p : `${p} – ${rowActionClaim.geography}`,
+              product: p,
+              geography: rowActionClaim.geography || 'Global',
+              rows: [{
+                id: `row-${Date.now()}-${p}`,
+                order: 1,
+                globalStatement: version.globalStatement || '',
+                localStatement: version.localStatement || '',
+                backtranslation: version.backtranslation || '',
+                qualifier: rowActionClaim.qualifier || '',
+                marketingChannels: [...rowActionClaim.marketingChannels],
+              }],
+              saved: false,
+            }));
+            setShowDuplicateModal(false);
+            setCreationConfig({ open: true, type: rowActionClaim.claimType, initialTabs });
+          }}
+        />
+
+        <AdaptationModal
+          isOpen={showAdaptationModal}
+          onClose={() => { setShowAdaptationModal(false); setRowActionClaim(null); }}
+          parentClaim={rowActionClaim}
+          onCreateAdaptation={(claimId, targetProducts, targetGeographies, config) => {
+            const version = rowActionClaim.versions[rowActionClaim.currentVersion];
+            const initialTabs: any[] = [];
+            targetProducts.forEach((p: string) => {
+              targetGeographies.forEach((g: string) => {
+                initialTabs.push({
+                  key: `${p}||${g}`,
+                  label: `${p} – ${g}`,
+                  product: p,
+                  geography: g,
+                  rows: [{
+                    id: `row-${Date.now()}-${p}-${g}`,
+                    order: 1,
+                    globalStatement: version.globalStatement || '',
+                    localStatement: version.globalStatement || '',
+                    backtranslation: '',
+                    qualifier: rowActionClaim.qualifier || '',
+                    marketingChannels: [...rowActionClaim.marketingChannels],
+                  }],
+                  saved: false,
+                });
+              });
+            });
+            setShowAdaptationModal(false);
+            setCreationConfig({ open: true, type: config.adaptationType, initialTabs });
+          }}
+        />
+
+        <IRAModal
+          isOpen={showIRAModal}
+          onClose={() => { setShowIRAModal(false); setRowActionClaim(null); }}
+          claim={rowActionClaim}
+          onSave={(results: any) => {
+            if (!onClaimsChange) return;
+            const updated = {
+              ...rowActionClaim,
+              finalRiskLevelIRA: `${results.finalRiskLevel} (${results.finalRiskConfidence}%)`,
+              finalRiskSummary: {
+                ...rowActionClaim.finalRiskSummary,
+                claimClassificationLevelIRA: `${results.claimClassificationLevel} (${results.claimClassificationConfidence}%)`,
+                reasonIRA: results.reasons.map((r: any) => `${r.reason} (${r.confidence}%)`).join('; '),
+                iRAOutput: 'Completed',
+                iRAClassificationConfidence: results.claimClassificationConfidence,
+                iRARiskConfidence: results.finalRiskConfidence,
+                iRAReasons: results.reasons,
+              },
+              updatedAt: new Date().toISOString(),
+            };
+            onClaimsChange(claims.map(c => c.id === rowActionClaim.id ? updated : c));
+            setShowIRAModal(false);
+            setRowActionClaim(null);
+          }}
+        />
+
+        {creationConfig.open && (
+          <ClaimCreationModal
+            isOpen={true}
+            onClose={() => { setCreationConfig({ open: false }); setRowActionClaim(null); }}
+            onCreate={(partials) => {
+              if (!onClaimsChange) return;
+              const now = new Date().toISOString();
+              const newClaims = partials.map((partial, idx) => {
+                const ct = (partial.claimType || 'Global') as ClaimType;
+                const geo = (partial as any).geography as string | undefined;
+                const num = String(claims.length + idx + 1).padStart(3, '0');
+                const geoCode = geo ? geo.replace(/\s+/g, '').slice(0, 4).toUpperCase() : '';
+                const id = ct === 'Global' ? `CLM-${num}` : ct === 'Local SKU' ? `CLM-${num}-${geoCode}-SKU` : `CLM-${num}-${geoCode}`;
+                const parent = ct !== 'Global' ? claims.find(c => c.claimType === 'Global' && c.productName === partial.productName)?.id : undefined;
+                return {
+                  id,
+                  claimType: ct,
+                  parentClaimId: parent,
+                  productName: partial.productName || '',
+                  productId: `PRD-${id}`,
+                  versions: (partial.versions && partial.versions.length > 0) ? partial.versions : [{ versionNumber: 1, isLatest: true, globalStatement: '', localStatement: '', createdAt: now, createdBy: CURRENT_USER }],
+                  currentVersion: 0,
+                  lifecycleStage: 'Proposed' as any,
+                  marketingChannels: partial.marketingChannels || [],
+                  finalRiskLevel: null,
+                  finalRiskSummary: { marketingRiskSignoff: false, inheritanceTrace: parent ? `Inherited from ${parent}` : null } as any,
+                  substantiationDocs: [],
+                  riskAssessments: [],
+                  supportStrategy: '',
+                  restrictedUse: false,
+                  order: null as any,
+                  claimIdentifier: null as any,
+                  claimCategory: null as any,
+                  geography: geo || null as any,
+                  qualifier: (partial as any).qualifier,
+                  relatedProjectIds: [],
+                  challenged: false,
+                  expiryDate: null as any,
+                  isFavorite: false,
+                  linkedAssets: [],
+                  createdAt: now,
+                  updatedAt: now,
+                  cucCode: null as any,
+                } as Claim;
+              });
+              onClaimsChange([...claims, ...newClaims]);
+              setCreationConfig({ open: false });
+              setRowActionClaim(null);
+            }}
+            prefilledType={creationConfig.type}
+            initialTabs={creationConfig.initialTabs}
+            initialStep={2}
+          />
+        )}
+      </>
+    )}
+    </>
   );
 }
