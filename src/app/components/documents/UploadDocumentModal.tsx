@@ -586,7 +586,7 @@ export default function UploadDocumentModal({
                       value=""
                     >
                       <option value="">Select products...</option>
-                      {initialProducts.filter(p => !selectedProducts.includes(p.id) && ['Technology', 'Variant', 'Local Variant'].includes(p.type)).map(p => (
+                      {initialProducts.filter(p => !selectedProducts.includes(p.id) && ['Technology', 'Variant', 'Local Product'].includes(p.type)).map(p => (
                         <option key={p.id} value={p.id}>{p.name} ({p.id})</option>
                       ))}
                     </select>

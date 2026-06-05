@@ -11,7 +11,7 @@ const MOCK_PRODUCTS = [
   { id: 'prod-1', name: 'Dove Intensive Repair Moisturizer', type: 'Standard', geography: 'Global' },
   { id: 'prod-2', name: 'Dove Advanced Repair Serum', type: 'Standard', geography: 'North America' },
   { id: 'prod-3', name: 'Dove Regional Variant - EMEA', type: 'Regional Variant', geography: 'EMEA' },
-  { id: 'prod-4', name: 'Dove Local Variant - India', type: 'Local Variant', geography: 'South Asia' },
+  { id: 'prod-4', name: 'Dove Local Product - India', type: 'Local Product', geography: 'South Asia' },
 ];
 
 const MOCK_AVAILABLE_CLAIMS = [

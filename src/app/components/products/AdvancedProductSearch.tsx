@@ -217,20 +217,22 @@ export default function AdvancedProductSearch({
     if (typeFilter && typeFilter.value) {
       const val = typeFilter.value.trim().toLowerCase();
       if (val.includes('technology')) return 'Technology';
-      if (val.includes('format')) return 'Format';
       if (val.includes('subrange')) return 'Subrange';
+      if (val.includes('range')) return 'Range';
+      if (val.includes('format')) return 'Format';
       if (val.includes('variant') && !val.includes('local')) return 'Variant';
-      if (val.includes('local variant')) return 'Local Variant';
+      if (val.includes('local')) return 'Local Product';
       if (val.includes('sku')) return 'SKU';
     }
     
     // Fallback to checking the global quick search value
     const query = globalSearch.trim().toLowerCase();
     if (query.includes('technology')) return 'Technology';
-    if (query.includes('format')) return 'Format';
     if (query.includes('subrange')) return 'Subrange';
+    if (query.includes('range')) return 'Range';
+    if (query.includes('format')) return 'Format';
     if (query.includes('variant') && !query.includes('local')) return 'Variant';
-    if (query.includes('local variant')) return 'Local Variant';
+    if (query.includes('local')) return 'Local Product';
     if (query.includes('sku')) return 'SKU';
     
     return undefined;

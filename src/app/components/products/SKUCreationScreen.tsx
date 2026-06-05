@@ -118,7 +118,7 @@ export default function SKUCreationScreen({
             <h2 className="text-night text-sm font-extrabold">SKU Creation Form</h2>
             <p className="text-[10px] text-gray-400 font-medium">
               {sourceContext === "productCreation"
-                ? "Create SKUs for your local variants"
+                ? "Create SKUs for your local products"
                 : "Create SKUs for your product variants"}
             </p>
           </div>
@@ -144,7 +144,7 @@ export default function SKUCreationScreen({
               <div className="text-sm text-sky space-y-1">
                 <p className="font-semibold">SKU Mapping Required</p>
                 <p className="text-xs opacity-90">
-                  Select a local variant and assign a unique SKU code. You can create multiple SKUs by adding rows below.
+                  Select a local product and assign a unique SKU code. You can create multiple SKUs by adding rows below.
                 </p>
               </div>
             </div>
@@ -158,7 +158,7 @@ export default function SKUCreationScreen({
 
               {/* Table Header for Desktop */}
               <div className="hidden sm:grid sm:grid-cols-12 gap-3 px-4 py-3 bg-gray-50 rounded-lg border border-gray-200">
-                <div className="sm:col-span-3 text-[10px] font-extrabold uppercase text-gray-500 tracking-wider">Local Variant</div>
+                <div className="sm:col-span-3 text-[10px] font-extrabold uppercase text-gray-500 tracking-wider">Local Product</div>
                 <div className="sm:col-span-3 text-[10px] font-extrabold uppercase text-gray-500 tracking-wider">SKU Code</div>
                 <div className="sm:col-span-4 text-[10px] font-extrabold uppercase text-gray-500 tracking-wider">Description</div>
                 <div className="sm:col-span-2 text-[10px] font-extrabold uppercase text-gray-500 tracking-wider text-right">Actions</div>
@@ -186,7 +186,7 @@ export default function SKUCreationScreen({
                       </div>
 
                       <div>
-                        <label className="text-[10px] font-extrabold uppercase text-gray-500 tracking-wider block mb-2">Local Variant *</label>
+                        <label className="text-[10px] font-extrabold uppercase text-gray-500 tracking-wider block mb-2">Local Product *</label>
                         <select
                           value={sku.localVariantId}
                           onChange={(e) =>
@@ -196,7 +196,7 @@ export default function SKUCreationScreen({
                           }
                           className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm font-semibold text-night focus:ring-1 focus:ring-sky/50 outline-none"
                         >
-                          <option value="">Select local variant...</option>
+                          <option value="">Select local product...</option>
                           {availableLocalVariants.map((lv) => (
                             <option key={lv.id} value={lv.id}>
                               {lv.name}

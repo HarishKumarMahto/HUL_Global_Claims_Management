@@ -130,7 +130,7 @@ const TYPE_STYLES: Record<Product['type'], string> = {
 const TYPE_LABELS: Record<Product['type'], string> = {
   parent: 'Format',
   variant: 'Variant',
-  local_variant: 'Local Variant',
+  local_variant: 'Local Product',
   sku: 'SKU'
 };
 

@@ -58,13 +58,15 @@ export const getCreateChildLabel = (type: string): string => {
       return "";
     case 'sku':
       return "Create SKU";
-    case 'format':
-      return "Create Subrange/Variant";
+    case 'range':
+      return "Create Subrange/Format";
     case 'subrange':
-      return "Create Variant";
+      return "Create Format";
+    case 'format':
+      return "Create Variant/Local Product";
     case 'variant':
-      return "Create Local Variant";
-    case 'local variant':
+      return "Create Local Product";
+    case 'local product':
       return "Create SKU";
     default:
       return "Create Product";
@@ -560,7 +562,7 @@ function InlineHierarchyWidget({
   }
 
   const filteredNodes = productBrand
-    ? filterNodes(productBrand.formats, search, lcFilter)
+    ? filterNodes(productBrand.roots, search, lcFilter)
     : [];
 
   return (
@@ -633,8 +635,8 @@ function InlineHierarchyWidget({
               {productBrand.brandName}
             </div>
             <div className="text-xs text-gray-400">
-              {productBrand.formats.length} format
-              {productBrand.formats.length !== 1 ? "s" : ""} ·{" "}
+              {productBrand.roots.length} item
+              {productBrand.roots.length !== 1 ? "s" : ""} ·{" "}
               {
                 allProducts.filter(
                   (p) => p.brand === productBrand.brandName,
@@ -896,7 +898,7 @@ const RELATED_CLAIMS_SIMPLE = ALL_PRODUCT_CLAIMS.map(
 const LOCAL_REGIONAL_CLAIMS = [
   {
     geo: "United Kingdom",
-    type: "Local Variant",
+    type: "Local Product",
     id: "LV-UK-001",
     state: "In-use",
     claims: 4,
@@ -904,7 +906,7 @@ const LOCAL_REGIONAL_CLAIMS = [
   },
   {
     geo: "Germany",
-    type: "Local Variant",
+    type: "Local Product",
     id: "LV-DE-002",
     state: "Created",
     claims: 3,
@@ -1605,15 +1607,16 @@ export default function ProductDetailsPage({
   const [versioningSource, setVersioningSource] = useState<ProductItem | null>(null);
 
   const handleCreateChildClick = () => {
-    if (product.type === "Format") {
+    // Range and Format each have two possible child types — prompt the user.
+    if (product.type === "Range" || product.type === "Format") {
       setShowFormatChildPrompt(true);
     } else {
-      let type: ProductType = "Variant";
+      let type: ProductType = "Format";
       if (product.type === "Subrange") {
-        type = "Variant";
+        type = "Format";
       } else if (product.type === "Variant") {
-        type = "Local Variant";
-      } else if (product.type === "Local Variant") {
+        type = "Local Product";
+      } else if (product.type === "Local Product") {
         type = "SKU";
       } else if (product.type === "Technology") {
         type = "Technology";
@@ -1795,16 +1798,16 @@ export default function ProductDetailsPage({
               />
 
               {/* Additional optional fields based on product type */}
-              {(product.type === 'Subrange' || product.type === 'Variant' ||
-                product.type === 'Local Variant' || product.type === 'SKU') && (
+              {(product.type === 'Subrange' || product.type === 'Format' || product.type === 'Variant' ||
+                product.type === 'Local Product' || product.type === 'SKU') && (
                   <EditableAttr label="Technology 2" field="technology2" />
                 )}
-              {(product.type === 'Subrange' || product.type === 'Variant') && (
+              {(product.type === 'Range' || product.type === 'Subrange' || product.type === 'Variant') && (
                 <EditableAttr label="Tier" field="tier" />
               )}
 
-              {/* Geographies - shown for Local Variant and SKU */}
-              {(product.type === 'Local Variant' || product.type === 'SKU') &&
+              {/* Geographies - shown for Local Product and SKU */}
+              {(product.type === 'Local Product' || product.type === 'SKU') &&
                 product.geographies.length > 0 && (
                   <AttrCard
                     label="Geographies"
@@ -1823,8 +1826,8 @@ export default function ProductDetailsPage({
                   />
                 )}
 
-              {/* CUC Specification Number - shown for Local Variant and SKU */}
-              {(product.type === 'Local Variant' || product.type === 'SKU') &&
+              {/* CUC Specification Number - shown for Local Product and SKU */}
+              {(product.type === 'Local Product' || product.type === 'SKU') &&
                 product.cucSpecNumber && (
                   <AttrCard
                     label="CUC Specification Number"
@@ -2678,8 +2681,7 @@ export default function ProductDetailsPage({
               </div>
             ) : (
               <div className="text-center py-10 text-gray-400 text-sm">
-                {product.type === "Format" ||
-                  product.type === "Technology"
+                {!product.parentId
                   ? "This is a top-level product with no parent."
                   : "No parent product found."}
               </div>
@@ -3203,32 +3205,41 @@ export default function ProductDetailsPage({
               <h3 className="text-night font-bold text-lg">{getCreateChildLabel(product.type)}</h3>
             </div>
 
-            <p className="text-sm text-gray-600 mb-6 leading-relaxed">
-              Do you want to create a <strong className="text-night font-semibold">Subrange</strong>?
-            </p>
-
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => {
-                  setShowFormatChildPrompt(false);
-                  setChildPreselectedType("Subrange");
-                  setShowCreateChild(true);
-                }}
-                className="px-4 py-2 border border-pebble text-night rounded-lg text-xs hover:bg-earth transition-colors font-medium"
-              >
-                yes
-              </button>
-              <button
-                onClick={() => {
-                  setShowFormatChildPrompt(false);
-                  setChildPreselectedType("Variant");
-                  setShowCreateChild(true);
-                }}
-                className="px-4 py-2 bg-sky text-white rounded-lg text-xs hover:bg-dark transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-sky/50 font-bold"
-              >
-                No(Create a variant)
-              </button>
-            </div>
+            {(() => {
+              const childOptions: ProductType[] = product.type === "Range"
+                ? ["Subrange", "Format"]
+                : ["Variant", "Local Product"];
+              return (
+                <>
+                  <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+                    Which would you like to create under{" "}
+                    <strong className="text-night font-semibold">{product.name}</strong>?
+                  </p>
+                  <div className="flex gap-3 justify-end">
+                    <button
+                      onClick={() => {
+                        setShowFormatChildPrompt(false);
+                        setChildPreselectedType(childOptions[0]);
+                        setShowCreateChild(true);
+                      }}
+                      className="px-4 py-2 border border-pebble text-night rounded-lg text-xs hover:bg-earth transition-colors font-medium"
+                    >
+                      {childOptions[0]}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowFormatChildPrompt(false);
+                        setChildPreselectedType(childOptions[1]);
+                        setShowCreateChild(true);
+                      }}
+                      className="px-4 py-2 bg-sky text-white rounded-lg text-xs hover:bg-dark transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-sky/50 font-bold"
+                    >
+                      {childOptions[1]}
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       )}

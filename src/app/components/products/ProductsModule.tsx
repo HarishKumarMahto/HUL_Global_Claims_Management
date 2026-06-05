@@ -220,9 +220,9 @@ export default function ProductsModule({
       setProducts(prev => [...newItems, ...prev]);
     }
 
-    // Extract local variants from the created products for SKU creation
+    // Extract local products from the created products for SKU creation
     const localVariants = newItems
-      .filter(item => item.type === 'Local Variant')
+      .filter(item => item.type === 'Local Product')
       .map((item) => ({
         id: item.id,
         name: item.name,

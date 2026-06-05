@@ -1,4 +1,4 @@
-export type ProductType = 'Technology' | 'Format' | 'Subrange' | 'Variant' | 'Local Variant' | 'SKU';
+export type ProductType = 'Technology' | 'Range' | 'Subrange' | 'Format' | 'Variant' | 'Local Product' | 'SKU';
 export type LifecycleState = 'Created' | 'In-use' | 'Obsolete' | 'Cancelled';
 
 export interface ProductVersionRef {
@@ -42,17 +42,18 @@ export interface ProductItem {
 }
 
 export const PRODUCT_TYPES: ProductType[] = [
-  'Technology', 'Format', 'Subrange', 'Variant', 'Local Variant', 'SKU'
+  'Technology', 'Range', 'Subrange', 'Format', 'Variant', 'Local Product', 'SKU'
 ];
 
 export const LIFECYCLE_STATES: LifecycleState[] = ['Created', 'In-use', 'Obsolete', 'Cancelled'];
 
 export const PRODUCT_TYPE_META: Record<ProductType, { icon: string; color: string; bg: string; description: string }> = {
   'Technology': { icon: '⚗️', color: '#6B21A8', bg: '#F3E8FF', description: 'Contextual metadata linked to products' },
-  'Format': { icon: '📦', color: '#1D4ED8', bg: '#DBEAFE', description: 'Parent product format under a brand' },
-  'Subrange': { icon: '🗂️', color: '#0369A1', bg: '#E0F2FE', description: 'Grouping of variants within a format' },
+  'Range': { icon: '🧭', color: '#7C3AED', bg: '#EDE9FE', description: 'Top-level product range under a brand' },
+  'Subrange': { icon: '🗂️', color: '#0369A1', bg: '#E0F2FE', description: 'Grouping of formats within a range' },
+  'Format': { icon: '📦', color: '#1D4ED8', bg: '#DBEAFE', description: 'Product format within a subrange or range' },
   'Variant': { icon: '🔬', color: '#047857', bg: '#D1FAE5', description: 'Global product definition before localisation' },
-  'Local Variant': { icon: '🌍', color: '#B45309', bg: '#FEF3C7', description: 'Localised product for specific geographies' },
+  'Local Product': { icon: '🌍', color: '#B45309', bg: '#FEF3C7', description: 'Localised product for specific geographies' },
   'SKU': { icon: '🏷️', color: '#9F1239', bg: '#FFE4E6', description: 'Consumer unit (SKU) level product' },
 };
 
@@ -105,17 +106,17 @@ export const initialProducts: ProductItem[] = [
     isFavorite: false,
   },
 
-  // ── DOVE BODY WASH HIERARCHY ──────────────────────────────────────────────
+  // ── DOVE BODY WASH HIERARCHY (Range ▸ Subrange ▸ Format ▸ Variant ▸ Local Product ▸ SKU) ──
   {
-    id: 'fmt-1',
+    id: 'rng-1',
     productId: 'PROD-2026-003',
     name: 'Dove Body Wash',
     levelName: 'Body Wash',
-    type: 'Format',
+    type: 'Range',
     lifecycleState: 'In-use',
     parentId: null,
     parentName: null,
-    childCount: 3,
+    childCount: 2,
     claimsCount: 18,
     projectsCount: 4,
     geographyCount: 5,
@@ -123,7 +124,7 @@ export const initialProducts: ProductItem[] = [
     category: 'Skin Care',
     businessGroup: 'Beauty & Wellbeing',
     brand: 'Dove',
-    description: 'Dove body wash format encompassing all variants and subranges.',
+    description: 'Dove body wash range encompassing all subranges, formats and variants.',
     createdBy: 'Sarah Johnson',
     createdDate: '2024-01-15',
     lastModified: '2026-04-20',
@@ -136,9 +137,9 @@ export const initialProducts: ProductItem[] = [
     levelName: 'Intensive Repair',
     type: 'Subrange',
     lifecycleState: 'In-use',
-    parentId: 'fmt-1',
+    parentId: 'rng-1',
     parentName: 'Dove Body Wash',
-    childCount: 2,
+    childCount: 1,
     claimsCount: 12,
     projectsCount: 3,
     geographyCount: 4,
@@ -156,14 +157,38 @@ export const initialProducts: ProductItem[] = [
     isFavorite: false,
   },
   {
-    id: 'var-1',
+    id: 'fmt-1',
     productId: 'PROD-2026-005',
-    name: 'Dove Body Wash Intensive Repair Regular',
-    levelName: 'Regular',
-    type: 'Variant',
+    name: 'Dove Body Wash Intensive Repair Cream',
+    levelName: 'Cream',
+    type: 'Format',
     lifecycleState: 'In-use',
     parentId: 'sub-1',
     parentName: 'Dove Body Wash Intensive Repair',
+    childCount: 2,
+    claimsCount: 10,
+    projectsCount: 2,
+    geographyCount: 4,
+    geographies: ['Global', 'EMEA', 'North America', 'APAC'],
+    category: 'Skin Care',
+    businessGroup: 'Beauty & Wellbeing',
+    brand: 'Dove',
+    technology1: 'MicroMoisture Technology',
+    description: 'Cream-format intensive repair body wash.',
+    createdBy: 'Sarah Johnson',
+    createdDate: '2024-03-20',
+    lastModified: '2026-04-15',
+    isFavorite: true,
+  },
+  {
+    id: 'var-1',
+    productId: 'PROD-2026-006',
+    name: 'Dove Body Wash Intensive Repair Cream Regular',
+    levelName: 'Regular',
+    type: 'Variant',
+    lifecycleState: 'In-use',
+    parentId: 'fmt-1',
+    parentName: 'Dove Body Wash Intensive Repair Cream',
     childCount: 2,
     claimsCount: 8,
     projectsCount: 2,
@@ -184,13 +209,13 @@ export const initialProducts: ProductItem[] = [
   },
   {
     id: 'lv-1',
-    productId: 'PROD-2026-006',
-    name: 'Dove Body Wash Intensive Repair Regular UK',
+    productId: 'PROD-2026-007',
+    name: 'Dove Body Wash Intensive Repair Cream Regular UK',
     levelName: 'UK',
-    type: 'Local Variant',
+    type: 'Local Product',
     lifecycleState: 'In-use',
     parentId: 'var-1',
-    parentName: 'Dove Body Wash Intensive Repair Regular',
+    parentName: 'Dove Body Wash Intensive Repair Cream Regular',
     childCount: 2,
     claimsCount: 6,
     projectsCount: 1,
@@ -200,7 +225,7 @@ export const initialProducts: ProductItem[] = [
     businessGroup: 'Beauty & Wellbeing',
     brand: 'Dove',
     cucSpecNumber: 'CUC-DVB-IR-UK-001',
-    description: 'UK market localisation of Dove Body Wash Intensive Repair Regular.',
+    description: 'UK market localisation of Dove Body Wash Intensive Repair Cream Regular.',
     createdBy: 'Emma Williams',
     createdDate: '2024-05-15',
     lastModified: '2026-03-20',
@@ -208,13 +233,13 @@ export const initialProducts: ProductItem[] = [
   },
   {
     id: 'cu-1',
-    productId: 'PROD-2026-007',
-    name: 'Dove Body Wash Intensive Repair Regular UK 250ml',
+    productId: 'PROD-2026-008',
+    name: 'Dove Body Wash Intensive Repair Cream Regular UK 250ml',
     levelName: '250ml',
     type: 'SKU',
     lifecycleState: 'In-use',
     parentId: 'lv-1',
-    parentName: 'Dove Body Wash Intensive Repair Regular UK',
+    parentName: 'Dove Body Wash Intensive Repair Cream Regular UK',
     childCount: 0,
     claimsCount: 4,
     projectsCount: 1,
@@ -232,13 +257,13 @@ export const initialProducts: ProductItem[] = [
   },
   {
     id: 'cu-2',
-    productId: 'PROD-2026-008',
-    name: 'Dove Body Wash Intensive Repair Regular UK 400ml',
+    productId: 'PROD-2026-009',
+    name: 'Dove Body Wash Intensive Repair Cream Regular UK 400ml',
     levelName: '400ml',
     type: 'SKU',
     lifecycleState: 'In-use',
     parentId: 'lv-1',
-    parentName: 'Dove Body Wash Intensive Repair Regular UK',
+    parentName: 'Dove Body Wash Intensive Repair Cream Regular UK',
     childCount: 0,
     claimsCount: 4,
     projectsCount: 1,
@@ -256,14 +281,14 @@ export const initialProducts: ProductItem[] = [
   },
   {
     id: 'lv-2',
-    productId: 'PROD-2026-009',
-    name: 'Dove Body Wash Intensive Repair Regular US',
+    productId: 'PROD-2026-010',
+    name: 'Dove Body Wash Intensive Repair Cream Regular US',
     levelName: 'US',
-    type: 'Local Variant',
+    type: 'Local Product',
     lifecycleState: 'In-use',
     parentId: 'var-1',
-    parentName: 'Dove Body Wash Intensive Repair Regular',
-    childCount: 1,
+    parentName: 'Dove Body Wash Intensive Repair Cream Regular',
+    childCount: 0,
     claimsCount: 5,
     projectsCount: 1,
     geographyCount: 1,
@@ -272,7 +297,7 @@ export const initialProducts: ProductItem[] = [
     businessGroup: 'Beauty & Wellbeing',
     brand: 'Dove',
     cucSpecNumber: 'CUC-DVB-IR-US-001',
-    description: 'US market localisation of Dove Body Wash Intensive Repair Regular.',
+    description: 'US market localisation of Dove Body Wash Intensive Repair Cream Regular.',
     createdBy: 'David Smith',
     createdDate: '2024-05-20',
     lastModified: '2026-03-10',
@@ -280,13 +305,13 @@ export const initialProducts: ProductItem[] = [
   },
   {
     id: 'var-2',
-    productId: 'PROD-2026-010',
-    name: 'Dove Body Wash Intensive Repair Sensitive',
+    productId: 'PROD-2026-011',
+    name: 'Dove Body Wash Intensive Repair Cream Sensitive',
     levelName: 'Sensitive',
     type: 'Variant',
     lifecycleState: 'Created',
-    parentId: 'sub-1',
-    parentName: 'Dove Body Wash Intensive Repair',
+    parentId: 'fmt-1',
+    parentName: 'Dove Body Wash Intensive Repair Cream',
     childCount: 0,
     claimsCount: 3,
     projectsCount: 1,
@@ -306,12 +331,12 @@ export const initialProducts: ProductItem[] = [
   },
   {
     id: 'sub-2',
-    productId: 'PROD-2026-011',
+    productId: 'PROD-2026-012',
     name: 'Dove Body Wash Deep Moisture',
     levelName: 'Deep Moisture',
     type: 'Subrange',
     lifecycleState: 'In-use',
-    parentId: 'fmt-1',
+    parentId: 'rng-1',
     parentName: 'Dove Body Wash',
     childCount: 1,
     claimsCount: 9,
@@ -330,15 +355,39 @@ export const initialProducts: ProductItem[] = [
     isFavorite: false,
   },
   {
-    id: 'var-3',
-    productId: 'PROD-2026-012',
-    name: 'Dove Body Wash Deep Moisture Classic',
-    levelName: 'Classic',
-    type: 'Variant',
+    id: 'fmt-2',
+    productId: 'PROD-2026-013',
+    name: 'Dove Body Wash Deep Moisture Gel',
+    levelName: 'Gel',
+    type: 'Format',
     lifecycleState: 'In-use',
     parentId: 'sub-2',
     parentName: 'Dove Body Wash Deep Moisture',
-    childCount: 3,
+    childCount: 1,
+    claimsCount: 7,
+    projectsCount: 2,
+    geographyCount: 3,
+    geographies: ['EMEA', 'LATAM', 'APAC'],
+    category: 'Skin Care',
+    businessGroup: 'Beauty & Wellbeing',
+    brand: 'Dove',
+    technology1: 'MicroMoisture Technology',
+    description: 'Gel-format deep moisture body wash.',
+    createdBy: 'Lisa Anderson',
+    createdDate: '2024-03-05',
+    lastModified: '2026-04-05',
+    isFavorite: false,
+  },
+  {
+    id: 'var-3',
+    productId: 'PROD-2026-014',
+    name: 'Dove Body Wash Deep Moisture Gel Classic',
+    levelName: 'Classic',
+    type: 'Variant',
+    lifecycleState: 'In-use',
+    parentId: 'fmt-2',
+    parentName: 'Dove Body Wash Deep Moisture Gel',
+    childCount: 0,
     claimsCount: 7,
     projectsCount: 2,
     geographyCount: 3,
@@ -355,15 +404,15 @@ export const initialProducts: ProductItem[] = [
     isFavorite: false,
   },
   {
-    id: 'fmt-2',
-    productId: 'PROD-2026-013',
+    id: 'rng-2',
+    productId: 'PROD-2026-015',
     name: 'Dove Bar Soap',
     levelName: 'Bar Soap',
-    type: 'Format',
+    type: 'Range',
     lifecycleState: 'In-use',
     parentId: null,
     parentName: null,
-    childCount: 2,
+    childCount: 0,
     claimsCount: 11,
     projectsCount: 2,
     geographyCount: 6,
@@ -379,11 +428,11 @@ export const initialProducts: ProductItem[] = [
 
   // ── TRESemmé HIERARCHY ────────────────────────────────────────────────────
   {
-    id: 'fmt-3',
-    productId: 'PROD-2026-014',
+    id: 'rng-3',
+    productId: 'PROD-2026-016',
     name: 'TRESemmé Keratin Smooth',
     levelName: 'Keratin Smooth',
-    type: 'Format',
+    type: 'Range',
     lifecycleState: 'In-use',
     parentId: null,
     parentName: null,
@@ -403,14 +452,14 @@ export const initialProducts: ProductItem[] = [
   },
   {
     id: 'sub-3',
-    productId: 'PROD-2026-015',
+    productId: 'PROD-2026-017',
     name: 'TRESemmé Keratin Smooth Intense',
     levelName: 'Intense',
     type: 'Subrange',
     lifecycleState: 'In-use',
-    parentId: 'fmt-3',
+    parentId: 'rng-3',
     parentName: 'TRESemmé Keratin Smooth',
-    childCount: 2,
+    childCount: 1,
     claimsCount: 10,
     projectsCount: 2,
     geographyCount: 3,
@@ -427,15 +476,38 @@ export const initialProducts: ProductItem[] = [
     isFavorite: false,
   },
   {
-    id: 'var-4',
-    productId: 'PROD-2026-016',
-    name: 'TRESemmé Keratin Smooth Intense Classic',
-    levelName: 'Classic',
-    type: 'Variant',
-    lifecycleState: 'Created',
+    id: 'fmt-3',
+    productId: 'PROD-2026-018',
+    name: 'TRESemmé Keratin Smooth Intense Shampoo',
+    levelName: 'Shampoo',
+    type: 'Format',
+    lifecycleState: 'In-use',
     parentId: 'sub-3',
     parentName: 'TRESemmé Keratin Smooth Intense',
     childCount: 1,
+    claimsCount: 6,
+    projectsCount: 1,
+    geographyCount: 2,
+    geographies: ['LATAM', 'North America'],
+    category: 'Hair Care',
+    businessGroup: 'Beauty & Wellbeing',
+    brand: 'TRESemmé',
+    technology1: 'Keratin Complex Technology',
+    createdBy: 'Jennifer Davis',
+    createdDate: '2024-04-01',
+    lastModified: '2026-04-20',
+    isFavorite: false,
+  },
+  {
+    id: 'var-4',
+    productId: 'PROD-2026-019',
+    name: 'TRESemmé Keratin Smooth Intense Shampoo Classic',
+    levelName: 'Classic',
+    type: 'Variant',
+    lifecycleState: 'Created',
+    parentId: 'fmt-3',
+    parentName: 'TRESemmé Keratin Smooth Intense Shampoo',
+    childCount: 0,
     claimsCount: 5,
     projectsCount: 1,
     geographyCount: 2,
@@ -454,11 +526,11 @@ export const initialProducts: ProductItem[] = [
 
   // ── PERSIL HIERARCHY ──────────────────────────────────────────────────────
   {
-    id: 'fmt-4',
-    productId: 'PROD-2026-017',
+    id: 'rng-4',
+    productId: 'PROD-2026-020',
     name: 'Persil Laundry',
     levelName: 'Laundry',
-    type: 'Format',
+    type: 'Range',
     lifecycleState: 'In-use',
     parentId: null,
     parentName: null,
@@ -477,14 +549,14 @@ export const initialProducts: ProductItem[] = [
   },
   {
     id: 'sub-4',
-    productId: 'PROD-2026-018',
+    productId: 'PROD-2026-021',
     name: 'Persil Laundry Bio',
     levelName: 'Bio',
     type: 'Subrange',
     lifecycleState: 'In-use',
-    parentId: 'fmt-4',
+    parentId: 'rng-4',
     parentName: 'Persil Laundry',
-    childCount: 3,
+    childCount: 1,
     claimsCount: 10,
     projectsCount: 2,
     geographyCount: 3,
@@ -500,15 +572,60 @@ export const initialProducts: ProductItem[] = [
     isFavorite: false,
   },
   {
+    id: 'fmt-4',
+    productId: 'PROD-2026-022',
+    name: 'Persil Laundry Bio Liquid',
+    levelName: 'Liquid',
+    type: 'Format',
+    lifecycleState: 'In-use',
+    parentId: 'sub-4',
+    parentName: 'Persil Laundry Bio',
+    childCount: 1,
+    claimsCount: 6,
+    projectsCount: 1,
+    geographyCount: 1,
+    geographies: ['United Kingdom'],
+    category: 'Fabric Care',
+    businessGroup: 'Home Care',
+    brand: 'Persil',
+    tier: 'Core',
+    createdBy: 'James Brown',
+    createdDate: '2023-08-20',
+    lastModified: '2026-03-25',
+    isFavorite: false,
+  },
+  {
+    id: 'var-5',
+    productId: 'PROD-2026-023',
+    name: 'Persil Laundry Bio Liquid Regular',
+    levelName: 'Regular',
+    type: 'Variant',
+    lifecycleState: 'Obsolete',
+    parentId: 'fmt-4',
+    parentName: 'Persil Laundry Bio Liquid',
+    childCount: 0,
+    claimsCount: 4,
+    projectsCount: 0,
+    geographyCount: 1,
+    geographies: ['United Kingdom'],
+    category: 'Fabric Care',
+    businessGroup: 'Home Care',
+    brand: 'Persil',
+    createdBy: 'James Brown',
+    createdDate: '2023-09-01',
+    lastModified: '2025-12-01',
+    isFavorite: false,
+  },
+  {
     id: 'sub-5',
-    productId: 'PROD-2026-019',
+    productId: 'PROD-2026-024',
     name: 'Persil Laundry Non-Bio',
     levelName: 'Non-Bio',
     type: 'Subrange',
     lifecycleState: 'In-use',
-    parentId: 'fmt-4',
+    parentId: 'rng-4',
     parentName: 'Persil Laundry',
-    childCount: 2,
+    childCount: 1,
     claimsCount: 8,
     projectsCount: 2,
     geographyCount: 2,
@@ -524,25 +641,26 @@ export const initialProducts: ProductItem[] = [
     isFavorite: false,
   },
   {
-    id: 'var-5',
-    productId: 'PROD-2026-020',
-    name: 'Persil Laundry Bio Regular',
-    levelName: 'Regular',
-    type: 'Variant',
-    lifecycleState: 'Obsolete',
-    parentId: 'sub-4',
-    parentName: 'Persil Laundry Bio',
-    childCount: 1,
-    claimsCount: 4,
-    projectsCount: 0,
-    geographyCount: 1,
-    geographies: ['United Kingdom'],
+    id: 'fmt-5',
+    productId: 'PROD-2026-025',
+    name: 'Persil Laundry Non-Bio Powder',
+    levelName: 'Powder',
+    type: 'Format',
+    lifecycleState: 'In-use',
+    parentId: 'sub-5',
+    parentName: 'Persil Laundry Non-Bio',
+    childCount: 0,
+    claimsCount: 5,
+    projectsCount: 1,
+    geographyCount: 2,
+    geographies: ['United Kingdom', 'Ireland'],
     category: 'Fabric Care',
     businessGroup: 'Home Care',
     brand: 'Persil',
+    tier: 'Core',
     createdBy: 'James Brown',
-    createdDate: '2023-09-01',
-    lastModified: '2025-12-01',
+    createdDate: '2023-09-10',
+    lastModified: '2026-03-15',
     isFavorite: false,
   },
 ];
@@ -551,7 +669,8 @@ export const initialProducts: ProductItem[] = [
 
 export interface HierarchyBrand {
   brandName: string;
-  formats: HierarchyNode[];
+  /** Top-level nodes for the brand (Ranges, or Subranges/Formats created directly under the brand). */
+  roots: HierarchyNode[];
 }
 
 export interface HierarchyNode {
@@ -578,9 +697,11 @@ export function buildHierarchyTree(products: ProductItem[]): HierarchyBrand[] {
     return { product, children, isExpanded: false };
   }
 
-  const rootFormats = products.filter(p => p.type === 'Format' && !p.parentId);
+  // Top-level nodes are any parentless, non-Technology product (Range, or a
+  // Subrange/Format created directly under a brand).
+  const rootProducts = products.filter(p => !p.parentId && p.type !== 'Technology');
   const brandMap = new Map<string, ProductItem[]>();
-  rootFormats.forEach(f => {
+  rootProducts.forEach(f => {
     const list = brandMap.get(f.brand) || [];
     list.push(f);
     brandMap.set(f.brand, list);
@@ -589,14 +710,14 @@ export function buildHierarchyTree(products: ProductItem[]): HierarchyBrand[] {
   // Also include Technologies
   const technologies = products.filter(p => p.type === 'Technology');
   const techBrand: HierarchyBrand | null = technologies.length > 0
-    ? { brandName: '⚗️ Technologies', formats: technologies.map(t => ({ product: t, children: [], isExpanded: false })) }
+    ? { brandName: '⚗️ Technologies', roots: technologies.map(t => ({ product: t, children: [], isExpanded: false })) }
     : null;
 
   const brands: HierarchyBrand[] = Array.from(brandMap.entries())
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([brandName, formats]) => ({
+    .map(([brandName, roots]) => ({
       brandName,
-      formats: formats.map(buildNode),
+      roots: roots.map(buildNode),
     }));
 
   if (techBrand) brands.push(techBrand);
@@ -618,4 +739,34 @@ export function getProductTypeColor(type: ProductType): string {
 }
 export function getProductTypeBg(type: ProductType): string {
   return PRODUCT_TYPE_META[type]?.bg ?? '#F3F4F6';
+}
+
+// ── BRAND HELPERS ──────────────────────────────────────────────────────────────
+export const BRAND_SUGGESTIONS = [
+  'Dove', 'TRESemmé', 'Persil', 'Vaseline', "Hellmann's",
+  'Domestos', 'Simple', 'Comfort', 'Sunsilk', 'Knorr',
+];
+
+/**
+ * Derive the Business Group & Category for a brand. Brand sits at the top of the
+ * hierarchy, so BG/Category are auto-populated from it during product creation.
+ */
+export function getBrandClassification(brand: string): { businessGroup: string; category: string } {
+  const b = brand.toLowerCase();
+  if (b.includes('dove') || b.includes('vaseline') || b.includes('simple')) {
+    return { businessGroup: 'Beauty & Wellbeing', category: 'Skin Care' };
+  }
+  if (b.includes('tresemm') || b.includes('sunsilk')) {
+    return { businessGroup: 'Beauty & Wellbeing', category: 'Hair Care' };
+  }
+  if (b.includes('persil') || b.includes('comfort')) {
+    return { businessGroup: 'Home Care', category: 'Fabric Care' };
+  }
+  if (b.includes('domestos')) {
+    return { businessGroup: 'Home Care', category: 'Home Hygiene' };
+  }
+  if (b.includes('hellmann') || b.includes('knorr')) {
+    return { businessGroup: 'Foods', category: 'Condiments' };
+  }
+  return { businessGroup: 'Beauty & Wellbeing', category: 'Skin Care' };
 }

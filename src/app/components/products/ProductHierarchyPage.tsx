@@ -17,13 +17,15 @@ export const getCreateChildLabel = (type: string): string => {
       return "";
     case 'sku':
       return "Create SKU";
-    case 'format':
-      return "Create Subrange/Variant";
+    case 'range':
+      return "Create Subrange/Format";
     case 'subrange':
-      return "Create Variant";
+      return "Create Format";
+    case 'format':
+      return "Create Variant/Local Product";
     case 'variant':
-      return "Create Local Variant";
-    case 'local variant':
+      return "Create Local Product";
+    case 'local product':
       return "Create SKU";
     default:
       return "Create Product";
@@ -280,17 +282,17 @@ function BrandSection({ brand, favorites, onProductClick, onFavoriteToggle, sele
         </div>
         <div className="flex-1 text-left">
           <div className="text-sm text-night" style={{ fontWeight: 600 }}>{brand.brandName}</div>
-          <div className="text-xs text-gray-400">{brand.formats.length} format{brand.formats.length !== 1 ? 's' : ''}</div>
+          <div className="text-xs text-gray-400">{brand.roots.length} item{brand.roots.length !== 1 ? 's' : ''}</div>
         </div>
-        {recentIds.includes(brand.formats[0]?.product?.id || '') && (
+        {recentIds.includes(brand.roots[0]?.product?.id || '') && (
           <span className="text-xs px-2 py-0.5 bg-amber-50 text-amber-600 rounded border border-amber-200">Recently Viewed</span>
         )}
-        <div className="px-2 py-0.5 bg-earth text-gray-500 rounded-full text-xs">{brand.formats.length}</div>
+        <div className="px-2 py-0.5 bg-earth text-gray-500 rounded-full text-xs">{brand.roots.length}</div>
       </button>
 
       {expanded && (
         <div className="pl-4">
-          {brand.formats.map(node => (
+          {brand.roots.map(node => (
             <NodeCard
               key={node.product.id}
               node={node}
@@ -325,8 +327,8 @@ export default function ProductHierarchyPage({
 
   const filteredTree: HierarchyBrand[] = tree.map(brand => ({
     ...brand,
-    formats: filterNodes(brand.formats, search, lcFilter),
-  })).filter(b => b.formats.length > 0 && (!brandFilter || b.brandName === brandFilter));
+    roots: filterNodes(brand.roots, search, lcFilter),
+  })).filter(b => b.roots.length > 0 && (!brandFilter || b.brandName === brandFilter));
 
   function filterNodes(nodes: HierarchyNode[], q: string, lc: string): HierarchyNode[] {
     return nodes.reduce((acc, node) => {
@@ -341,7 +343,7 @@ export default function ProductHierarchyPage({
     }, [] as HierarchyNode[]);
   }
 
-  const brands = [...new Set(products.filter(p => p.type === 'Format').map(p => p.brand))].sort();
+  const brands = [...new Set(products.filter(p => p.type !== 'Technology').map(p => p.brand))].sort();
   const totalNodes = products.length;
 
   return (
@@ -435,7 +437,7 @@ export default function ProductHierarchyPage({
             <div>
               <div className="text-xs text-gray-400 uppercase tracking-wide mb-2">Hierarchy Levels</div>
               <div className="space-y-1.5">
-                {(['Format', 'Subrange', 'Variant', 'Local Variant', 'SKU'] as const).map((type, i) => (
+                {(['Range', 'Subrange', 'Format', 'Variant', 'Local Product', 'SKU'] as const).map((type, i) => (
                   <div key={type} className="flex items-center gap-2 text-xs text-gray-600">
                     <div className="w-3 h-0.5 rounded" style={{ background: `rgb(${Math.max(0, 0 + i * 30)}, ${Math.max(70, 100 + i * 20)}, ${Math.max(150, 200 - i * 10)})` }} />
                     {type}

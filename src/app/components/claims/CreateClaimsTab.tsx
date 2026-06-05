@@ -12,7 +12,7 @@ const MOCK_PRODUCTS = [
   { id: 'prod-1', name: 'Dove Intensive Repair Moisturizer', type: 'Standard' },
   { id: 'prod-2', name: 'Dove Advanced Repair Serum', type: 'Standard' },
   { id: 'prod-3', name: 'Dove Regional Variant - EMEA', type: 'Regional Variant' },
-  { id: 'prod-4', name: 'Dove Local Variant - India', type: 'Local Variant' },
+  { id: 'prod-4', name: 'Dove Local Product - India', type: 'Local Product' },
   { id: 'prod-5', name: 'Dove SKU - Premium India', type: 'SKU' },
 ];
 
@@ -117,7 +117,7 @@ export default function CreateClaimsTab({
         <div className="space-y-6">
           {claims.map((claim, index) => {
             const selectedProduct = availableProducts.find(p => p.id === claim.productId);
-            const isLocalVariant = selectedProduct?.type === 'Local Variant' || selectedProduct?.type === 'SKU';
+            const isLocalVariant = selectedProduct?.type === 'Local Product' || selectedProduct?.type === 'SKU';
 
             return (
               <div key={index} className="border-2 border-pebble rounded-lg p-4 space-y-4">
@@ -177,7 +177,7 @@ export default function CreateClaimsTab({
                   </select>
                   {isLocalVariant && (
                     <p className="text-xs text-gray-500 mt-1">
-                      Geography auto-set for Local Variant products
+                      Geography auto-set for Local Product items
                     </p>
                   )}
                 </div>
